@@ -1,0 +1,48 @@
+{
+  "mcpServers": {
+    "serena": {
+      "type": "stdio",
+      "command": "serena",
+      "args": [
+        "start-mcp-server",
+        "--context",
+        "ide-assistant"
+      ],
+      "env": {}
+    },
+    "codex": {
+      "type": "stdio",
+      "command": "codex",
+      "args": [
+        "mcp-server"
+      ],
+      "env": {}
+    },
+    "terraform": {
+      "type": "stdio",
+      "command": "terraform-mcp-server",
+      "args": [],
+      "env": {
+        "TFE_TOKEN": "285hMKmhtNr9eQ.atlasv1.wBBtW8rF6qZrJ9Jx0vm2QjzWnYyIDyBMYTEizytT2FZ8nxXzs1ZqpebmzzzzNcakYL8"
+      }
+    },
+    "gopls": {
+      "type": "stdio",
+      "command": "gopls",
+      "args": [
+        "mcp"
+      ],
+      "env": {}
+    },
+    "playwright": {
+      "type": "stdio",
+      "command": "mcp-server-playwright",
+      "args": [],
+      "env": {}
+    },
+    "deepwiki": {
+      "type": "http",
+      "url": "https://mcp.deepwiki.com/mcp"
+    }
+  }
+}
