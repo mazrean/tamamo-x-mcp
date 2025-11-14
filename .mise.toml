@@ -1,4 +1,6 @@
 [tools]
+deno = "2.5.6"
+
 node = "24.11.1"
 "npm:@anthropic-ai/claude-code" = "latest"
 "npm:@openai/codex" = "0.57.0"
@@ -9,10 +11,6 @@ python = "3.14.0"
 uv = "0.9.9"
 "pipx:oraios/serena" = "v0.1.4"
 "pipx:github/spec-kit" = "v0.0.79"
-
-go = "1.25.4"
-"go:github.com/hashicorp/terraform-mcp-server/cmd/terraform-mcp-server" = "0.3.2"
-"go:golang.org/x/tools/gopls" = "0.20.0"
 
 [tasks.worktree]
 run = '''
