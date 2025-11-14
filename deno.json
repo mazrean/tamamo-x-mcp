@@ -1,0 +1,42 @@
+{
+  "name": "@tamamo-x/mcp",
+  "version": "0.1.0",
+  "exports": "./src/cli/main.ts",
+  "tasks": {
+    "compile": "deno compile --allow-all --output dist/tamamo-x src/cli/main.ts",
+    "npm:build": "deno run -A scripts/build_npm.ts",
+    "lint": "deno lint",
+    "fmt": "deno fmt",
+    "test": "deno test --allow-all"
+  },
+  "lint": {
+    "rules": {
+      "tags": ["recommended"]
+    }
+  },
+  "fmt": {
+    "useTabs": false,
+    "lineWidth": 100,
+    "indentWidth": 2,
+    "semiColons": true,
+    "singleQuote": false,
+    "proseWrap": "preserve"
+  },
+  "compilerOptions": {
+    "strict": true,
+    "allowJs": false,
+    "checkJs": false,
+    "lib": ["deno.window", "deno.ns"],
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "strictBindCallApply": true,
+    "strictPropertyInitialization": true,
+    "noImplicitThis": true,
+    "alwaysStrict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true
+  }
+}
