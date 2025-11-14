@@ -166,14 +166,22 @@ Result: Found 42 TypeScript files with 8,543 total lines of code.
 Any MCP-compatible client can connect to tamamo-x-mcp:
 
 ```typescript
-import { Client } from "@modelcontextprotocol/sdk";
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 
 const client = new Client({
+  name: "my-client",
+  version: "1.0.0"
+}, {
+  capabilities: {}
+});
+
+const transport = new StdioClientTransport({
   command: "tamamo-x-mcp",
   args: ["mcp"]
 });
 
-await client.initialize();
+await client.connect(transport);  // Handshake happens automatically
 const tools = await client.listTools();
 
 // Call sub-agent

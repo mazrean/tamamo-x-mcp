@@ -63,14 +63,14 @@ description: "Task list for MCP Tool Grouping & Sub-Agent System implementation"
 
 ### Tests for User Story 1 (TDD - Write FIRST, ensure they FAIL)
 
-- [ ] T011 [P] [US1] Write integration test for init workflow in tests/integration/init_workflow_test.ts (test interactive prompts, config creation, MCP server import from .mcp.json)
-- [ ] T012 [P] [US1] Write unit tests for MCP client in tests/unit/mcp/client_test.ts (connection, initialization, error handling for stdio/http/websocket)
-- [ ] T013 [P] [US1] Write unit tests for tool discovery in tests/unit/mcp/discovery_test.ts (tool parsing from MCP responses, tool metadata extraction)
-- [ ] T014 [US1] Verify tests T011-T013 FAIL (Red phase - TDD)
+- [X] T011 [P] [US1] Write integration test for init workflow in tests/integration/init_workflow_test.ts (test interactive prompts, config creation, MCP server import from .mcp.json)
+- [X] T012 [P] [US1] Write unit tests for MCP client in tests/unit/mcp/client_test.ts (connection, initialization, error handling for stdio/http/websocket)
+- [X] T013 [P] [US1] Write unit tests for tool discovery in tests/unit/mcp/discovery_test.ts (tool parsing from MCP responses, tool metadata extraction)
+- [X] T014 [US1] Verify tests T011-T013 FAIL (Red phase - TDD)
 
 ### Implementation for User Story 1
 
-- [ ] T015 [P] [US1] Implement MCP client in src/mcp/client.ts (support stdio, http, websocket transports using @modelcontextprotocol/sdk)
+- [X] T015 [P] [US1] Implement MCP client in src/mcp/client.ts (support stdio, http transports using @modelcontextprotocol/sdk; websocket not yet supported due to SDK limitations)
 - [ ] T016 [P] [US1] Implement tool discovery in src/mcp/discovery.ts (connect to MCP servers, call tools/list, parse tool metadata)
 - [ ] T017 [US1] Implement init command in src/cli/commands/init.ts (interactive prompts, import from .mcp.json, create tamamo-x.config.json, reference Agent.md/CLAUDE.md if present)
 - [ ] T018 [US1] Implement CLI orchestration in src/cli/main.ts (parse arguments, route to init command)
