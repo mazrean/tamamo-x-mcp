@@ -1,3 +1,25 @@
 .serena
 .vscode
 .worktrees
+
+# TypeScript/Node.js
+node_modules/
+dist/
+*.js
+*.d.ts
+*.map
+!deno.lock
+
+# Deno
+.deno/
+
+# Test coverage
+coverage/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Environment
+.env
+.env.local

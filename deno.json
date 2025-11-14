@@ -1,0 +1,38 @@
+{
+  "name": "@mazrean/tamamo-x-mcp",
+  "version": "0.1.0",
+  "exports": "./src/index.ts",
+  "tasks": {
+    "dev": "deno run --allow-all src/index.ts",
+    "build": "deno compile --allow-all --output dist/tamamo-x-mcp src/index.ts",
+    "test": "deno test --allow-all",
+    "check": "deno check src/**/*.ts",
+    "fmt": "deno fmt",
+    "lint": "deno lint"
+  },
+  "compilerOptions": {
+    "lib": ["deno.ns", "deno.window", "esnext"],
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "allowJs": false
+  },
+  "fmt": {
+    "useTabs": false,
+    "lineWidth": 100,
+    "indentWidth": 2,
+    "semiColons": true,
+    "singleQuote": true,
+    "proseWrap": "preserve"
+  },
+  "lint": {
+    "rules": {
+      "tags": ["recommended"]
+    }
+  },
+  "nodeModulesDir": "auto",
+  "imports": {
+    "@std/path": "jsr:@std/path@^1.0.0",
+    "@std/fs": "jsr:@std/fs@^1.0.0"
+  }
+}
