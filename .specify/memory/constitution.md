@@ -1,18 +1,18 @@
 <!--
 SYNC IMPACT REPORT
 ==================
-Version Change: [NONE] → 1.0.0 (Initial ratification)
-Modified Principles: N/A (Initial creation)
+Version Change: 1.0.0 → 1.0.1 (CI/CD automation clarification)
+Modified Principles: N/A
 Added Sections:
-  - All core principles (I-V)
-  - Technical Stack section
-  - Development Workflow section
-  - Governance section
+  - Development Workflow: CI/CD Automation (clarifies quality gate automation)
 
 Templates Requiring Updates:
-  ✅ plan-template.md - Constitution Check section already references constitution file
-  ✅ spec-template.md - No constitution-specific constraints needed
-  ✅ tasks-template.md - Test-first requirements already aligned
+  ✅ plan-template.md - Already includes CI/CD in Phase 6
+  ✅ spec-template.md - No changes needed
+  ✅ tasks-template.md - No changes needed
+
+Impacted Projects:
+  - 001-tool-grouping: CI/CD workflows specified in contracts/ci-workflows.md
 
 Follow-up TODOs: None
 -->
@@ -113,6 +113,39 @@ deno test --filter integration
 - Reviewers MUST verify TDD workflow was followed
 - Quality gate failures block merge unconditionally
 
+### CI/CD Automation
+
+**Automated Quality Enforcement**: All quality gates MUST be automated via CI/CD pipeline (e.g., GitHub Actions):
+
+```yaml
+# Required automated checks (blocking)
+- Lint enforcement (deno lint)
+- Format verification (deno fmt --check)
+- Type checking (deno check)
+- Unit test execution (deno test tests/unit/)
+- Integration test execution (deno test tests/integration/)
+- Distribution validation (if applicable)
+
+# Recommended checks (non-blocking)
+- Code coverage tracking (target ≥80%)
+- Security vulnerability scanning
+- Dependency update monitoring
+```
+
+**Branch Protection**: Main branch MUST be protected with:
+- Required status checks (all quality gates MUST pass)
+- Up-to-date branch requirement before merge
+- No force pushes or deletions
+- Linear history (no merge commits)
+
+**Continuous Deployment**: Release automation SHOULD include:
+- Automated versioning (semantic versioning)
+- Changelog generation from commits
+- Multi-platform artifact builds
+- Automated publishing to distribution channels
+
+**Rationale**: CI/CD automation ensures consistent quality enforcement, reduces human error, provides immediate feedback to developers, and enables rapid, reliable releases.
+
 ## Governance
 
 ### Amendment Procedure
@@ -135,4 +168,4 @@ deno test --filter integration
 - Template updates MUST maintain alignment with constitution
 - Any complexity introduced MUST be justified against constitution principles
 
-**Version**: 1.0.0 | **Ratified**: 2025-11-15 | **Last Amended**: 2025-11-15
+**Version**: 1.0.1 | **Ratified**: 2025-11-15 | **Last Amended**: 2025-11-15

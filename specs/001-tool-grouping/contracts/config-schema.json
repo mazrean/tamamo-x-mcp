@@ -1,0 +1,190 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Tamamo-X Configuration",
+  "description": "Configuration schema for tamamo-x.config.json",
+  "type": "object",
+  "required": ["version", "mcpServers", "llmProvider"],
+  "properties": {
+    "version": {
+      "type": "string",
+      "description": "Config schema version",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "examples": ["1.0.0"]
+    },
+    "mcpServers": {
+      "type": "array",
+      "description": "List of MCP servers to connect to",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/definitions/MCPServerConfig"
+      }
+    },
+    "llmProvider": {
+      "$ref": "#/definitions/LLMProviderConfig"
+    },
+    "projectContext": {
+      "$ref": "#/definitions/ProjectContext"
+    },
+    "groupingConstraints": {
+      "$ref": "#/definitions/GroupingConstraints"
+    }
+  },
+  "additionalProperties": false,
+  "definitions": {
+    "MCPServerConfig": {
+      "type": "object",
+      "required": ["name", "transport"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Human-readable server identifier",
+          "minLength": 1
+        },
+        "transport": {
+          "type": "string",
+          "description": "Connection transport method",
+          "enum": ["stdio", "http", "websocket"]
+        },
+        "command": {
+          "type": "string",
+          "description": "Command to start server (required for stdio)"
+        },
+        "args": {
+          "type": "array",
+          "description": "Command arguments",
+          "items": {
+            "type": "string"
+          }
+        },
+        "url": {
+          "type": "string",
+          "description": "Server URL (required for http/websocket)",
+          "format": "uri"
+        },
+        "env": {
+          "type": "object",
+          "description": "Environment variables for server process",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "transport": {
+                "const": "stdio"
+              }
+            }
+          },
+          "then": {
+            "required": ["command"]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "transport": {
+                "enum": ["http", "websocket"]
+              }
+            }
+          },
+          "then": {
+            "required": ["url"]
+          }
+        }
+      ],
+      "additionalProperties": false
+    },
+    "LLMProviderConfig": {
+      "type": "object",
+      "required": ["type", "credentialSource"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "LLM provider identifier",
+          "enum": [
+            "anthropic",
+            "openai",
+            "gemini",
+            "vercel",
+            "bedrock",
+            "openrouter"
+          ]
+        },
+        "model": {
+          "type": "string",
+          "description": "Model name (provider-specific)"
+        },
+        "credentialSource": {
+          "type": "string",
+          "description": "How credentials are obtained",
+          "enum": ["cli-tool", "env-var", "prompt"]
+        },
+        "endpointOverride": {
+          "type": "string",
+          "description": "Custom API endpoint URL",
+          "format": "uri"
+        }
+      },
+      "additionalProperties": false
+    },
+    "ProjectContext": {
+      "type": "object",
+      "properties": {
+        "agentFilePath": {
+          "type": "string",
+          "description": "Path to Agent.md or equivalent"
+        },
+        "claudeFilePath": {
+          "type": "string",
+          "description": "Path to CLAUDE.md or equivalent"
+        },
+        "domain": {
+          "type": "string",
+          "description": "Project domain",
+          "examples": ["web-development", "data-science"]
+        },
+        "customHints": {
+          "type": "array",
+          "description": "User-provided grouping hints",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "GroupingConstraints": {
+      "type": "object",
+      "properties": {
+        "minToolsPerGroup": {
+          "type": "integer",
+          "description": "Minimum tools in a group",
+          "minimum": 1,
+          "default": 5
+        },
+        "maxToolsPerGroup": {
+          "type": "integer",
+          "description": "Maximum tools in a group",
+          "minimum": 1,
+          "default": 20
+        },
+        "minGroups": {
+          "type": "integer",
+          "description": "Minimum number of groups",
+          "minimum": 1,
+          "default": 3
+        },
+        "maxGroups": {
+          "type": "integer",
+          "description": "Maximum number of groups",
+          "minimum": 1,
+          "default": 10
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}
