@@ -96,6 +96,66 @@ describe("Config Validator", () => {
   });
 
   describe("MCPServerConfig validation", () => {
+    it("should reject non-object MCP server entry", () => {
+      // Arrange
+      const invalidConfig: Configuration = {
+        ...validConfig,
+        mcpServers: [
+          null as never, // null entry
+        ],
+      };
+
+      // Act
+      const result = validateConfig(invalidConfig);
+
+      // Assert
+      assertEquals(result.valid, false);
+      assertEquals(
+        result.errors.some((e) => e.field.includes("mcpServers[0]") && e.message.includes("object")),
+        true,
+      );
+    });
+
+    it("should reject string MCP server entry", () => {
+      // Arrange
+      const invalidConfig: Configuration = {
+        ...validConfig,
+        mcpServers: [
+          "not-an-object" as never, // string entry
+        ],
+      };
+
+      // Act
+      const result = validateConfig(invalidConfig);
+
+      // Assert
+      assertEquals(result.valid, false);
+      assertEquals(
+        result.errors.some((e) => e.field.includes("mcpServers[0]") && e.message.includes("object")),
+        true,
+      );
+    });
+
+    it("should reject array MCP server entry", () => {
+      // Arrange
+      const invalidConfig: Configuration = {
+        ...validConfig,
+        mcpServers: [
+          ["array", "entry"] as never, // array entry
+        ],
+      };
+
+      // Act
+      const result = validateConfig(invalidConfig);
+
+      // Assert
+      assertEquals(result.valid, false);
+      assertEquals(
+        result.errors.some((e) => e.field.includes("mcpServers[0]") && e.message.includes("object")),
+        true,
+      );
+    });
+
     it("should reject server without name", () => {
       // Arrange
       const invalidConfig: Configuration = {
@@ -428,6 +488,27 @@ describe("Config Validator", () => {
         assertEquals(result.valid, true, `Credential source ${source} should be valid`);
       });
     });
+
+    it("should reject invalid credential source", () => {
+      // Arrange
+      const invalidConfig: Configuration = {
+        ...validConfig,
+        llmProvider: {
+          type: "anthropic",
+          credentialSource: "invalid-source" as never,
+        },
+      };
+
+      // Act
+      const result = validateConfig(invalidConfig);
+
+      // Assert
+      assertEquals(result.valid, false);
+      assertEquals(
+        result.errors.some((e) => e.field.includes("credentialSource")),
+        true,
+      );
+    });
   });
 
   describe("GroupingConstraints validation", () => {
@@ -574,6 +655,66 @@ describe("Config Validator", () => {
 
       // Assert
       assertEquals(result.valid, true);
+    });
+
+    it("should reject customHints with non-string elements", () => {
+      // Arrange
+      const config: Configuration = {
+        ...validConfig,
+        projectContext: {
+          customHints: ["valid string", 123 as never, "another string"],
+        },
+      };
+
+      // Act
+      const result = validateConfig(config);
+
+      // Assert
+      assertEquals(result.valid, false);
+      assertEquals(
+        result.errors.some((e) => e.field.includes("customHints[1]")),
+        true,
+      );
+    });
+
+    it("should reject customHints with null elements", () => {
+      // Arrange
+      const config: Configuration = {
+        ...validConfig,
+        projectContext: {
+          customHints: ["valid string", null as never],
+        },
+      };
+
+      // Act
+      const result = validateConfig(config);
+
+      // Assert
+      assertEquals(result.valid, false);
+      assertEquals(
+        result.errors.some((e) => e.field.includes("customHints[1]")),
+        true,
+      );
+    });
+
+    it("should reject customHints with object elements", () => {
+      // Arrange
+      const config: Configuration = {
+        ...validConfig,
+        projectContext: {
+          customHints: ["valid string", { foo: "bar" } as never],
+        },
+      };
+
+      // Act
+      const result = validateConfig(config);
+
+      // Assert
+      assertEquals(result.valid, false);
+      assertEquals(
+        result.errors.some((e) => e.field.includes("customHints[1]")),
+        true,
+      );
     });
   });
 

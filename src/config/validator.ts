@@ -48,6 +48,16 @@ export function validateConfig(config: Configuration): ValidationResult {
     // Validate each MCP server
     const serverNames = new Set<string>();
     config.mcpServers.forEach((server, index) => {
+      // Type guard: ensure server is an object before accessing properties
+      if (typeof server !== "object" || server === null || Array.isArray(server)) {
+        errors.push({
+          field: `mcpServers[${index}]`,
+          message: "MCP server entry must be an object",
+          code: "INVALID_SERVER_TYPE",
+        });
+        return; // Skip further validation for this entry
+      }
+
       // Validate name field
       if (!server.name || typeof server.name !== "string" || server.name.trim() === "") {
         errors.push({
@@ -218,15 +228,25 @@ export function validateConfig(config: Configuration): ValidationResult {
   // For now, we just validate the structure
   if (config.projectContext) {
     // Structure validation only - file existence will be checked at runtime
-    if (
-      config.projectContext.customHints &&
-      !Array.isArray(config.projectContext.customHints)
-    ) {
-      errors.push({
-        field: "projectContext.customHints",
-        message: "customHints must be an array of strings",
-        code: "INVALID_CUSTOM_HINTS",
-      });
+    if (config.projectContext.customHints) {
+      if (!Array.isArray(config.projectContext.customHints)) {
+        errors.push({
+          field: "projectContext.customHints",
+          message: "customHints must be an array of strings",
+          code: "INVALID_CUSTOM_HINTS",
+        });
+      } else {
+        // Validate each element is a string
+        config.projectContext.customHints.forEach((hint, index) => {
+          if (typeof hint !== "string") {
+            errors.push({
+              field: `projectContext.customHints[${index}]`,
+              message: "Each customHint must be a string",
+              code: "INVALID_CUSTOM_HINT_TYPE",
+            });
+          }
+        });
+      }
     }
   }
 

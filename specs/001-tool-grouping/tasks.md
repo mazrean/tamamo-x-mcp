@@ -29,10 +29,10 @@ description: "Task list for MCP Tool Grouping & Sub-Agent System implementation"
 
 **Purpose**: Project initialization and basic structure
 
-- [ ] T001 Initialize Deno project with deno.json, deno.lock, and .gitignore
-- [ ] T002 [P] Create project directory structure (src/, tests/, .github/)
-- [ ] T003 [P] Configure deno.json with tasks (compile, npm:build, lint, fmt, test)
-- [ ] T004 [P] Define TypeScript types in src/types/index.ts (Configuration, MCPServerConfig, LLMProviderConfig, ProjectContext, GroupingConstraints, Tool, ToolGroup, SubAgent, AgentRequest, AgentResponse)
+- [X] T001 Initialize Deno project with deno.json, deno.lock, and .gitignore
+- [X] T002 [P] Create project directory structure (src/, tests/, .github/)
+- [X] T003 [P] Configure deno.json with tasks (compile, npm:build, lint, fmt, test)
+- [X] T004 [P] Define TypeScript types in src/types/index.ts (Configuration, MCPServerConfig, LLMProviderConfig, ProjectContext, GroupingConstraints, Tool, ToolGroup, SubAgent, AgentRequest, AgentResponse)
 
 **Checkpoint**: Project infrastructure ready for development
 
@@ -44,12 +44,12 @@ description: "Task list for MCP Tool Grouping & Sub-Agent System implementation"
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T005 [P] Write tests for config loader in tests/unit/config/loader_test.ts (load valid/invalid configs, error handling)
-- [ ] T006 [P] Write tests for config validator in tests/unit/config/validator_test.ts (schema validation, constraint checking)
-- [ ] T007 Verify tests T005-T006 FAIL (Red phase - TDD)
-- [ ] T008 Implement config loader in src/config/loader.ts (read/write tamamo-x.config.json)
-- [ ] T009 Implement config validator in src/config/validator.ts (validate against contracts/config-schema.json)
-- [ ] T010 Run lint (deno lint) and tests (deno test) - all must pass (Green phase - TDD)
+- [X] T005 [P] Write tests for config loader in tests/unit/config/loader_test.ts (load valid/invalid configs, error handling)
+- [X] T006 [P] Write tests for config validator in tests/unit/config/validator_test.ts (schema validation, constraint checking)
+- [X] T007 Verify tests T005-T006 FAIL (Red phase - TDD)
+- [X] T008 Implement config loader in src/config/loader.ts (read/write tamamo-x.config.json)
+- [X] T009 Implement config validator in src/config/validator.ts (validate against contracts/config-schema.json)
+- [X] T010 Run lint (deno lint) and tests (deno test) - all must pass (Green phase - TDD)
 
 **Checkpoint**: Configuration management complete and tested
 
