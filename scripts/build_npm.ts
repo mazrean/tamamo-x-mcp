@@ -46,7 +46,7 @@ const result = await esbuild.build({
 import * as DenoShim from "@deno/shim-deno";
 // Set up globalThis.Deno with proper args from process.argv
 globalThis.Deno = {
-  ...DenoShim,
+  ...DenoShim.Deno,
   args: process.argv.slice(2),
 };
 `,
