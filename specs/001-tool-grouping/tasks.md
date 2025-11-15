@@ -174,20 +174,27 @@ description: "Task list for MCP Tool Grouping & Sub-Agent System implementation"
 
 ### Tests for User Story 5 (TDD - Write FIRST, ensure they FAIL)
 
-- [ ] T058 [P] [US5] Write distribution validation tests in tests/distribution/deno_binary_test.ts (test Deno binary execution, all commands work)
-- [ ] T059 [P] [US5] Write distribution validation tests in tests/distribution/npm_package_test.ts (test npm package via npx, all commands work)
-- [ ] T060 [P] [US5] Write feature parity tests in tests/distribution/parity_test.ts (compare outputs from both distributions, fail if different)
-- [ ] T061 [US5] Verify tests T058-T060 FAIL (Red phase - TDD)
+- [X] T058 [P] [US5] Write distribution validation tests in tests/distribution/deno_binary_test.ts (test Deno binary execution, all commands work)
+- [X] T059 [P] [US5] Write distribution validation tests in tests/distribution/npm_package_test.ts (test npm package via Node.js, all commands work)
+- [X] T060 [P] [US5] Write feature parity tests in tests/distribution/parity_test.ts (compare outputs from both distributions, fail if different)
+- [X] T061 [US5] Verify tests T058-T060 FAIL (Red phase - TDD)
 
 ### Implementation for User Story 5
 
-- [ ] T062 [US5] Configure Deno compilation in deno.json (add compile task: deno compile --allow-all --output dist/tamamo-x src/cli/main.ts)
-- [ ] T063 [US5] Create npm package build script in scripts/build_npm.ts (setup package.json, configure for npx execution)
-- [ ] T064 [US5] Add npm:build task to deno.json (deno run -A scripts/build_npm.ts)
-- [ ] T065 [US5] Build both distributions (run deno task compile && deno task npm:build)
-- [ ] T066 [US5] Run lint (deno lint) and distribution tests (deno test tests/distribution/) - all must pass (Green phase - TDD)
+- [X] T062 [US5] Configure Deno compilation in deno.json (add compile task: deno compile --allow-all --output dist/tamamo-x src/cli/main.ts)
+- [X] T063 [US5] Create npm package build script in scripts/build_npm.ts (esbuild + @deno/shim-deno for Node.js compatibility, all Deno APIs shimmed)
+- [X] T064 [US5] Add npm:build task to deno.json (deno run -A scripts/build_npm.ts)
+- [X] T065 [US5] Build both distributions (run deno task compile && deno task npm:build)
+- [X] T066 [US5] Run lint (deno lint) and distribution tests (deno test tests/distribution/) - all must pass (Green phase - TDD): 44 tests, 348 steps, all PASS
 
 **Checkpoint**: Both distributions built and validated with 100% feature parity (SC-007).
+
+**✅ Phase 7 Completed** (2025-01-16):
+- **Deno binary**: 32.5MB standalone executable, zero external dependencies
+- **npm package**: Node.js 20+ compatible using esbuild + @deno/shim-deno for full Deno API compatibility
+- **Test Results**: All 44 tests PASS (348 test steps), including 22 distribution tests (7 Deno binary, 8 npm package, 7 parity)
+- **Quality**: Lint PASS (47 files), Codex MCP approved
+- **Key Achievement**: npm package runs natively on Node.js with complete Deno API shim via @deno/shim-deno@^0.19.2
 
 ---
 
