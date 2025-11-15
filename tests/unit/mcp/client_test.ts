@@ -68,7 +68,7 @@ describe("MCP Client", () => {
   });
 
   describe("Connection management", () => {
-    it("should connect to stdio MCP server", async () => {
+    it("should connect to stdio MCP server", () => {
       // This test requires a real MCP server implementation
       // For unit testing, we verify the client can be created and basic properties work
       // TODO: Implement with mock MCP server for integration testing
@@ -132,7 +132,7 @@ describe("MCP Client", () => {
 
 
   describe("Environment variables", () => {
-    it("should pass environment variables to stdio server process", async () => {
+    it("should pass environment variables to stdio server process", () => {
       // This test requires a real MCP server implementation that can verify env vars
       // For unit testing, we verify the client accepts env configuration
       // TODO: Implement with mock MCP server for integration testing

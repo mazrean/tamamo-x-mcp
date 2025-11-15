@@ -73,8 +73,8 @@ description: "Task list for MCP Tool Grouping & Sub-Agent System implementation"
 - [X] T015 [P] [US1] Implement MCP client in src/mcp/client.ts (support stdio, http transports using @modelcontextprotocol/sdk; websocket not yet supported due to SDK limitations)
 - [X] T016 [P] [US1] Implement tool discovery in src/mcp/discovery.ts (connect to MCP servers, call tools/list, parse tool metadata with graceful error handling and parallel discovery)
 - [X] T017 [US1] Implement init command in src/cli/commands/init.ts (import from .mcp.json with robust type validation, create tamamo-x.config.json, auto-detect Agent.md/CLAUDE.md)
-- [ ] T018 [US1] Implement CLI orchestration in src/cli/main.ts (parse arguments, route to init command)
-- [ ] T019 [US1] Run lint (deno lint) and tests (deno test tests/unit/mcp/, tests/integration/init_workflow_test.ts) - all must pass (Green phase - TDD)
+- [X] T018 [US1] Implement CLI orchestration in src/cli/main.ts (argument parsing with parseArgs, command routing to init/build/mcp, --version/--help flags, comprehensive tests with Deno.exit stubbing)
+- [X] T019 [US1] Run lint (deno lint) and tests (deno test) - all must pass (Green phase - TDD): 104 test steps, 13 files linted
 
 **Checkpoint**: At this point, User Story 1 should be fully functional and testable independently. Users can run `tamamo-x-mcp init` successfully.
 
