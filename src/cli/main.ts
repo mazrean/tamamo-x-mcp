@@ -9,6 +9,7 @@
 
 import { parseArgs } from "https://deno.land/std@0.224.0/cli/parse_args.ts";
 import { init } from "./commands/init.ts";
+import { build } from "./commands/build.ts";
 
 const VERSION = "1.0.0";
 
@@ -25,8 +26,8 @@ USAGE:
 
 COMMANDS:
     init        Initialize configuration (creates tamamo-x.config.json)
-    build       Analyze tools and create sub-agent groups (TODO: Phase 4)
-    mcp         Start MCP server with grouped sub-agents (TODO: Phase 5)
+    build       Analyze tools and create sub-agent groups
+    mcp         Start MCP server with grouped sub-agents (TODO: Phase 6)
     help        Show this help message
 
 OPTIONS:
@@ -91,9 +92,7 @@ async function main(args: string[]): Promise<void> {
         break;
 
       case "build":
-        console.error("Error: 'build' command is not yet implemented");
-        console.error("This will be available in Phase 4 (User Story 2)");
-        Deno.exit(1);
+        await build();
         break;
 
       case "mcp":

@@ -109,17 +109,6 @@ describe("CLI Main", () => {
       }
     });
 
-    it("should exit with error for unimplemented build command", async () => {
-      try {
-        await main(["build"]);
-        assertEquals(true, false, "Should have exited");
-      } catch (error) {
-        assertEquals((error as Error).message, "EXIT_1");
-        assertEquals(exitCode, 1);
-        assertStringIncludes(errorOutput.join("\n"), "not yet implemented");
-      }
-    });
-
     it("should exit with error for unimplemented mcp command", async () => {
       try {
         await main(["mcp"]);
