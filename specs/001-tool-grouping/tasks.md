@@ -115,25 +115,25 @@ description: "Task list for MCP Tool Grouping & Sub-Agent System implementation"
 
 ### Tests for User Story 3 (TDD - Write FIRST, ensure they FAIL)
 
-- [ ] T031 [P] [US3] Write unit tests for credential discovery in tests/unit/llm/credentials_test.ts (test Claude Code, Codex, Gemini CLI credential discovery, env var fallback, credential security)
-- [ ] T032 [P] [US3] Write unit tests for unified LLM client in tests/unit/llm/client_test.ts (test unified interface routing to providers)
-- [ ] T033 [P] [US3] Write unit tests for Anthropic provider in tests/unit/llm/providers/anthropic_test.ts (test @anthropic-ai/sdk integration, mock API responses)
-- [ ] T034 [P] [US3] Write unit tests for OpenAI provider in tests/unit/llm/providers/openai_test.ts (test openai SDK integration)
-- [ ] T035 [P] [US3] Write unit tests for Gemini provider in tests/unit/llm/providers/gemini_test.ts (test @google/generative-ai SDK integration)
-- [ ] T036 [P] [US3] Write unit tests for remaining providers in tests/unit/llm/providers/ (vercel_test.ts, bedrock_test.ts, openrouter_test.ts)
-- [ ] T037 [US3] Verify tests T031-T036 FAIL (Red phase - TDD)
+- [X] T031 [P] [US3] Write unit tests for credential discovery in tests/unit/llm/credentials_test.ts (test Claude Code, Codex, Gemini CLI credential discovery, env var fallback, credential security)
+- [X] T032 [P] [US3] Write unit tests for unified LLM client in tests/unit/llm/client_test.ts (test unified interface routing to providers)
+- [X] T033 [P] [US3] Write unit tests for Anthropic provider in tests/unit/llm/providers/anthropic_test.ts (test @anthropic-ai/sdk integration, mock API responses)
+- [X] T034 [P] [US3] Write unit tests for OpenAI provider in tests/unit/llm/providers/openai_test.ts (test openai SDK integration)
+- [X] T035 [P] [US3] Write unit tests for Gemini provider in tests/unit/llm/providers/gemini_test.ts (test @google/generative-ai SDK integration)
+- [X] T036 [P] [US3] Write unit tests for remaining providers in tests/unit/llm/providers/ (vercel_test.ts, bedrock_test.ts, openrouter_test.ts)
+- [X] T037 [US3] Verify tests T031-T036 FAIL (Red phase - TDD)
 
 ### Implementation for User Story 3
 
-- [ ] T038 [P] [US3] Implement credential discovery in src/llm/credentials.ts (discover from ~/.config/claude/, ~/.config/openai/, ~/.config/gcloud/, env vars, prompt user if not found)
-- [ ] T039 [P] [US3] Implement unified LLM client interface in src/llm/client.ts (abstract complete(prompt, options) method)
-- [ ] T040 [P] [US3] Implement Anthropic provider in src/llm/providers/anthropic.ts (use @anthropic-ai/sdk)
-- [ ] T041 [P] [US3] Implement OpenAI provider in src/llm/providers/openai.ts (use openai SDK, also supports OpenRouter)
-- [ ] T042 [P] [US3] Implement Gemini provider in src/llm/providers/gemini.ts (use @google/generative-ai SDK)
-- [ ] T043 [P] [US3] Implement Vercel AI provider in src/llm/providers/vercel.ts (use ai SDK)
-- [ ] T044 [P] [US3] Implement AWS Bedrock provider in src/llm/providers/bedrock.ts (use @aws-sdk/client-bedrock-runtime)
+- [X] T038 [P] [US3] Implement credential discovery in src/llm/credentials.ts (discover from ~/.config/claude/, ~/.config/openai/, ~/.config/gcloud/, env vars, prompt user if not found)
+- [X] T039 [P] [US3] Implement unified LLM client interface in src/llm/client.ts (abstract complete(prompt, options) method)
+- [X] T040 [P] [US3] Implement Anthropic provider in src/llm/providers/anthropic.ts (use @anthropic-ai/sdk)
+- [X] T041 [P] [US3] Implement OpenAI provider in src/llm/providers/openai.ts (use openai SDK, also supports OpenRouter)
+- [X] T042 [P] [US3] Implement Gemini provider in src/llm/providers/gemini.ts (use @google/generative-ai SDK)
+- [X] T043 [P] [US3] Implement Vercel AI provider in src/llm/providers/vercel.ts (use ai SDK)
+- [X] T044 [P] [US3] Implement AWS Bedrock provider in src/llm/providers/bedrock.ts (use @aws-sdk/client-bedrock-runtime)
 - [ ] T045 [US3] Update grouping analyzer to use unified LLM client (modify src/grouping/analyzer.ts to use src/llm/client.ts)
-- [ ] T046 [US3] Run lint (deno lint) and tests (deno test tests/unit/llm/) - all must pass (Green phase - TDD)
+- [X] T046 [US3] Run lint (deno lint) and tests (deno test tests/unit/llm/) - all must pass (Green phase - TDD)
 
 **Checkpoint**: At this point, User Stories 1, 2, AND 3 should all work independently. Users can configure any of 6 LLM providers and build succeeds.
 
