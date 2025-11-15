@@ -3,43 +3,34 @@
  * Uses @google/generative-ai SDK
  */
 
+import { GoogleGenerativeAI } from "npm:@google/generative-ai@0.21.0";
 import type { LLMClient, CompletionOptions } from "../client.ts";
 
 const DEFAULT_MODEL = "gemini-2.0-flash-exp";
 
 export function createGeminiClient(
-  _apiKey: string,
+  apiKey: string,
   model?: string,
 ): LLMClient {
-  // TODO: Import actual Gemini SDK when ready
-  // import { GoogleGenerativeAI } from "npm:@google/generative-ai";
-  // const genAI = new GoogleGenerativeAI(apiKey);
-  // const geminiModel = genAI.getGenerativeModel({ model: selectedModel });
-
+  const genAI = new GoogleGenerativeAI(apiKey);
   const selectedModel = model || DEFAULT_MODEL;
+  const geminiModel = genAI.getGenerativeModel({ model: selectedModel });
 
   return {
     provider: "gemini",
     model: selectedModel,
-    complete(_prompt: string, _options?: CompletionOptions): Promise<string> {
-      // TODO: Replace with actual SDK call
-      // const result = await geminiModel.generateContent(prompt);
-      // return result.response.text();
+    async complete(prompt: string, _options?: CompletionOptions): Promise<string> {
+      // Note: Gemini API doesn't support temperature/maxTokens in the same way
+      // These would need to be set via generationConfig if needed
+      const result = await geminiModel.generateContent(prompt);
+      const response = result.response;
+      const text = response.text();
 
-      // Mock implementation for now - returns valid JSON for analyzer
-      const mockResponse = {
-        relationships: [
-          { tool1: "tool_a", tool2: "tool_b", score: 0.8 },
-        ],
-        suggestions: [
-          {
-            name: "mock_group",
-            tools: ["tool_a", "tool_b"],
-            rationale: "Mock grouping suggestion from Gemini provider",
-          },
-        ],
-      };
-      return Promise.resolve(JSON.stringify(mockResponse));
+      if (!text) {
+        throw new Error("No text content in Gemini API response");
+      }
+
+      return text;
     },
   };
 }
