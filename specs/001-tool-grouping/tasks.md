@@ -205,7 +205,7 @@ description: "Task list for MCP Tool Grouping & Sub-Agent System implementation"
 ### CI/CD Setup
 
 - [X] T067 [P] Create main CI workflow in .github/workflows/ci.yml (quality gates: lint, format, type-check; matrix testing: Ubuntu, macOS, Windows; test phases: unit → integration → distribution)
-- [ ] T068 [P] Create release workflow in .github/workflows/release.yml (trigger on tag push v*.*.*, build multi-platform binaries, publish npm package, create GitHub Release with changelog)
+- [X] T068 [P] Create release workflow in .github/workflows/release.yml (trigger on tag push v*.*.*, build multi-platform binaries, publish npm package, create GitHub Release with changelog)
 - [ ] T069 [P] Configure Dependabot in .github/dependabot.yml (weekly dependency updates for npm and GitHub Actions)
 - [ ] T070 [P] Create distribution validation workflow in .github/workflows/distribution.yml (nightly deep parity testing, automated issue creation on violations)
 - [ ] T071 [P] Write CI enforcement tests in tests/ci/ (lint_enforcement_test.ts, test_gate_enforcement_test.ts, distribution_gate_enforcement_test.ts)
