@@ -147,20 +147,20 @@ description: "Task list for MCP Tool Grouping & Sub-Agent System implementation"
 
 ### Tests for User Story 4 (TDD - Write FIRST, ensure they FAIL)
 
-- [ ] T047 [P] [US4] Write integration test for MCP server workflow in tests/integration/mcp_server_test.ts (test server startup, client connection, sub-agent invocation, protocol compliance)
-- [ ] T048 [P] [US4] Write unit tests for agent execution in tests/unit/agents/agent_test.ts (test Mastra integration, tool wrapping, agent execution)
-- [ ] T049 [P] [US4] Write unit tests for request routing in tests/unit/agents/router_test.ts (test routing logic, agent selection by ID)
-- [ ] T050 [P] [US4] Write unit tests for MCP server in tests/unit/mcp/server_test.ts (test server initialization, sub-agent exposure as tools)
-- [ ] T051 [US4] Verify tests T047-T050 FAIL (Red phase - TDD)
+- [X] T047 [P] [US4] Write integration test for MCP server workflow in tests/integration/mcp_server_test.ts (test server startup, client connection, sub-agent invocation, protocol compliance)
+- [X] T048 [P] [US4] Write unit tests for agent execution in tests/unit/agents/agent_test.ts (test Mastra integration, tool wrapping, agent execution)
+- [X] T049 [P] [US4] Write unit tests for request routing in tests/unit/agents/router_test.ts (test routing logic, agent selection by ID)
+- [X] T050 [P] [US4] Write unit tests for MCP server in tests/unit/mcp/server_test.ts (test server initialization, sub-agent exposure as tools)
+- [X] T051 [US4] Verify tests T047-T050 FAIL (Red phase - TDD)
 
 ### Implementation for User Story 4
 
-- [ ] T052 [P] [US4] Implement agent execution in src/agents/agent.ts (wrap MCP tools as Mastra tools, create Mastra agents with grouped tools and LLM)
-- [ ] T053 [P] [US4] Implement request routing in src/agents/router.ts (route AgentRequest to appropriate SubAgent by ID, generate AgentResponse)
-- [ ] T054 [US4] Implement MCP server in src/mcp/server.ts (use @modelcontextprotocol/sdk Server, expose sub-agents as MCP tools, handle tools/list and tools/call)
-- [ ] T055 [US4] Implement mcp command in src/cli/commands/mcp.ts (load groups from .tamamo-x/groups.json, instantiate sub-agents, start MCP server)
-- [ ] T056 [US4] Update CLI orchestration in src/cli/main.ts (route to mcp command)
-- [ ] T057 [US4] Run lint (deno lint) and tests (deno test tests/unit/agents/, tests/unit/mcp/server_test.ts, tests/integration/mcp_server_test.ts) - all must pass (Green phase - TDD)
+- [X] T052 [P] [US4] Implement agent execution in src/agents/agent.ts (wrap MCP tools as Mastra tools, create Mastra agents with grouped tools and LLM)
+- [X] T053 [P] [US4] Implement request routing in src/agents/router.ts (route AgentRequest to appropriate SubAgent by ID, generate AgentResponse)
+- [X] T054 [US4] Implement MCP server in src/mcp/server.ts (use @modelcontextprotocol/sdk Server, expose sub-agents as MCP tools, handle tools/list and tools/call)
+- [X] T055 [US4] Implement mcp command in src/cli/commands/mcp.ts (load groups from .tamamo-x/groups.json, instantiate sub-agents, start MCP server)
+- [X] T056 [US4] Update CLI orchestration in src/cli/main.ts (route to mcp command)
+- [X] T057 [US4] Run lint (deno lint) and tests (deno test tests/unit/agents/, tests/unit/mcp/server_test.ts, tests/integration/mcp_server_test.ts) - all must pass (Green phase - TDD)
 
 **Checkpoint**: All user stories 1-4 should now be fully functional. Users can run full workflow: `init` → `build` → `mcp`.
 
