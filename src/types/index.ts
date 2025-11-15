@@ -152,8 +152,9 @@ export interface CompletionOptions {
 }
 
 export interface LLMClient {
-  complete(prompt: string, options?: CompletionOptions): Promise<string>;
   provider: LLMProviderType;
+  model: string;
+  complete(prompt: string, options?: CompletionOptions): Promise<string>;
 }
 
 // MCP Protocol types

@@ -176,7 +176,7 @@ export class MCPClient {
     }
 
     try {
-      const schema = z.unknown();
+      const schema = z.object({}).passthrough();
 
       const result = await this.client.request(
         {
