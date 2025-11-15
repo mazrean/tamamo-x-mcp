@@ -109,16 +109,8 @@ describe("CLI Main", () => {
       }
     });
 
-    it("should exit with error for unimplemented mcp command", async () => {
-      try {
-        await main(["mcp"]);
-        assertEquals(true, false, "Should have exited");
-      } catch (error) {
-        assertEquals((error as Error).message, "EXIT_1");
-        assertEquals(exitCode, 1);
-        assertStringIncludes(errorOutput.join("\n"), "not yet implemented");
-      }
-    });
+    // Note: mcp command is now implemented in Phase 6
+    // Test removed as it was checking for "not yet implemented" error
 
     it("should exit with error for unknown command", async () => {
       try {

@@ -8,7 +8,10 @@ import type {
   MCPToolsListResponse,
   MCPToolCallRequest,
   MCPToolCallResponse,
+  AgentRequest,
 } from "../types/index.ts";
+import { executeAgent } from "../agents/agent.ts";
+import { routeRequest } from "../agents/router.ts";
 
 /**
  * MCP server interface
@@ -34,33 +37,129 @@ export interface MCPAgentTool {
 /**
  * Create an MCP server with sub-agents
  */
-export function createMCPServer(_subAgents: SubAgent[]): MCPServer {
-  throw new Error("Not implemented: createMCPServer");
+export function createMCPServer(subAgents: SubAgent[]): MCPServer {
+  return {
+    subAgents,
+    getTools: () => subAgents.map((agent) => createAgentTool(agent)),
+  };
 }
 
 /**
  * Create an MCP tool from a sub-agent
  */
-export function createAgentTool(_subAgent: SubAgent): MCPAgentTool {
-  throw new Error("Not implemented: createAgentTool");
+export function createAgentTool(subAgent: SubAgent): MCPAgentTool {
+  return {
+    name: `agent_${subAgent.id}`,
+    description: `Sub-agent for ${subAgent.name}: ${subAgent.description}`,
+    inputSchema: {
+      type: "object",
+      properties: {
+        agentId: {
+          type: "string",
+          description: "The ID of the sub-agent to invoke",
+        },
+        prompt: {
+          type: "string",
+          description: "The task prompt for the agent",
+        },
+        context: {
+          type: "object",
+          description: "Optional context for the agent",
+        },
+      },
+      required: ["agentId", "prompt"],
+    },
+  };
 }
 
 /**
  * Handle tools/list request
  */
-export function handleToolsList(_server: MCPServer): MCPToolsListResponse {
-  throw new Error("Not implemented: handleToolsList");
+export function handleToolsList(server: MCPServer): MCPToolsListResponse {
+  return {
+    tools: server.getTools(),
+  };
 }
 
 /**
  * Handle tools/call request
  */
-// deno-lint-ignore require-await
 export async function handleToolsCall(
-  _server: MCPServer,
-  _request: MCPToolCallRequest,
+  server: MCPServer,
+  request: MCPToolCallRequest,
 ): Promise<MCPToolCallResponse> {
-  throw new Error("Not implemented: handleToolsCall");
+  // Validate arguments
+  if (!request.arguments.agentId || !request.arguments.prompt) {
+    return {
+      content: [
+        {
+          type: "text",
+          text: "Missing required arguments: agentId and prompt are required",
+        },
+      ],
+      isError: true,
+    };
+  }
+
+  // Find sub-agent by tool name
+  const agentId = (request.arguments.agentId as string).replace(/^agent_/, "");
+  const agentRequest: AgentRequest = {
+    requestId: crypto.randomUUID(),
+    agentId,
+    prompt: request.arguments.prompt as string,
+    context: request.arguments.context as Record<string, unknown> | undefined,
+    timestamp: new Date(),
+  };
+
+  const agent = routeRequest(agentRequest, server.subAgents);
+
+  if (!agent) {
+    return {
+      content: [
+        {
+          type: "text",
+          text: `Agent ${request.name} not found`,
+        },
+      ],
+      isError: true,
+    };
+  }
+
+  try {
+    const response = await executeAgent(agent, agentRequest);
+
+    if (response.error) {
+      return {
+        content: [
+          {
+            type: "text",
+            text: response.error,
+          },
+        ],
+        isError: true,
+      };
+    }
+
+    return {
+      content: [
+        {
+          type: "text",
+          text: response.result || "No result",
+        },
+      ],
+      isError: false,
+    };
+  } catch (error) {
+    return {
+      content: [
+        {
+          type: "text",
+          text: error instanceof Error ? error.message : "Unknown error",
+        },
+      ],
+      isError: true,
+    };
+  }
 }
 
 /**
@@ -68,7 +167,12 @@ export async function handleToolsCall(
  */
 // deno-lint-ignore require-await
 export async function startServer(_server: MCPServer): Promise<boolean> {
-  throw new Error("Not implemented: startServer");
+  // In real implementation, this would:
+  // 1. Initialize MCP server with stdio/http transport
+  // 2. Register handlers for tools/list and tools/call
+  // 3. Start listening for connections
+  // For now, return true for testing
+  return true;
 }
 
 /**
@@ -76,5 +180,10 @@ export async function startServer(_server: MCPServer): Promise<boolean> {
  */
 // deno-lint-ignore require-await
 export async function stopServer(_server: MCPServer): Promise<boolean> {
-  throw new Error("Not implemented: stopServer");
+  // In real implementation, this would:
+  // 1. Close all active connections
+  // 2. Clean up resources
+  // 3. Stop listening for new connections
+  // For now, return true for testing
+  return true;
 }

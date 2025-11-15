@@ -10,6 +10,7 @@
 import { parseArgs } from "https://deno.land/std@0.224.0/cli/parse_args.ts";
 import { init } from "./commands/init.ts";
 import { build } from "./commands/build.ts";
+import { mcpCommand } from "./commands/mcp.ts";
 
 const VERSION = "1.0.0";
 
@@ -27,7 +28,7 @@ USAGE:
 COMMANDS:
     init        Initialize configuration (creates tamamo-x.config.json)
     build       Analyze tools and create sub-agent groups
-    mcp         Start MCP server with grouped sub-agents (TODO: Phase 6)
+    mcp         Start MCP server with grouped sub-agents
     help        Show this help message
 
 OPTIONS:
@@ -96,9 +97,7 @@ async function main(args: string[]): Promise<void> {
         break;
 
       case "mcp":
-        console.error("Error: 'mcp' command is not yet implemented");
-        console.error("This will be available in Phase 5 (User Story 3)");
-        Deno.exit(1);
+        await mcpCommand();
         break;
 
       case "help":

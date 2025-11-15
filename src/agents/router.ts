@@ -13,47 +13,71 @@ import type {
  * Find an agent by ID
  */
 export function findAgentById(
-  _agents: SubAgent[],
-  _agentId: string,
+  agents: SubAgent[],
+  agentId: string,
 ): SubAgent | null {
-  throw new Error("Not implemented: findAgentById");
+  return agents.find((agent) => agent.id === agentId) || null;
 }
 
 /**
  * Route a request to the appropriate agent
  */
 export function routeRequest(
-  _request: AgentRequest,
-  _agents: SubAgent[],
+  request: AgentRequest,
+  agents: SubAgent[],
 ): SubAgent | null {
-  throw new Error("Not implemented: routeRequest");
+  return findAgentById(agents, request.agentId);
 }
 
 /**
  * Validate an agent request
  */
-export function validateRequest(_request: AgentRequest): boolean {
-  throw new Error("Not implemented: validateRequest");
+export function validateRequest(request: AgentRequest): boolean {
+  // Check required fields
+  if (!request.requestId || typeof request.requestId !== "string") {
+    return false;
+  }
+
+  if (!request.agentId || typeof request.agentId !== "string") {
+    return false;
+  }
+
+  if (!request.prompt || typeof request.prompt !== "string" || request.prompt.trim() === "") {
+    return false;
+  }
+
+  return true;
 }
 
 /**
  * Create a success response
  */
 export function createSuccessResponse(
-  _request: AgentRequest,
-  _agent: SubAgent,
-  _result: string,
-  _toolsUsed?: string[],
+  request: AgentRequest,
+  agent: SubAgent,
+  result: string,
+  toolsUsed?: string[],
 ): AgentResponse {
-  throw new Error("Not implemented: createSuccessResponse");
+  return {
+    requestId: request.requestId,
+    agentId: agent.id,
+    result,
+    toolsUsed,
+    timestamp: new Date(),
+  };
 }
 
 /**
  * Create an error response
  */
 export function createErrorResponse(
-  _request: AgentRequest,
-  _error: string,
+  request: AgentRequest,
+  error: string,
 ): AgentResponse {
-  throw new Error("Not implemented: createErrorResponse");
+  return {
+    requestId: request.requestId,
+    agentId: request.agentId,
+    timestamp: new Date(),
+    error,
+  };
 }
