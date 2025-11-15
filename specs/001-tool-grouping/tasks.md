@@ -88,20 +88,20 @@ description: "Task list for MCP Tool Grouping & Sub-Agent System implementation"
 
 ### Tests for User Story 2 (TDD - Write FIRST, ensure they FAIL)
 
-- [ ] T020 [P] [US2] Write integration test for build workflow in tests/integration/build_workflow_test.ts (test LLM analysis, group creation, constraint validation with fixture tool catalogs of 50+ tools)
-- [ ] T021 [P] [US2] Write unit tests for grouping analyzer in tests/unit/grouping/analyzer_test.ts (LLM request batching, tool analysis)
-- [ ] T022 [P] [US2] Write unit tests for grouping algorithm in tests/unit/grouping/grouper_test.ts (grouping correctness, complementarity scoring)
-- [ ] T023 [P] [US2] Write unit tests for grouping validator in tests/unit/grouping/validator_test.ts (constraint validation: 5-20 tools per group, 3-10 total groups)
-- [ ] T024 [US2] Verify tests T020-T023 FAIL (Red phase - TDD)
+- [X] T020 [P] [US2] Write integration test for build workflow in tests/integration/build_workflow_test.ts (test LLM analysis, group creation, constraint validation with fixture tool catalogs of 50+ tools)
+- [X] T021 [P] [US2] Write unit tests for grouping analyzer in tests/unit/grouping/analyzer_test.ts (LLM request batching, tool analysis)
+- [X] T022 [P] [US2] Write unit tests for grouping algorithm in tests/unit/grouping/grouper_test.ts (grouping correctness, complementarity scoring)
+- [X] T023 [P] [US2] Write unit tests for grouping validator in tests/unit/grouping/validator_test.ts (constraint validation: 5-20 tools per group, 3-10 total groups)
+- [X] T024 [US2] Verify tests T020-T023 FAIL (Red phase - TDD)
 
 ### Implementation for User Story 2
 
-- [ ] T025 [P] [US2] Implement grouping analyzer in src/grouping/analyzer.ts (use LLM client to analyze tools in batches of 10, extract relationships and complementarity)
-- [ ] T026 [P] [US2] Implement grouping validator in src/grouping/validator.ts (enforce GroupingConstraints from data-model.md § 5)
-- [ ] T027 [US2] Implement grouping algorithm in src/grouping/grouper.ts (parse LLM analysis, assign tools to groups based on complementarity, use ProjectContext if available)
-- [ ] T028 [US2] Implement build command in src/cli/commands/build.ts (load config, discover tools, analyze with LLM, create groups, save to .tamamo-x/groups.json)
-- [ ] T029 [US2] Update CLI orchestration in src/cli/main.ts (route to build command)
-- [ ] T030 [US2] Run lint (deno lint) and tests (deno test tests/unit/grouping/, tests/integration/build_workflow_test.ts) - all must pass (Green phase - TDD)
+- [X] T025 [P] [US2] Implement grouping analyzer in src/grouping/analyzer.ts (use LLM client to analyze tools in batches of 10, extract relationships and complementarity)
+- [X] T026 [P] [US2] Implement grouping validator in src/grouping/validator.ts (enforce GroupingConstraints from data-model.md § 5)
+- [X] T027 [US2] Implement grouping algorithm in src/grouping/grouper.ts (parse LLM analysis, assign tools to groups based on complementarity, use ProjectContext if available)
+- [X] T028 [US2] Implement build command in src/cli/commands/build.ts (load config, discover tools, analyze with LLM, create groups, save to .tamamo-x/groups.json)
+- [X] T029 [US2] Update CLI orchestration in src/cli/main.ts (route to build command)
+- [X] T030 [US2] Run lint (deno lint) and tests (deno test tests/unit/grouping/, tests/integration/build_workflow_test.ts) - all must pass (Green phase - TDD)
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work independently. Users can run `init` then `build` successfully.
 
@@ -132,7 +132,7 @@ description: "Task list for MCP Tool Grouping & Sub-Agent System implementation"
 - [X] T042 [P] [US3] Implement Gemini provider in src/llm/providers/gemini.ts (use @google/generative-ai SDK)
 - [X] T043 [P] [US3] Implement Vercel AI provider in src/llm/providers/vercel.ts (use ai SDK)
 - [X] T044 [P] [US3] Implement AWS Bedrock provider in src/llm/providers/bedrock.ts (use @aws-sdk/client-bedrock-runtime)
-- [ ] T045 [US3] Update grouping analyzer to use unified LLM client (modify src/grouping/analyzer.ts to use src/llm/client.ts)
+- [X] T045 [US3] Update grouping analyzer to use unified LLM client (modify src/grouping/analyzer.ts to use src/llm/client.ts)
 - [X] T046 [US3] Run lint (deno lint) and tests (deno test tests/unit/llm/) - all must pass (Green phase - TDD)
 
 **Checkpoint**: At this point, User Stories 1, 2, AND 3 should all work independently. Users can configure any of 6 LLM providers and build succeeds.
