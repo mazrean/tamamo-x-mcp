@@ -6,7 +6,7 @@
  * Reference: quickstart.md § Step 1 (Initialize Configuration)
  */
 
-import { join } from "https://deno.land/std@0.224.0/path/mod.ts";
+import { join } from "jsr:@std/path@^1.0.0";
 import { saveConfig } from "../../config/loader.ts";
 import { validateConfig } from "../../config/validator.ts";
 import type { Configuration, MCPServerConfig } from "../../types/index.ts";

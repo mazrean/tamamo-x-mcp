@@ -3,7 +3,7 @@
  * Command: tamamo-x-mcp mcp
  */
 
-import { join } from "https://deno.land/std@0.224.0/path/mod.ts";
+import { join } from "jsr:@std/path@^1.0.0";
 import type { ToolGroup, LLMProviderConfig, SubAgent } from "../../types/index.ts";
 import { createSubAgent } from "../../agents/agent.ts";
 import {

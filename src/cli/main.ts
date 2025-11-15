@@ -1,4 +1,3 @@
-#!/usr/bin/env -S deno run --allow-read --allow-write
 /**
  * CLI entry point for tamamo-x-mcp
  * Parses arguments and routes to appropriate command
@@ -7,7 +6,7 @@
  * Reference: quickstart.md (CLI usage examples)
  */
 
-import { parseArgs } from "https://deno.land/std@0.224.0/cli/parse_args.ts";
+import { parseArgs } from "jsr:@std/cli@^1.0.0/parse-args";
 import { init } from "./commands/init.ts";
 import { build } from "./commands/build.ts";
 import { mcpCommand } from "./commands/mcp.ts";

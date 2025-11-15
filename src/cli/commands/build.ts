@@ -7,8 +7,8 @@
  * Reference: spec.md (FR-003, FR-004, FR-005)
  */
 
-import { join, resolve } from "https://deno.land/std@0.224.0/path/mod.ts";
-import { ensureDir } from "https://deno.land/std@0.224.0/fs/ensure_dir.ts";
+import { join, resolve } from "jsr:@std/path@^1.0.0";
+import { ensureDir } from "jsr:@std/fs@^1.0.0/ensure-dir";
 import { loadConfig } from "../../config/loader.ts";
 import { validateConfig } from "../../config/validator.ts";
 import { discoverAllTools } from "../../mcp/discovery.ts";

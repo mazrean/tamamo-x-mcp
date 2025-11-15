@@ -3,8 +3,8 @@
  * Loads and saves configuration files
  */
 
-import { ensureDir } from "https://deno.land/std@0.224.0/fs/ensure_dir.ts";
-import { dirname } from "https://deno.land/std@0.224.0/path/mod.ts";
+import { ensureDir } from "jsr:@std/fs@^1.0.0/ensure-dir";
+import { dirname } from "jsr:@std/path@^1.0.0";
 import type { Configuration } from "../types/index.ts";
 
 /**

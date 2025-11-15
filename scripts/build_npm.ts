@@ -42,17 +42,18 @@ const result = await esbuild.build({
   target: "node20",
   banner: {
     js: `#!/usr/bin/env node
-// Deno API shims for Node.js
-if (typeof globalThis.Deno === "undefined") {
-  globalThis.Deno = {
-    args: process.argv.slice(2),
-    exit: (code) => process.exit(code),
-  };
-}
+// Import Deno shims for full API compatibility
+import * as DenoShim from "@deno/shim-deno";
+// Set up globalThis.Deno with proper args from process.argv
+globalThis.Deno = {
+  ...DenoShim,
+  args: process.argv.slice(2),
+};
 `,
   },
   external: [
     // Keep all npm packages external (not bundled)
+    "@deno/shim-deno",
     "@anthropic-ai/*",
     "@ai-sdk/*",
     "@aws-sdk/*",
@@ -116,6 +117,7 @@ const packageJson = {
     node: ">=20.0.0",
   },
   dependencies: {
+    "@deno/shim-deno": "^0.19.2",
     "@ai-sdk/openai": "^1.0.11",
     "@anthropic-ai/sdk": "^0.32.1",
     "@aws-sdk/client-bedrock-runtime": "^3.716.0",

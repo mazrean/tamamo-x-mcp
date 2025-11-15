@@ -11,7 +11,7 @@
  * Security: Credentials are NEVER stored in tamamo-x.config.json
  */
 
-import { join } from "https://deno.land/std@0.224.0/path/mod.ts";
+import { join } from "jsr:@std/path@^1.0.0";
 import type { LLMProviderType } from "../types/index.ts";
 
 export interface BedrockCredentials {

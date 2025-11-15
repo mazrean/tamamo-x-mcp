@@ -1,0 +1,37 @@
+{
+  "version": "1.0.0",
+  "mcpServers": [
+    {
+      "name": "serena",
+      "transport": "stdio",
+      "command": "serena",
+      "args": [
+        "start-mcp-server",
+        "--context",
+        "ide-assistant"
+      ],
+      "env": {}
+    },
+    {
+      "name": "codex",
+      "transport": "stdio",
+      "command": "codex",
+      "args": [
+        "mcp-server"
+      ],
+      "env": {}
+    },
+    {
+      "name": "deepwiki",
+      "transport": "http",
+      "url": "https://mcp.deepwiki.com/mcp"
+    }
+  ],
+  "llmProvider": {
+    "type": "anthropic",
+    "credentialSource": "cli-tool"
+  },
+  "projectContext": {
+    "claudeFilePath": "CLAUDE.md"
+  }
+}
