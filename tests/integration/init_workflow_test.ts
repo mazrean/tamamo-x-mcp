@@ -1,6 +1,9 @@
 import { assertEquals, assertExists } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import { describe, it, beforeEach, afterEach } from "https://deno.land/std@0.224.0/testing/bdd.ts";
 import { join } from "https://deno.land/std@0.224.0/path/mod.ts";
+import { init } from "../../src/cli/commands/init.ts";
+import { discoverAllTools } from "../../src/mcp/discovery.ts";
+import { loadConfig } from "../../src/config/loader.ts";
 
 /**
  * Integration tests for init workflow (User Story 1)
@@ -36,8 +39,7 @@ describe("Init Workflow Integration", () => {
       const configPath = join(tempDir, "tamamo-x.config.json");
 
       // Act
-      // TODO: Call init command with test inputs
-      // For now, this test will fail as init command doesn't exist yet
+      await init({ projectRoot: tempDir });
 
       // Assert
       const exists = await Deno.stat(configPath).then(() => true).catch(() => false);
@@ -58,8 +60,7 @@ describe("Init Workflow Integration", () => {
       await Deno.writeTextFile(mcpJsonPath, JSON.stringify(mcpConfig, null, 2));
 
       // Act
-      // TODO: Call init command
-      // For now, this test will fail as init command doesn't exist yet
+      await init({ projectRoot: tempDir });
 
       // Assert
       const configPath = join(tempDir, "tamamo-x.config.json");
@@ -86,8 +87,7 @@ describe("Init Workflow Integration", () => {
       await Deno.writeTextFile(claudeMdPath, "# Test Claude Instructions");
 
       // Act
-      // TODO: Call init command with project context
-      // For now, this test will fail as init command doesn't exist yet
+      await init({ projectRoot: tempDir });
 
       // Assert
       const configPath = join(tempDir, "tamamo-x.config.json");
@@ -126,13 +126,11 @@ describe("Init Workflow Integration", () => {
       await Deno.writeTextFile(configPath, JSON.stringify(testConfig, null, 2));
 
       // Act
-      // TODO: Call tool discovery function
-      // For now, this test will fail as tool discovery doesn't exist yet
+      const config = await loadConfig(configPath);
+      const tools = await discoverAllTools(config.mcpServers);
 
       // Assert
       // Should be able to list discovered tools
-      // This will fail until we implement tool discovery
-      const tools: unknown[] = []; // TODO: Replace with actual tool discovery call
       assertEquals(Array.isArray(tools), true, "Should return array of tools");
     });
 
@@ -156,11 +154,10 @@ describe("Init Workflow Integration", () => {
       await Deno.writeTextFile(configPath, JSON.stringify(testConfig, null, 2));
 
       // Act & Assert
-      // TODO: Call tool discovery - should not throw, but log warning
-      // For now, this test will fail as tool discovery doesn't exist yet
       // Should handle error gracefully and return empty array or skip server
       try {
-        const tools: unknown[] = []; // TODO: Replace with actual tool discovery call
+        const config = await loadConfig(configPath);
+        const tools = await discoverAllTools(config.mcpServers);
         assertEquals(Array.isArray(tools), true, "Should return array even if server is unreachable");
       } catch (error) {
         // Should not throw - graceful degradation
@@ -170,17 +167,65 @@ describe("Init Workflow Integration", () => {
   });
 
   describe("Configuration validation", () => {
-    it("should validate configuration during init", async () => {
+    it("should skip servers with invalid command type", async () => {
       // Arrange
-      // Create invalid configuration (e.g., missing required fields)
+      const mcpJsonPath = join(tempDir, ".mcp.json");
+      // Create .mcp.json with invalid server config (command is not a string)
+      const invalidMcpConfig = {
+        mcpServers: {
+          "valid-server": {
+            command: "test-command",
+            args: ["--test"],
+          },
+          "invalid-server": {
+            command: ["not", "a", "string"], // Invalid: array instead of string
+          },
+        },
+      };
+      await Deno.writeTextFile(mcpJsonPath, JSON.stringify(invalidMcpConfig, null, 2));
 
-      // Act & Assert
-      // TODO: Call init with invalid inputs
-      // Should validate and reject or prompt for corrections
-      // For now, this test will fail as init command doesn't exist yet
+      // Act
+      await init({ projectRoot: tempDir });
 
-      // This test ensures init validates user input before creating config
-      assertEquals(true, true, "Placeholder for validation test");
+      // Assert
+      const configPath = join(tempDir, "tamamo-x.config.json");
+      const config = await loadConfig(configPath);
+
+      // Invalid server should be skipped, valid server should be imported
+      assertEquals(config.mcpServers.length, 1, "Only valid server should be imported");
+      assertEquals(config.mcpServers[0].name, "valid-server", "Valid server should be imported");
+    });
+
+    it("should skip servers with non-string url", async () => {
+      // Arrange
+      const mcpJsonPath = join(tempDir, ".mcp.json");
+      // Create .mcp.json with numeric URL (invalid type)
+      const invalidMcpConfig = {
+        mcpServers: {
+          "valid-server": {
+            url: "http://localhost:3000",
+          },
+          "invalid-numeric-url": {
+            url: 12345, // Invalid: number instead of string
+          },
+          "invalid-object-url": {
+            url: { host: "localhost" }, // Invalid: object instead of string
+          },
+        },
+      };
+      await Deno.writeTextFile(mcpJsonPath, JSON.stringify(invalidMcpConfig, null, 2));
+
+      // Act
+      await init({ projectRoot: tempDir });
+
+      // Assert
+      const configPath = join(tempDir, "tamamo-x.config.json");
+      const config = await loadConfig(configPath);
+
+      // Only valid server should be imported
+      assertEquals(config.mcpServers.length, 1, "Only valid server should be imported");
+      assertEquals(config.mcpServers[0].name, "valid-server", "Valid server should be imported");
+      assertEquals(config.mcpServers[0].url, "http://localhost:3000", "Valid URL should be preserved");
     });
   });
 });
