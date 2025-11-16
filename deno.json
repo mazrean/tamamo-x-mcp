@@ -2,6 +2,7 @@
   "name": "@tamamo-x/mcp",
   "version": "0.1.0",
   "exports": "./src/cli/main.ts",
+  "exclude": ["npm/", "dist/", "cov_profile/"],
   "tasks": {
     "compile": "deno compile --allow-all --output dist/tamamo-x src/cli/main.ts",
     "npm:build": "deno run -A scripts/build_npm.ts",
@@ -25,7 +26,6 @@
   },
   "compilerOptions": {
     "strict": true,
-    "allowJs": false,
     "checkJs": false,
     "lib": ["deno.window", "deno.ns"],
     "noImplicitAny": true,
@@ -34,7 +34,6 @@
     "strictBindCallApply": true,
     "strictPropertyInitialization": true,
     "noImplicitThis": true,
-    "alwaysStrict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noImplicitReturns": true,

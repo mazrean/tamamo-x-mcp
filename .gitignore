@@ -30,9 +30,6 @@ Thumbs.db
 *.swo
 *~
 
-# Deno
-deno.lock
-
 # Coverage reports
 cov_profile/
 cov_tmp/
