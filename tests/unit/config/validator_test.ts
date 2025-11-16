@@ -211,12 +211,12 @@ describe("Config Validator", () => {
 
     it("should reject server with invalid transport", () => {
       // Arrange
-      const invalidConfig: Configuration = {
+      const invalidConfig = {
         ...validConfig,
         mcpServers: [
           {
             name: "test-server",
-            transport: "ftp" as never,
+            transport: "ftp",
           },
         ],
       };
@@ -638,8 +638,8 @@ describe("Config Validator", () => {
       const config: Configuration = {
         ...validConfig,
         projectContext: {
-          agentFilePath: "./agent.md",
-          claudeFilePath: "./CLAUDE.md",
+          // Use actual existing files in the project
+          claudeFilePath: "CLAUDE.md",
           domain: "web-development",
           customHints: ["Group by feature"],
         },
@@ -650,6 +650,27 @@ describe("Config Validator", () => {
 
       // Assert
       assertEquals(result.valid, true);
+    });
+
+    it("should reject config with non-existent file paths", () => {
+      // Arrange
+      const config: Configuration = {
+        ...validConfig,
+        projectContext: {
+          agentFilePath: "./non-existent-file.md",
+          domain: "web-development",
+        },
+      };
+
+      // Act
+      const result = validateConfig(config);
+
+      // Assert
+      assertEquals(result.valid, false);
+      assertEquals(
+        result.errors.some((e) => e.field.includes("agentFilePath")),
+        true,
+      );
     });
 
     it("should validate config without optional project context", () => {

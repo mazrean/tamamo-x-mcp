@@ -1,8 +1,9 @@
 /**
  * Grouping constraint validator
- * Enforces grouping constraints and validates tool groups
+ * Enforces grouping constraints and validates tool groups using Zod
  */
 
+import { GroupingConstraintsRequiredSchema, ToolGroupSchema } from "../schemas/index.ts";
 import type { GroupingConstraints, ToolGroup } from "../types/index.ts";
 
 export interface ValidationResult {
@@ -19,28 +20,54 @@ export function validateGroups(
 ): ValidationResult {
   const errors: string[] = [];
 
-  // Validate group count
-  if (groups.length < constraints.minGroups) {
+  // First, validate each group individually using Zod schema
+  groups.forEach((group, index) => {
+    const result = ToolGroupSchema.safeParse(group);
+    if (!result.success) {
+      result.error.errors.forEach((err) => {
+        errors.push(`Group[${index}].${err.path.join(".")}: ${err.message}`);
+      });
+    }
+  });
+
+  // Validate constraints using Zod schema
+  const constraintsResult = GroupingConstraintsRequiredSchema.safeParse(constraints);
+  if (!constraintsResult.success) {
+    constraintsResult.error.errors.forEach((err) => {
+      errors.push(`Constraints.${err.path.join(".")}: ${err.message}`);
+    });
+    // If constraints are invalid, we can't proceed with further validation
+    return {
+      valid: errors.length === 0,
+      errors,
+    };
+  }
+
+  // Use validated constraints
+  const validatedConstraints = constraintsResult.data;
+
+  // Validate group count against constraints
+  if (groups.length < validatedConstraints.minGroups) {
     errors.push(
-      `Too few groups: ${groups.length} (minimum: ${constraints.minGroups})`,
+      `Too few groups: ${groups.length} (minimum: ${validatedConstraints.minGroups})`,
     );
   }
-  if (groups.length > constraints.maxGroups) {
+  if (groups.length > validatedConstraints.maxGroups) {
     errors.push(
-      `Too many groups: ${groups.length} (maximum: ${constraints.maxGroups})`,
+      `Too many groups: ${groups.length} (maximum: ${validatedConstraints.maxGroups})`,
     );
   }
 
-  // Validate tools per group
+  // Validate tools per group against constraints
   groups.forEach((group) => {
-    if (group.tools.length < constraints.minToolsPerGroup) {
+    if (group.tools.length < validatedConstraints.minToolsPerGroup) {
       errors.push(
-        `Group "${group.name}" has too few tools: ${group.tools.length} (minimum: ${constraints.minToolsPerGroup})`,
+        `Group "${group.name}" has too few tools: ${group.tools.length} (minimum: ${validatedConstraints.minToolsPerGroup})`,
       );
     }
-    if (group.tools.length > constraints.maxToolsPerGroup) {
+    if (group.tools.length > validatedConstraints.maxToolsPerGroup) {
       errors.push(
-        `Group "${group.name}" has too many tools: ${group.tools.length} (maximum: ${constraints.maxToolsPerGroup})`,
+        `Group "${group.name}" has too many tools: ${group.tools.length} (maximum: ${validatedConstraints.maxToolsPerGroup})`,
       );
     }
   });
@@ -52,44 +79,12 @@ export function validateGroups(
     errors.push("Group IDs are not unique");
   }
 
-  // Validate non-empty IDs
-  groups.forEach((group) => {
-    if (!group.id || group.id.trim() === "") {
-      errors.push(`Group at index has empty ID`);
-    }
-  });
-
   // Validate unique group names
   const groupNames = groups.map((g) => g.name);
   const uniqueNames = new Set(groupNames);
   if (uniqueNames.size !== groupNames.length) {
     errors.push("Group names are not unique");
   }
-
-  // Validate non-empty names
-  groups.forEach((group) => {
-    if (!group.name || group.name.trim() === "") {
-      errors.push(`Group "${group.id}" has empty name`);
-    }
-  });
-
-  // Validate non-empty descriptions
-  groups.forEach((group) => {
-    if (!group.description || group.description.trim() === "") {
-      errors.push(`Group "${group.name}" has empty description`);
-    }
-  });
-
-  // Validate complementarity scores
-  groups.forEach((group) => {
-    if (group.complementarityScore !== undefined) {
-      if (group.complementarityScore < 0 || group.complementarityScore > 1) {
-        errors.push(
-          `Group "${group.name}" has invalid complementarity score: ${group.complementarityScore} (must be in [0, 1])`,
-        );
-      }
-    }
-  });
 
   // Validate tool uniqueness across groups
   const allTools = groups.flatMap((g) => g.tools);
@@ -112,15 +107,26 @@ export function checkConstraintsSatisfiable(
   toolCount: number,
   constraints: GroupingConstraints,
 ): boolean {
+  // Validate constraints first using Zod
+  const result = GroupingConstraintsRequiredSchema.safeParse(constraints);
+  if (!result.success) {
+    return false;
+  }
+
+  // Use validated constraints
+  const validatedConstraints = result.data;
+
   // Minimum tools required: minGroups * minToolsPerGroup
-  const minToolsRequired = constraints.minGroups * constraints.minToolsPerGroup;
+  const minToolsRequired = validatedConstraints.minGroups *
+    validatedConstraints.minToolsPerGroup;
 
   if (toolCount < minToolsRequired) {
     return false;
   }
 
   // Maximum tools allowed: maxGroups * maxToolsPerGroup
-  const maxToolsAllowed = constraints.maxGroups * constraints.maxToolsPerGroup;
+  const maxToolsAllowed = validatedConstraints.maxGroups *
+    validatedConstraints.maxToolsPerGroup;
 
   if (toolCount > maxToolsAllowed) {
     // This is a warning, not a hard failure - we can still group the tools
