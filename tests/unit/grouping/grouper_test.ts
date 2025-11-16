@@ -577,92 +577,194 @@ function createMockLLMClient(): LLMClient {
     provider: "anthropic",
     model: "claude-3-5-sonnet-20241022",
     complete(prompt: string): Promise<string> {
-      // Parse tool names from prompt
-      const toolMatches = prompt.matchAll(/\d+\.\s+([a-z_]+):/g);
-      const tools = Array.from(toolMatches).map((match) => match[1]);
+      // Parse constraints from prompt
+      const minGroupsMatch = prompt.match(/between (\d+) and (\d+) groups/);
+      const minGroups = minGroupsMatch ? parseInt(minGroupsMatch[1]) : 3;
+      const maxGroups = minGroupsMatch ? parseInt(minGroupsMatch[2]) : 10;
+
+      const toolsPerGroupMatch = prompt.match(/between (\d+) and (\d+) tools/);
+      const minToolsPerGroup = toolsPerGroupMatch ? parseInt(toolsPerGroupMatch[1]) : 5;
+      const maxToolsPerGroup = toolsPerGroupMatch ? parseInt(toolsPerGroupMatch[2]) : 20;
+
+      // Parse tool keys from prompt (format: [serverName:toolName])
+      const toolKeyMatches = prompt.matchAll(/\d+\.\s+\[([^\]]+)\]/g);
+      const toolKeys = Array.from(toolKeyMatches).map((match) => match[1]);
+
+      if (toolKeys.length === 0) {
+        return Promise.resolve(JSON.stringify({ groups: [] }));
+      }
+
+      // Create Map of toolKey -> simple name for grouping logic
+      const toolMap = new Map<string, string>();
+      toolKeys.forEach((key) => {
+        const [_, name] = key.split(":");
+        toolMap.set(key, name);
+      });
 
       // Group tools by their naming patterns
-      const fileTools = tools.filter((t) => t.includes("file") || t.includes("directory"));
-      const gitTools = tools.filter((t) => t.startsWith("git_"));
-      const dbTools = tools.filter((t) => t.startsWith("db_"));
-      const httpTools = tools.filter((t) => t.includes("http") || t.includes("url"));
-      const dataTools = tools.filter((t) => t.includes("parse") || t.includes("transform"));
-      const systemTools = tools.filter((t) => t.includes("monitor") || t.includes("process"));
+      const categoryGroups: Map<string, string[]> = new Map();
 
-      const suggestions = [];
-      if (fileTools.length > 0) {
-        suggestions.push({
-          name: "filesystem_agent",
-          tools: fileTools,
-          rationale: "File and directory manipulation tools",
-        });
-      }
-      if (gitTools.length > 0) {
-        suggestions.push({
-          name: "git_agent",
-          tools: gitTools,
-          rationale: "Git version control operations",
-        });
-      }
-      if (dbTools.length > 0) {
-        suggestions.push({
-          name: "database_agent",
-          tools: dbTools,
-          rationale: "Database operations",
-        });
-      }
-      if (httpTools.length > 0) {
-        suggestions.push({
-          name: "http_agent",
-          tools: httpTools,
-          rationale: "HTTP client operations",
-        });
-      }
-      if (dataTools.length > 0) {
-        suggestions.push({
-          name: "data_agent",
-          tools: dataTools,
-          rationale: "Data processing",
-        });
-      }
-      if (systemTools.length > 0) {
-        suggestions.push({
-          name: "system_agent",
-          tools: systemTools,
-          rationale: "System monitoring",
-        });
-      }
+      toolKeys.forEach((key) => {
+        const name = toolMap.get(key)!;
 
-      // Create relationships with deterministic scores
-      const relationships = [];
-      for (let i = 0; i < tools.length - 1; i++) {
-        const tool1 = tools[i];
-        const tool2 = tools[i + 1];
-
-        // Calculate score based on tool similarity
-        let score = 0.5; // Default low score
-
-        // High score for same category tools
-        if (
-          (tool1.includes("file") && tool2.includes("file")) ||
-          (tool1.includes("directory") && tool2.includes("directory")) ||
-          (tool1.startsWith("git_") && tool2.startsWith("git_")) ||
-          (tool1.startsWith("db_") && tool2.startsWith("db_")) ||
-          (tool1.includes("http") && tool2.includes("http")) ||
-          (tool1.includes("parse") && tool2.includes("parse")) ||
-          (tool1.includes("monitor") && tool2.includes("monitor"))
-        ) {
-          score = 0.9;
+        // Determine category
+        let category = "misc";
+        if (name.includes("file") || name.includes("directory")) {
+          category = "filesystem";
+        } else if (name.startsWith("git_")) {
+          category = "git";
+        } else if (name.startsWith("db_")) {
+          category = "database";
+        } else if (name.includes("http") || name.includes("url")) {
+          category = "http";
+        } else if (name.includes("parse") || name.includes("transform")) {
+          category = "data";
+        } else if (name.includes("monitor") || name.includes("process")) {
+          category = "system";
         }
 
-        relationships.push({
-          tool1,
-          tool2,
-          score,
+        if (!categoryGroups.has(category)) {
+          categoryGroups.set(category, []);
+        }
+        categoryGroups.get(category)!.push(key);
+      });
+
+      // Create initial groups from categories
+      const initialGroups: Array<{ name: string; tools: string[] }> = [];
+      for (const [category, tools] of categoryGroups.entries()) {
+        initialGroups.push({ name: category, tools });
+      }
+
+      // Adjust groups to satisfy constraints
+      const groups: Array<{ name: string; tools: string[] }> = [];
+      let remainingTools: string[] = [];
+
+      // Step 1: Split or merge groups to satisfy minToolsPerGroup and maxToolsPerGroup
+      for (const group of initialGroups) {
+        if (group.tools.length >= minToolsPerGroup && group.tools.length <= maxToolsPerGroup) {
+          // Group satisfies constraints
+          groups.push(group);
+        } else if (group.tools.length > maxToolsPerGroup) {
+          // Split large groups
+          const numGroups = Math.ceil(group.tools.length / maxToolsPerGroup);
+          const toolsPerGroup = Math.ceil(group.tools.length / numGroups);
+
+          for (let i = 0; i < numGroups; i++) {
+            const start = i * toolsPerGroup;
+            const end = Math.min(start + toolsPerGroup, group.tools.length);
+            const subTools = group.tools.slice(start, end);
+
+            if (subTools.length >= minToolsPerGroup || i === numGroups - 1) {
+              groups.push({
+                name: `${group.name}_${i + 1}`,
+                tools: subTools,
+              });
+            } else {
+              remainingTools.push(...subTools);
+            }
+          }
+        } else {
+          // Too few tools - add to remaining
+          remainingTools.push(...group.tools);
+        }
+      }
+
+      // Step 2: Distribute remaining tools
+      if (remainingTools.length >= minToolsPerGroup) {
+        groups.push({
+          name: "misc",
+          tools: remainingTools,
+        });
+        remainingTools = [];
+      } else if (remainingTools.length > 0 && groups.length > 0) {
+        // Add to smallest group
+        groups.sort((a, b) => a.tools.length - b.tools.length);
+        groups[0].tools.push(...remainingTools);
+        remainingTools = [];
+      }
+
+      // Step 3: Ensure minGroups constraint
+      while (groups.length < minGroups && groups.length > 0) {
+        // Split largest group
+        groups.sort((a, b) => b.tools.length - a.tools.length);
+        const largest: { name: string; tools: string[] } = groups[0];
+
+        // Try to split if possible (even if it creates small groups)
+        const canSplit = largest.tools.length >= 2;
+
+        if (canSplit) {
+          groups.shift(); // Remove largest
+          const targetSize = Math.ceil(largest.tools.length / 2);
+          const part1 = largest.tools.slice(0, targetSize);
+          const part2 = largest.tools.slice(targetSize);
+
+          // Only split if both parts meet minimum requirement OR we're desperate for more groups
+          if (
+            (part1.length >= minToolsPerGroup && part2.length >= minToolsPerGroup) ||
+            groups.length + 2 <= minGroups
+          ) {
+            groups.push({
+              name: `${largest.name}_1`,
+              tools: part1,
+            });
+            groups.push({
+              name: `${largest.name}_2`,
+              tools: part2,
+            });
+          } else {
+            // Can't split properly - put it back
+            groups.push(largest);
+            break;
+          }
+        } else {
+          break; // Can't split further
+        }
+      }
+
+      // Step 4: Ensure maxGroups constraint
+      while (groups.length > maxGroups) {
+        // Merge two smallest groups
+        groups.sort((a, b) => a.tools.length - b.tools.length);
+        const group1: { name: string; tools: string[] } = groups.shift()!;
+        const group2: { name: string; tools: string[] } = groups.shift()!;
+
+        groups.push({
+          name: `${group1.name}_${group2.name}`,
+          tools: [...group1.tools, ...group2.tools],
         });
       }
 
-      return Promise.resolve(JSON.stringify({ relationships, suggestions }));
+      // Convert to response format
+      const response = {
+        groups: groups.map((g, i) => {
+          // Calculate complementarity based on tool homogeneity
+          const uniqueCategories = new Set(
+            g.tools.map((key) => {
+              const name = toolMap.get(key)!;
+              if (name.includes("file") || name.includes("directory")) return "filesystem";
+              if (name.startsWith("git_")) return "git";
+              if (name.startsWith("db_")) return "database";
+              if (name.includes("http") || name.includes("url")) return "http";
+              if (name.includes("parse") || name.includes("transform")) return "data";
+              if (name.includes("monitor") || name.includes("process")) return "system";
+              return "misc";
+            }),
+          );
+
+          // Higher score for more homogeneous groups
+          const complementarityScore = uniqueCategories.size === 1 ? 0.95 : 0.5;
+
+          return {
+            id: `${g.name}-agent-${i}`,
+            name: `${g.name}_agent`,
+            description: `Agent for ${g.name} operations`,
+            toolKeys: g.tools,
+            complementarityScore,
+          };
+        }),
+      };
+
+      return Promise.resolve(JSON.stringify(response));
     },
   };
 }

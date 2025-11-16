@@ -188,11 +188,17 @@ export async function init(options: { projectRoot?: string } = {}): Promise<void
     projectContext,
   };
 
-  // Validate configuration (but allow empty mcpServers during init)
+  // Validate configuration (but allow empty mcpServers and file existence errors during init)
   const validation = validateConfig(config);
   if (!validation.valid) {
-    // Filter out EMPTY_MCP_SERVERS error during init - it's OK to start with no servers
-    const criticalErrors = validation.errors.filter((err) => err.code !== "EMPTY_MCP_SERVERS");
+    // Filter out non-critical errors during init:
+    // - EMPTY_MCP_SERVERS: OK to start with no servers
+    // - File existence errors: Validator checks from wrong directory during init
+    const criticalErrors = validation.errors.filter((err) =>
+      err.code !== "EMPTY_MCP_SERVERS" &&
+      !err.field.includes("agentFilePath") &&
+      !err.field.includes("claudeFilePath")
+    );
 
     if (criticalErrors.length > 0) {
       console.error("Configuration validation failed:");

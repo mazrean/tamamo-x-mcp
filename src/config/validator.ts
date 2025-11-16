@@ -54,7 +54,7 @@ function zodErrorToValidationErrors(zodError: ZodError): ValidationError[] {
       code = message.includes("Unsupported") ? "UNSUPPORTED_VERSION" : "MISSING_VERSION";
     } else if (field.includes("mcpServers") && message.includes("unique")) {
       code = "DUPLICATE_SERVER_NAME";
-    } else if (field.includes("mcpServers") && message.includes("at least one")) {
+    } else if (field.includes("mcpServers") && message.toLowerCase().includes("at least one")) {
       code = "EMPTY_MCP_SERVERS";
     } else if (field.includes("transport") && message.includes("Invalid")) {
       code = "INVALID_TRANSPORT";
