@@ -69,7 +69,11 @@ Deno.test("Deno binary - init command can be invoked", async () => {
     const output = new TextDecoder().decode(stdout);
 
     assertEquals(code, 0, "Binary init command should be invokable");
-    assertEquals(output.includes("init") || output.includes("Initialize"), true, "Init help should be shown");
+    assertEquals(
+      output.includes("init") || output.includes("Initialize"),
+      true,
+      "Init help should be shown",
+    );
   } finally {
     await Deno.remove(tempDir, { recursive: true });
   }
@@ -90,7 +94,11 @@ Deno.test("Deno binary - build command can be invoked", async () => {
     const output = new TextDecoder().decode(stdout);
 
     assertEquals(code, 0, "Binary build command should be invokable");
-    assertEquals(output.includes("build") || output.includes("Build"), true, "Build help should be shown");
+    assertEquals(
+      output.includes("build") || output.includes("Build"),
+      true,
+      "Build help should be shown",
+    );
   } finally {
     await Deno.remove(tempDir, { recursive: true });
   }
@@ -111,7 +119,11 @@ Deno.test("Deno binary - mcp command can be invoked", async () => {
     const output = new TextDecoder().decode(stdout);
 
     assertEquals(code, 0, "Binary mcp command should be invokable");
-    assertEquals(output.includes("mcp") || output.includes("MCP"), true, "MCP help should be shown");
+    assertEquals(
+      output.includes("mcp") || output.includes("MCP"),
+      true,
+      "MCP help should be shown",
+    );
   } finally {
     await Deno.remove(tempDir, { recursive: true });
   }

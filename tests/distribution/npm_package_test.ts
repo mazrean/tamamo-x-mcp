@@ -9,6 +9,7 @@
 
 import { assertEquals, assertExists } from "jsr:@std/assert@^1.0.0";
 import { join } from "jsr:@std/path@^1.0.0";
+import { ensureDependenciesInstalled } from "./utils.ts";
 
 const NPM_DIR = join(Deno.cwd(), "npm");
 const PACKAGE_JSON_PATH = join(NPM_DIR, "package.json");
@@ -19,7 +20,9 @@ Deno.test("npm package - package.json exists after build", async () => {
     assertExists(stat);
     assertEquals(stat.isFile, true);
   } catch (error) {
-    throw new Error(`package.json not found at ${PACKAGE_JSON_PATH}. Run 'deno task npm:build' first. ${error}`);
+    throw new Error(
+      `package.json not found at ${PACKAGE_JSON_PATH}. Run 'deno task npm:build' first. ${error}`,
+    );
   }
 });
 
@@ -50,6 +53,8 @@ Deno.test("npm package - has executable bin entry", async () => {
 });
 
 Deno.test("npm package - can be executed via node (shows version)", async () => {
+  await ensureDependenciesInstalled();
+
   const packageJson = JSON.parse(await Deno.readTextFile(PACKAGE_JSON_PATH));
   const binEntry = typeof packageJson.bin === "string"
     ? packageJson.bin
@@ -71,6 +76,8 @@ Deno.test("npm package - can be executed via node (shows version)", async () => 
 });
 
 Deno.test("npm package - can be executed via node (shows help)", async () => {
+  await ensureDependenciesInstalled();
+
   const packageJson = JSON.parse(await Deno.readTextFile(PACKAGE_JSON_PATH));
   const binEntry = typeof packageJson.bin === "string"
     ? packageJson.bin
@@ -94,6 +101,8 @@ Deno.test("npm package - can be executed via node (shows help)", async () => {
 });
 
 Deno.test("npm package - init command works via node", async () => {
+  await ensureDependenciesInstalled();
+
   const packageJson = JSON.parse(await Deno.readTextFile(PACKAGE_JSON_PATH));
   const binEntry = typeof packageJson.bin === "string"
     ? packageJson.bin
@@ -114,13 +123,19 @@ Deno.test("npm package - init command works via node", async () => {
     const output = new TextDecoder().decode(stdout);
 
     assertEquals(code, 0, "npm package init command should be invokable");
-    assertEquals(output.includes("init") || output.includes("Initialize"), true, "Init help should be shown");
+    assertEquals(
+      output.includes("init") || output.includes("Initialize"),
+      true,
+      "Init help should be shown",
+    );
   } finally {
     await Deno.remove(tempDir, { recursive: true });
   }
 });
 
 Deno.test("npm package - build command works via node", async () => {
+  await ensureDependenciesInstalled();
+
   const packageJson = JSON.parse(await Deno.readTextFile(PACKAGE_JSON_PATH));
   const binEntry = typeof packageJson.bin === "string"
     ? packageJson.bin
@@ -141,13 +156,19 @@ Deno.test("npm package - build command works via node", async () => {
     const output = new TextDecoder().decode(stdout);
 
     assertEquals(code, 0, "npm package build command should be invokable");
-    assertEquals(output.includes("build") || output.includes("Build"), true, "Build help should be shown");
+    assertEquals(
+      output.includes("build") || output.includes("Build"),
+      true,
+      "Build help should be shown",
+    );
   } finally {
     await Deno.remove(tempDir, { recursive: true });
   }
 });
 
 Deno.test("npm package - mcp command works via node", async () => {
+  await ensureDependenciesInstalled();
+
   const packageJson = JSON.parse(await Deno.readTextFile(PACKAGE_JSON_PATH));
   const binEntry = typeof packageJson.bin === "string"
     ? packageJson.bin
@@ -168,7 +189,11 @@ Deno.test("npm package - mcp command works via node", async () => {
     const output = new TextDecoder().decode(stdout);
 
     assertEquals(code, 0, "npm package mcp command should be invokable");
-    assertEquals(output.includes("mcp") || output.includes("MCP"), true, "MCP help should be shown");
+    assertEquals(
+      output.includes("mcp") || output.includes("MCP"),
+      true,
+      "MCP help should be shown",
+    );
   } finally {
     await Deno.remove(tempDir, { recursive: true });
   }

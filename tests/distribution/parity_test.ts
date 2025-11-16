@@ -9,6 +9,7 @@
 
 import { assertEquals } from "jsr:@std/assert@^1.0.0";
 import { join } from "jsr:@std/path@^1.0.0";
+import { ensureDependenciesInstalled } from "./utils.ts";
 
 const DIST_DIR = join(Deno.cwd(), "dist");
 const NPM_DIR = join(Deno.cwd(), "npm");
@@ -25,7 +26,9 @@ async function getNpmBinPath(): Promise<string> {
   return join(NPM_DIR, binEntry);
 }
 
-async function runDenoBinary(args: string[]): Promise<{ code: number; stdout: string; stderr: string }> {
+async function runDenoBinary(
+  args: string[],
+): Promise<{ code: number; stdout: string; stderr: string }> {
   const command = new Deno.Command(DENO_BINARY, {
     args,
     stdout: "piped",
@@ -41,7 +44,10 @@ async function runDenoBinary(args: string[]): Promise<{ code: number; stdout: st
   };
 }
 
-async function runNpmPackage(args: string[]): Promise<{ code: number; stdout: string; stderr: string }> {
+async function runNpmPackage(
+  args: string[],
+): Promise<{ code: number; stdout: string; stderr: string }> {
+  await ensureDependenciesInstalled();
   const npmBinPath = await getNpmBinPath();
 
   const command = new Deno.Command("node", {
@@ -71,7 +77,7 @@ Deno.test("Parity - version output matches", async () => {
   assertEquals(
     normalizeOutput(denoResult.stdout),
     normalizeOutput(npmResult.stdout),
-    "Version output should be identical between Deno binary and npm package"
+    "Version output should be identical between Deno binary and npm package",
   );
 });
 
@@ -87,7 +93,7 @@ Deno.test("Parity - help output matches", async () => {
   assertEquals(
     normalizeOutput(denoResult.stdout),
     normalizeOutput(npmResult.stdout),
-    "Help output should be identical between Deno binary and npm package"
+    "Help output should be identical between Deno binary and npm package",
   );
 });
 
@@ -102,7 +108,7 @@ Deno.test("Parity - init command help matches", async () => {
   assertEquals(
     normalizeOutput(denoResult.stdout),
     normalizeOutput(npmResult.stdout),
-    "Init help output should be identical"
+    "Init help output should be identical",
   );
 });
 
@@ -117,7 +123,7 @@ Deno.test("Parity - build command help matches", async () => {
   assertEquals(
     normalizeOutput(denoResult.stdout),
     normalizeOutput(npmResult.stdout),
-    "Build help output should be identical"
+    "Build help output should be identical",
   );
 });
 
@@ -132,7 +138,7 @@ Deno.test("Parity - mcp command help matches", async () => {
   assertEquals(
     normalizeOutput(denoResult.stdout),
     normalizeOutput(npmResult.stdout),
-    "MCP help output should be identical"
+    "MCP help output should be identical",
   );
 });
 
@@ -149,22 +155,22 @@ Deno.test("Parity - invalid command error matches", async () => {
   assertEquals(
     hasErrorMessage(denoResult.stderr) || hasErrorMessage(denoResult.stdout),
     true,
-    "Deno binary should show error for invalid command"
+    "Deno binary should show error for invalid command",
   );
 
   assertEquals(
     hasErrorMessage(npmResult.stderr) || hasErrorMessage(npmResult.stdout),
     true,
-    "npm package should show error for invalid command"
+    "npm package should show error for invalid command",
   );
 });
 
 Deno.test("Parity - exit codes match for missing required arguments", async () => {
   // Test that both distributions handle missing arguments the same way
   const commands = [
-    ["init"],    // May require user input or flags
-    ["build"],   // Requires config file
-    ["mcp"],     // Requires groups file
+    ["init"], // May require user input or flags
+    ["build"], // Requires config file
+    ["mcp"], // Requires groups file
   ];
 
   for (const args of commands) {
@@ -179,6 +185,7 @@ Deno.test("Parity - exit codes match for missing required arguments", async () =
         stderr: "piped",
       });
 
+      await ensureDependenciesInstalled();
       const npmBinPath = await getNpmBinPath();
       const npmCommand = new Deno.Command("node", {
         args: [npmBinPath, ...args],
@@ -194,7 +201,7 @@ Deno.test("Parity - exit codes match for missing required arguments", async () =
       assertEquals(
         denoResult.code,
         npmResult.code,
-        `Exit codes should match for command: ${args.join(" ")}`
+        `Exit codes should match for command: ${args.join(" ")}`,
       );
     } finally {
       await Deno.remove(tempDir, { recursive: true });
