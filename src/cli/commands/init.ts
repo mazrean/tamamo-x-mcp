@@ -58,8 +58,9 @@ async function importMCPServers(projectRoot: string): Promise<MCPServerConfig[]>
         env?: Record<string, string>;
       };
 
-      // Determine transport type based on what's provided
-      let transport: "stdio" | "http" | "websocket" = "stdio";
+      // Determine transport type and create appropriate server config
+      let server: MCPServerConfig;
+
       if (serverConfig.url) {
         // Validate URL is a string before calling string methods
         if (typeof serverConfig.url !== "string") {
@@ -68,33 +69,41 @@ async function importMCPServers(projectRoot: string): Promise<MCPServerConfig[]>
         }
 
         if (serverConfig.url.startsWith("ws://") || serverConfig.url.startsWith("wss://")) {
-          transport = "websocket";
+          // WebSocket transport
+          server = {
+            name,
+            transport: "websocket",
+            url: serverConfig.url,
+            command: serverConfig.command,
+            args: serverConfig.args,
+            env: serverConfig.env,
+          };
         } else {
-          transport = "http";
+          // HTTP transport
+          server = {
+            name,
+            transport: "http",
+            url: serverConfig.url,
+            command: serverConfig.command,
+            args: serverConfig.args,
+            env: serverConfig.env,
+          };
         }
-      }
-
-      const server: MCPServerConfig = {
-        name,
-        transport,
-      };
-
-      if (transport === "stdio") {
+      } else {
+        // stdio transport
         // Validate command is a string
         if (!serverConfig.command || typeof serverConfig.command !== "string") {
           console.warn(`Skipping server '${name}': command must be a non-empty string`);
           continue;
         }
-        server.command = serverConfig.command;
-        server.args = serverConfig.args;
-        server.env = serverConfig.env;
-      } else {
-        // Validate URL is a string
-        if (!serverConfig.url || typeof serverConfig.url !== "string") {
-          console.warn(`Skipping server '${name}': url must be a non-empty string`);
-          continue;
-        }
-        server.url = serverConfig.url;
+
+        server = {
+          name,
+          transport: "stdio",
+          command: serverConfig.command,
+          args: serverConfig.args,
+          env: serverConfig.env,
+        };
       }
 
       servers.push(server);
