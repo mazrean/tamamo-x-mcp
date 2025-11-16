@@ -155,9 +155,13 @@ export class MCPClient {
         tools: z.array(z.unknown()),
       });
 
+      // Type assertion to avoid "excessively deep" type instantiation with Zod schemas
+      // deno-lint-ignore no-explicit-any
+      const schemaAny = schema as any;
+
       const result = await this.client.request(
         { method: "tools/list", params: {} },
-        schema,
+        schemaAny,
       );
 
       return result.tools || [];
@@ -180,6 +184,10 @@ export class MCPClient {
     try {
       const schema = z.object({}).passthrough();
 
+      // Type assertion to avoid "excessively deep" type instantiation with Zod schemas
+      // deno-lint-ignore no-explicit-any
+      const schemaAny = schema as any;
+
       const result = await this.client.request(
         {
           method: "tools/call",
@@ -188,7 +196,7 @@ export class MCPClient {
             arguments: args,
           },
         },
-        schema,
+        schemaAny,
       );
 
       return result;
