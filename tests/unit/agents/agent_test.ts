@@ -85,7 +85,9 @@ describe("Agent Execution", () => {
       const mastraTool = wrapToolForMastra(mcpTool);
 
       // Assert
-      assertEquals(mastraTool.inputSchema, mcpTool.inputSchema);
+      // Type assertion needed because JSONSchema allows boolean in properties
+      // deno-lint-ignore no-explicit-any
+      assertEquals(mastraTool.inputSchema, mcpTool.inputSchema as any);
       assertEquals(mastraTool.inputSchema.properties?.path.type, "string");
       assertEquals(mastraTool.inputSchema.required, ["path"]);
     });

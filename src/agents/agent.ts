@@ -8,6 +8,7 @@
 import type {
   AgentRequest,
   AgentResponse,
+  JSONSchema,
   LLMProviderConfig,
   SubAgent,
   Tool,
@@ -40,39 +41,46 @@ export interface MastraTool {
 /**
  * Convert JSON Schema to Zod schema for Claude Agent SDK
  */
-function jsonSchemaToZod(schema: {
-  type: string;
-  properties?: Record<string, { type: string; description?: string }>;
-  required?: string[];
-}): z.ZodObject<z.ZodRawShape> {
+function jsonSchemaToZod(schema: JSONSchema): z.ZodObject<z.ZodRawShape> {
   const shape: z.ZodRawShape = {};
 
   if (schema.properties) {
     for (const [key, prop] of Object.entries(schema.properties)) {
       let zodType: z.ZodTypeAny;
 
-      switch (prop.type) {
-        case "string":
-          zodType = z.string();
-          break;
-        case "number":
-          zodType = z.number();
-          break;
-        case "boolean":
-          zodType = z.boolean();
-          break;
-        case "object":
-          zodType = z.record(z.unknown());
-          break;
-        case "array":
-          zodType = z.array(z.unknown());
-          break;
-        default:
-          zodType = z.unknown();
-      }
+      // Handle boolean shorthand (true = accept all, false = reject all)
+      if (typeof prop === "boolean") {
+        zodType = prop ? z.unknown() : z.never();
+      } else if (typeof prop === "object" && prop !== null && "type" in prop) {
+        // Type assertion after validation
+        const propSchema = prop as { type: string; description?: string };
 
-      if (prop.description) {
-        zodType = zodType.describe(prop.description);
+        switch (propSchema.type) {
+          case "string":
+            zodType = z.string();
+            break;
+          case "number":
+            zodType = z.number();
+            break;
+          case "boolean":
+            zodType = z.boolean();
+            break;
+          case "object":
+            zodType = z.record(z.unknown());
+            break;
+          case "array":
+            zodType = z.array(z.unknown());
+            break;
+          default:
+            zodType = z.unknown();
+        }
+
+        if (propSchema.description) {
+          zodType = zodType.describe(propSchema.description);
+        }
+      } else {
+        // Fallback for other property types
+        zodType = z.unknown();
       }
 
       // Make optional if not in required array
@@ -84,7 +92,7 @@ function jsonSchemaToZod(schema: {
     }
   }
 
-  return z.object(shape);
+  return z.object(shape).passthrough();
 }
 
 /**
@@ -128,16 +136,42 @@ export function wrapToolForClaudeAgent(mcpTool: Tool): ReturnType<typeof tool> {
  * Wrap an MCP tool as a Mastra tool
  */
 export function wrapToolForMastra(tool: Tool): MastraTool {
+  // Normalize properties: filter out boolean shorthand
+  // JSON Schema allows true/false as property values, but Mastra expects object schemas
+  const normalizedProperties: Record<string, { type: string; description?: string }> = {};
+  const droppedKeys = new Set<string>();
+
+  if (tool.inputSchema.properties) {
+    for (const [key, prop] of Object.entries(tool.inputSchema.properties)) {
+      // Skip boolean shorthand properties (true = accept all, false = reject all)
+      // as they don't fit Mastra's expected schema structure
+      if (typeof prop === "boolean") {
+        droppedKeys.add(key);
+        // Note: 'false' means "reject all" which we cannot express in Mastra's schema.
+        // In practice, MCP tools should not use boolean property schemas.
+        continue;
+      }
+      normalizedProperties[key] = prop;
+    }
+  }
+
+  // Filter required array to only include properties we kept
+  const normalizedRequired: string[] = [];
+  if (tool.inputSchema.required) {
+    for (const key of tool.inputSchema.required) {
+      if (!droppedKeys.has(key)) {
+        normalizedRequired.push(key);
+      }
+    }
+  }
+
   return {
     name: tool.name,
     description: tool.description,
     inputSchema: {
       type: tool.inputSchema.type,
-      properties: tool.inputSchema.properties as Record<
-        string,
-        { type: string; description?: string }
-      >,
-      required: tool.inputSchema.required,
+      properties: normalizedProperties,
+      required: normalizedRequired.length > 0 ? normalizedRequired : undefined,
     },
     // deno-lint-ignore require-await
     execute: async (input: unknown): Promise<unknown> => {
