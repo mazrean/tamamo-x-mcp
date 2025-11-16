@@ -14,7 +14,7 @@ This document resolves all technical uncertainties identified in the implementat
 
 Use official/recommended SDKs for each provider with a unified abstraction layer:
 
-- **Anthropic**: `@anthropic-ai/sdk` (official)
+- **Anthropic**: `@anthropic-ai/claude-agent-sdk` (official Agent SDK for both tool-based workflows and LLM completion)
 - **OpenAI**: `openai` (official)
 - **Gemini**: `@google/generative-ai` (official Google SDK)
 - **Vercel AI**: `ai` (Vercel AI SDK with provider adapters)
@@ -44,9 +44,18 @@ interface LLMClient {
   provider: LLMProvider;
 }
 
-// Provider-specific implementations wrap official SDKs
-class AnthropicClient implements LLMClient { ... }
+// Anthropic provider uses Claude Agent SDK
+// (both for tool-based agent execution and simple LLM completion)
+class AnthropicClient implements LLMClient {
+  async complete(prompt: string): Promise<string> {
+    const stream = query({ prompt, options: { model, maxTurns: 1 } });
+    // Process streaming response...
+  }
+}
+
+// Other providers wrap official SDKs
 class OpenAIClient implements LLMClient { ... }
+class GeminiClient implements LLMClient { ... }
 // ... etc
 ```
 
@@ -86,21 +95,74 @@ const mcpServer = new Server({
 });
 ```
 
-## 3. Mastra Framework Integration
+## 3. Agent Framework Integration
 
 ### Decision
 
-Use Mastra for agent orchestration and workflow management, with custom tool grouping logic built on top.
+Use a hybrid approach for agent orchestration:
+
+- **Anthropic**: `@anthropic-ai/claude-agent-sdk` for native tool-based agent execution
+- **Other Providers**: Mastra for agent orchestration and workflow management
 
 ### Rationale
 
-- **Agent primitives**: Mastra provides agent creation, memory, and tool execution primitives
+#### Claude Agent SDK (Anthropic Provider)
+
+- **Native tool support**: Built-in MCP tool integration via `createSdkMcpServer()` and `tool()`
+- **Optimized for Claude**: Designed specifically for Claude's tool-use capabilities
+- **Streaming responses**: Native async generator support for real-time interaction
+- **Type-safe tools**: Zod-based schema validation with TypeScript inference
+
+#### Mastra (Other Providers)
+
+- **Agent primitives**: Provides agent creation, memory, and tool execution primitives
 - **TypeScript-first**: Built for TypeScript with strong typing
 - **Deno compatibility**: Works with Deno (confirmed via documentation)
 - **Flexible**: Allows custom tool implementations (we can wrap MCP tools)
 - **LLM agnostic**: Supports multiple LLM providers via adapters
 
 ### Integration Strategy
+
+#### Anthropic Provider (Claude Agent SDK)
+
+```typescript
+import { createSdkMcpServer, query, tool } from "@anthropic-ai/claude-agent-sdk";
+
+// Wrap MCP tools as Claude Agent SDK tools
+const sdkTool = tool(
+  mcpTool.name,
+  mcpTool.description,
+  zodSchema, // Zod schema derived from JSON Schema
+  async (args) => {
+    // Call original MCP tool via client
+    return { content: [{ type: "text", text: result }] };
+  },
+);
+
+// Create SDK MCP server
+const mcpServer = createSdkMcpServer({
+  name: "tamamo-x-mcp",
+  version: "1.0.0",
+  tools: [sdkTool],
+});
+
+// Execute agent with query()
+const stream = query({
+  prompt: userRequest,
+  options: {
+    systemPrompt: agentSystemPrompt,
+    mcpServers: { "tamamo-x": mcpServer },
+    model: "claude-3-5-sonnet-20241022",
+  },
+});
+
+// Process streaming response
+for await (const message of stream) {
+  // Handle assistant messages, tool calls, etc.
+}
+```
+
+#### Other Providers (Mastra)
 
 ```typescript
 import { Agent, Tool } from "npm:mastra";
@@ -126,8 +188,9 @@ const subAgent = new Agent({
 
 ### Alternatives Considered
 
+- **Mastra for all providers**: Works but doesn't leverage Claude Agent SDK's native MCP integration and optimizations
 - **LangChain Agents**: Too opinionated, harder to customize tool grouping behavior
-- **Custom agent implementation**: Mastra provides battle-tested primitives; reinventing is unnecessary
+- **Custom agent implementation**: Reinventing the wheel when battle-tested solutions exist
 
 ## 4. Credential Discovery Strategy
 

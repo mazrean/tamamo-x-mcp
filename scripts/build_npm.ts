@@ -119,13 +119,14 @@ const packageJson = {
   dependencies: {
     "@deno/shim-deno": "^0.19.2",
     "@ai-sdk/openai": "^1.0.11",
+    "@anthropic-ai/claude-agent-sdk": "^0.1.0",
     "@anthropic-ai/sdk": "^0.32.1",
     "@aws-sdk/client-bedrock-runtime": "^3.716.0",
     "@google/generative-ai": "^0.21.0",
     "@modelcontextprotocol/sdk": "^1.0.4",
     "ai": "^4.1.12",
     "openai": "^4.77.3",
-    "zod": "^3.23.8",
+    "zod": "^3.24.1",
   },
   keywords: [
     "mcp",

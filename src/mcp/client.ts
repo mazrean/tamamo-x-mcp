@@ -10,7 +10,7 @@
 import { Client } from "npm:@modelcontextprotocol/sdk@1.0.4/client/index.js";
 import { StdioClientTransport } from "npm:@modelcontextprotocol/sdk@1.0.4/client/stdio.js";
 import { SSEClientTransport } from "npm:@modelcontextprotocol/sdk@1.0.4/client/sse.js";
-import { z } from "npm:zod@3.23.8";
+import { z } from "npm:zod@3.24.1";
 import type { MCPServerConfig } from "../types/index.ts";
 
 /**

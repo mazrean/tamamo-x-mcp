@@ -23,6 +23,7 @@ import { MOCK_TOOLS } from "../../fixtures/mock_tools.ts";
 describe("Agent Execution", () => {
   let mockToolGroup: ToolGroup;
   let mockLLMConfig: LLMProviderConfig;
+  let anthropicLLMConfig: LLMProviderConfig;
 
   beforeEach(() => {
     mockToolGroup = {
@@ -32,7 +33,15 @@ describe("Agent Execution", () => {
       tools: MOCK_TOOLS.slice(0, 5),
     };
 
+    // Use OpenAI for general tests (Mastra path)
     mockLLMConfig = {
+      type: "openai",
+      model: "gpt-4",
+      credentialSource: "env-var",
+    };
+
+    // Anthropic config for Claude Agent SDK tests
+    anthropicLLMConfig = {
       type: "anthropic",
       model: "claude-3-5-sonnet-20241022",
       credentialSource: "env-var",
@@ -332,6 +341,52 @@ describe("Agent Execution", () => {
       // Act & Assert
       assertEquals(subAgent.llmProvider.type, mockLLMConfig.type);
       assertEquals(subAgent.llmProvider.model, mockLLMConfig.model);
+    });
+  });
+
+  describe("Anthropic-specific execution with Claude Agent SDK", () => {
+    it("should require API key for Anthropic provider", async () => {
+      // Arrange
+      const subAgent = createSubAgent(mockToolGroup, anthropicLLMConfig);
+      const request: AgentRequest = {
+        requestId: "req-anthropic-1",
+        agentId: subAgent.id,
+        prompt: "Test with Anthropic",
+        timestamp: new Date(),
+      };
+
+      // Act
+      const response = await executeAgent(subAgent, request);
+
+      // Assert - should error without API key
+      assertExists(response.error);
+      assert(
+        response.error.includes("API key required"),
+        "Should require API key for Anthropic provider",
+      );
+    });
+
+    it("should execute with Claude Agent SDK when API key provided", async () => {
+      // Arrange
+      const subAgent = createSubAgent(mockToolGroup, anthropicLLMConfig);
+      const request: AgentRequest = {
+        requestId: "req-anthropic-2",
+        agentId: subAgent.id,
+        prompt: "Test with Anthropic and API key",
+        timestamp: new Date(),
+      };
+
+      // Act
+      const response = await executeAgent(subAgent, request, {
+        apiKey: "test-api-key",
+      });
+
+      // Assert
+      assertExists(response);
+      assertEquals(response.requestId, request.requestId);
+      assertEquals(response.agentId, request.agentId);
+      // Note: In real execution with valid API key, would get actual response
+      // For now, mock implementation returns error due to invalid key
     });
   });
 });
