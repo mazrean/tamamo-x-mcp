@@ -210,7 +210,7 @@
 - [x] T070 [P] Create distribution validation workflow in .github/workflows/distribution.yml (nightly deep parity testing, automated issue creation on violations)
 - [x] T071 [P] Write CI enforcement tests in tests/ci/ (lint_enforcement_test.ts, test_gate_enforcement_test.ts, distribution_gate_enforcement_test.ts)
 - [x] T072 Test CI workflows locally using act (nektos/act) to validate before pushing
-- [ ] T073 Setup branch protection rules (require CI passing, up-to-date branches, no force pushes, linear history)
+- [x] T073 Setup branch protection rules (require CI passing, up-to-date branches, no force pushes, linear history)
 
 ### Polish & Documentation
 
@@ -361,7 +361,7 @@ With multiple developers:
 
 **Last Updated**: 2025-01-16
 
-**Overall Completion**: 72/80 tasks (90.00%)
+**Overall Completion**: 73/80 tasks (91.25%)
 
 **By Phase**:
 
@@ -372,7 +372,7 @@ With multiple developers:
 - Phase 5 (US3 - LLM Providers): 16/16 ✅ **COMPLETE**
 - Phase 6 (US4 - MCP Server): 11/11 ✅ **COMPLETE**
 - Phase 7 (US5 - Distribution): 9/9 ✅ **COMPLETE**
-- Phase 8 (CI/CD & Polish): 6/14 🚧 **IN PROGRESS**
+- Phase 8 (CI/CD & Polish): 7/14 🚧 **IN PROGRESS**
 
 **Phase 8 Details** (CI/CD & Polish):
 
@@ -382,7 +382,7 @@ With multiple developers:
 - ✅ T070: Distribution validation workflow (nightly parity testing, automated issue creation)
 - ✅ T071: CI enforcement tests (lint_enforcement, test_gate, distribution_gate)
 - ✅ T072: Local CI testing with act (.actrc, .github/TESTING.md documentation)
-- ⏳ T073: Setup branch protection rules
+- ✅ T073: Branch protection rules documentation (.github/BRANCH_PROTECTION.md with Web UI/CLI/Terraform setup)
 - ⏳ T074: Add usage documentation in README.md
 - ⏳ T075: Add CONTRIBUTING.md with development guidelines
 - ⏳ T076: Add LICENSE file
@@ -393,8 +393,8 @@ With multiple developers:
 
 **Recent Commits**:
 
+- `3d4c1eb` - docs: add branch protection rules documentation (T073)
+- `2c91c4d` - docs: update tasks.md to reflect T072 completion
 - `9a01378` - feat: add local CI testing support with act (T072)
 - `c012e75` - feat: add distribution validation workflow and CI enforcement tests (T070, T071)
-- `501eba7` - docs: update tasks.md to reflect Phase 7 completion
 - `69d34dc` - chore: configure Dependabot for automated dependency updates (T069)
-- `b44fd3c` - feat: add main CI workflow with multi-platform support (T067)
