@@ -214,7 +214,7 @@
 
 ### Polish & Documentation
 
-- [ ] T074 [P] Add usage documentation in README.md (installation, quickstart, examples)
+- [x] T074 [P] Add usage documentation in README.md (installation, quickstart, examples)
 - [ ] T075 [P] Add CONTRIBUTING.md with development guidelines (TDD workflow, quality gates, PR process)
 - [ ] T076 [P] Add LICENSE file (choose appropriate license)
 - [ ] T077 [P] Add CHANGELOG.md with versioning strategy
@@ -361,7 +361,7 @@ With multiple developers:
 
 **Last Updated**: 2025-01-16
 
-**Overall Completion**: 73/80 tasks (91.25%)
+**Overall Completion**: 74/80 tasks (92.50%)
 
 **By Phase**:
 
@@ -372,7 +372,7 @@ With multiple developers:
 - Phase 5 (US3 - LLM Providers): 16/16 ✅ **COMPLETE**
 - Phase 6 (US4 - MCP Server): 11/11 ✅ **COMPLETE**
 - Phase 7 (US5 - Distribution): 9/9 ✅ **COMPLETE**
-- Phase 8 (CI/CD & Polish): 7/14 🚧 **IN PROGRESS**
+- Phase 8 (CI/CD & Polish): 8/14 🚧 **IN PROGRESS**
 
 **Phase 8 Details** (CI/CD & Polish):
 
@@ -383,7 +383,7 @@ With multiple developers:
 - ✅ T071: CI enforcement tests (lint_enforcement, test_gate, distribution_gate)
 - ✅ T072: Local CI testing with act (.actrc, .github/TESTING.md documentation)
 - ✅ T073: Branch protection rules documentation (.github/BRANCH_PROTECTION.md with Web UI/CLI/Terraform setup)
-- ⏳ T074: Add usage documentation in README.md
+- ✅ T074: README.md with comprehensive usage documentation (installation, CLI commands, configuration, development)
 - ⏳ T075: Add CONTRIBUTING.md with development guidelines
 - ⏳ T076: Add LICENSE file
 - ⏳ T077: Add CHANGELOG.md with versioning strategy
@@ -393,8 +393,8 @@ With multiple developers:
 
 **Recent Commits**:
 
+- `2fbd478` - docs: add comprehensive README.md with usage documentation (T074)
 - `3d4c1eb` - docs: add branch protection rules documentation (T073)
 - `2c91c4d` - docs: update tasks.md to reflect T072 completion
 - `9a01378` - feat: add local CI testing support with act (T072)
 - `c012e75` - feat: add distribution validation workflow and CI enforcement tests (T070, T071)
-- `69d34dc` - chore: configure Dependabot for automated dependency updates (T069)
