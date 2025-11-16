@@ -1,12 +1,8 @@
-import {
-  assertEquals,
-  assertExists,
-  assert,
-} from "https://deno.land/std@0.224.0/assert/mod.ts";
-import { describe, it, beforeEach, afterEach } from "https://deno.land/std@0.224.0/testing/bdd.ts";
+import { assert, assertEquals, assertExists } from "https://deno.land/std@0.224.0/assert/mod.ts";
+import { afterEach, beforeEach, describe, it } from "https://deno.land/std@0.224.0/testing/bdd.ts";
 import { join } from "https://deno.land/std@0.224.0/path/mod.ts";
-import { MOCK_TOOLS, getToolSubset } from "../fixtures/mock_tools.ts";
-import type { ToolGroup, GroupingConstraints } from "../../src/types/index.ts";
+import { getToolSubset, MOCK_TOOLS } from "../fixtures/mock_tools.ts";
+import type { GroupingConstraints, ToolGroup } from "../../src/types/index.ts";
 
 /**
  * Integration tests for build workflow (User Story 2)
@@ -165,7 +161,10 @@ describe("Build Workflow Integration", () => {
       const groups = await simulateGrouping(tools, defaultConstraints);
 
       // Assert
-      assert(groups.length >= 3 && groups.length <= 10, "Should use default group count constraints");
+      assert(
+        groups.length >= 3 && groups.length <= 10,
+        "Should use default group count constraints",
+      );
       groups.forEach((group) => {
         assert(
           group.tools.length >= 5 && group.tools.length <= 20,
@@ -404,7 +403,9 @@ function simulateGrouping(
   // Check if constraints are satisfiable
   if (tools.length < minGroups * minToolsPerGroup) {
     throw new Error(
-      `Insufficient tools: need at least ${minGroups * minToolsPerGroup} tools for ${minGroups} groups`,
+      `Insufficient tools: need at least ${
+        minGroups * minToolsPerGroup
+      } tools for ${minGroups} groups`,
     );
   }
 

@@ -1,5 +1,5 @@
 import { assertEquals, assertExists } from "https://deno.land/std@0.224.0/assert/mod.ts";
-import { describe, it, beforeEach, afterEach } from "https://deno.land/std@0.224.0/testing/bdd.ts";
+import { afterEach, beforeEach, describe, it } from "https://deno.land/std@0.224.0/testing/bdd.ts";
 import { join } from "https://deno.land/std@0.224.0/path/mod.ts";
 import { init } from "../../src/cli/commands/init.ts";
 import { discoverAllTools } from "../../src/mcp/discovery.ts";
@@ -158,7 +158,11 @@ describe("Init Workflow Integration", () => {
       try {
         const config = await loadConfig(configPath);
         const tools = await discoverAllTools(config.mcpServers);
-        assertEquals(Array.isArray(tools), true, "Should return array even if server is unreachable");
+        assertEquals(
+          Array.isArray(tools),
+          true,
+          "Should return array even if server is unreachable",
+        );
       } catch (error) {
         // Should not throw - graceful degradation
         throw new Error(`Tool discovery should handle unreachable servers gracefully: ${error}`);
@@ -225,7 +229,11 @@ describe("Init Workflow Integration", () => {
       // Only valid server should be imported
       assertEquals(config.mcpServers.length, 1, "Only valid server should be imported");
       assertEquals(config.mcpServers[0].name, "valid-server", "Valid server should be imported");
-      assertEquals(config.mcpServers[0].url, "http://localhost:3000", "Valid URL should be preserved");
+      assertEquals(
+        config.mcpServers[0].url,
+        "http://localhost:3000",
+        "Valid URL should be preserved",
+      );
     });
   });
 });

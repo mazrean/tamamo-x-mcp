@@ -25,7 +25,9 @@ export function validateConfig(config: Configuration): ValidationResult {
     if (!supportedVersions.includes(config.version)) {
       errors.push({
         field: "version",
-        message: `Unsupported version: ${config.version}. Supported versions: ${supportedVersions.join(", ")}`,
+        message: `Unsupported version: ${config.version}. Supported versions: ${
+          supportedVersions.join(", ")
+        }`,
         code: "UNSUPPORTED_VERSION",
       });
     }
@@ -78,7 +80,9 @@ export function validateConfig(config: Configuration): ValidationResult {
       } else if (!validTransports.includes(server.transport)) {
         errors.push({
           field: `mcpServers[${index}].transport`,
-          message: `Invalid transport: ${server.transport}. Must be one of: ${validTransports.join(", ")}`,
+          message: `Invalid transport: ${server.transport}. Must be one of: ${
+            validTransports.join(", ")
+          }`,
           code: "INVALID_TRANSPORT",
         });
       }
@@ -159,8 +163,9 @@ export function validateConfig(config: Configuration): ValidationResult {
     if (!validProviders.includes(config.llmProvider.type)) {
       errors.push({
         field: "llmProvider.type",
-        message:
-          `Invalid LLM provider type: ${config.llmProvider.type}. Must be one of: ${validProviders.join(", ")}`,
+        message: `Invalid LLM provider type: ${config.llmProvider.type}. Must be one of: ${
+          validProviders.join(", ")
+        }`,
         code: "INVALID_PROVIDER_TYPE",
       });
     }
@@ -170,7 +175,9 @@ export function validateConfig(config: Configuration): ValidationResult {
       errors.push({
         field: "llmProvider.credentialSource",
         message:
-          `Invalid credential source: ${config.llmProvider.credentialSource}. Must be one of: ${validCredentialSources.join(", ")}`,
+          `Invalid credential source: ${config.llmProvider.credentialSource}. Must be one of: ${
+            validCredentialSources.join(", ")
+          }`,
         code: "INVALID_CREDENTIAL_SOURCE",
       });
     }

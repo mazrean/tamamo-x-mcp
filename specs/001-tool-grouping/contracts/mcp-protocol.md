@@ -321,6 +321,7 @@ Tamamo-x-mcp acts as an MCP server to expose grouped tools as specialized sub-ag
 ```
 
 **Behavior**:
+
 1. Sub-agent receives task via MCP protocol
 2. Agent uses LLM to plan which grouped tools to invoke
 3. Agent executes tools via original MCP clients
@@ -332,13 +333,13 @@ Tamamo-x-mcp acts as an MCP server to expose grouped tools as specialized sub-ag
 
 ### Error Codes
 
-| Code | Meaning | Example Scenario |
-|------|---------|------------------|
-| -32700 | Parse error | Malformed JSON |
-| -32600 | Invalid request | Missing required fields |
-| -32601 | Method not found | Unknown MCP method |
-| -32602 | Invalid params | Wrong parameter types |
-| -32603 | Internal error | Tool execution failure |
+| Code   | Meaning          | Example Scenario        |
+| ------ | ---------------- | ----------------------- |
+| -32700 | Parse error      | Malformed JSON          |
+| -32600 | Invalid request  | Missing required fields |
+| -32601 | Method not found | Unknown MCP method      |
+| -32602 | Invalid params   | Wrong parameter types   |
+| -32603 | Internal error   | Tool execution failure  |
 
 ### Error Response Format
 
@@ -362,16 +363,19 @@ Tamamo-x-mcp acts as an MCP server to expose grouped tools as specialized sub-ag
 ## Protocol Compliance
 
 ### Required Methods (Client Mode)
+
 - ✅ `initialize` - Connection establishment
 - ✅ `tools/list` - Tool discovery
 - ✅ `tools/call` - Tool invocation
 
 ### Required Methods (Server Mode)
+
 - ✅ `initialize` - Accept client connections
 - ✅ `tools/list` - Expose sub-agents as tools
 - ✅ `tools/call` - Route requests to sub-agents
 
 ### Optional Methods
+
 - ⚠️ `notifications/tools/list_changed` - Not implemented (static tool list)
 - ⚠️ `resources/*` - Not implemented (no resource management)
 - ⚠️ `prompts/*` - Not implemented (no prompt templates)
@@ -381,14 +385,17 @@ Tamamo-x-mcp acts as an MCP server to expose grouped tools as specialized sub-ag
 ## Transport Support
 
 ### stdio (Supported)
+
 - **Client**: Spawn server process, communicate via stdin/stdout
 - **Server**: Accept connections via stdin, respond via stdout
 
 ### HTTP (Supported)
+
 - **Client**: POST requests to server URL
 - **Server**: HTTP server listening on configured port
 
 ### WebSocket (Supported)
+
 - **Client**: WebSocket connection to server URL
 - **Server**: WebSocket server listening on configured port
 
@@ -416,7 +423,7 @@ Deno.test("MCP server exposes sub-agents as tools", async () => {
   const client = new MCPClient({ transport: "http", url: "http://localhost:3000" });
 
   const tools = await client.listTools();
-  const agent = tools.find(t => t.name.endsWith("_agent"));
+  const agent = tools.find((t) => t.name.endsWith("_agent"));
 
   assertEquals(agent !== undefined, true);
   assertEquals(agent.description.includes("Specialized agent"), true);

@@ -3,11 +3,7 @@
  * Routes agent requests to appropriate sub-agents
  */
 
-import type {
-  SubAgent,
-  AgentRequest,
-  AgentResponse,
-} from "../types/index.ts";
+import type { AgentRequest, AgentResponse, SubAgent } from "../types/index.ts";
 
 /**
  * Find an agent by ID

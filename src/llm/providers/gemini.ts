@@ -4,7 +4,7 @@
  */
 
 import { GoogleGenerativeAI } from "npm:@google/generative-ai@0.21.0";
-import type { LLMClient, CompletionOptions } from "../client.ts";
+import type { CompletionOptions, LLMClient } from "../client.ts";
 
 const DEFAULT_MODEL = "gemini-2.0-flash-exp";
 

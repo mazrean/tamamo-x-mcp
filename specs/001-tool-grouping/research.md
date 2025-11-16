@@ -76,13 +76,13 @@ import { Client, Server } from "npm:@modelcontextprotocol/sdk";
 // Client for tool discovery
 const mcpClient = new Client({
   name: "tamamo-x-mcp",
-  version: "1.0.0"
+  version: "1.0.0",
 });
 
 // Server for exposing sub-agents
 const mcpServer = new Server({
   name: "tamamo-x-mcp",
-  version: "1.0.0"
+  version: "1.0.0",
 });
 ```
 
@@ -112,7 +112,7 @@ const mastraTool = new Tool({
   execute: async (args) => {
     // Call original MCP tool via client
     return await mcpClient.callTool(mcpTool.name, args);
-  }
+  },
 });
 
 // Create sub-agent with grouped tools
@@ -120,7 +120,7 @@ const subAgent = new Agent({
   name: groupName,
   description: groupDescription,
   tools: groupedMastraTools,
-  llm: selectedLLMClient
+  llm: selectedLLMClient,
 });
 ```
 
@@ -135,11 +135,11 @@ const subAgent = new Agent({
 
 Implement platform-specific credential discovery for each CLI tool:
 
-| CLI Tool | Credential Location |
-|----------|---------------------|
-| **Claude Code** | `~/.config/claude/credentials.json` (Linux/macOS), `%APPDATA%\claude\credentials.json` (Windows) |
-| **Codex (OpenAI CLI)** | `~/.config/openai/config.json` or `OPENAI_API_KEY` env var |
-| **Gemini CLI** | `~/.config/gcloud/application_default_credentials.json` or `GOOGLE_API_KEY` env var |
+| CLI Tool               | Credential Location                                                                              |
+| ---------------------- | ------------------------------------------------------------------------------------------------ |
+| **Claude Code**        | `~/.config/claude/credentials.json` (Linux/macOS), `%APPDATA%\claude\credentials.json` (Windows) |
+| **Codex (OpenAI CLI)** | `~/.config/openai/config.json` or `OPENAI_API_KEY` env var                                       |
+| **Gemini CLI**         | `~/.config/gcloud/application_default_credentials.json` or `GOOGLE_API_KEY` env var              |
 
 ### Rationale
 
@@ -153,10 +153,10 @@ Implement platform-specific credential discovery for each CLI tool:
 async function discoverCredentials(provider: LLMProvider): Promise<string> {
   switch (provider) {
     case "anthropic":
-      return await readClaudeCodeCredentials()
-        ?? Deno.env.get("ANTHROPIC_API_KEY")
-        ?? await promptForKey();
-    // ... other providers
+      return await readClaudeCodeCredentials() ??
+        Deno.env.get("ANTHROPIC_API_KEY") ??
+        await promptForKey();
+      // ... other providers
   }
 }
 ```
@@ -206,13 +206,13 @@ async function discoverCredentials(provider: LLMProvider): Promise<string> {
 ```typescript
 // Parallel tool discovery
 const allTools = await Promise.all(
-  mcpServers.map(server => discoverTools(server))
+  mcpServers.map((server) => discoverTools(server)),
 );
 
 // Batch LLM analysis (analyze 10 tools per request)
 const batches = chunk(allTools, 10);
 const analysisResults = await Promise.all(
-  batches.map(batch => llm.analyzeTools(batch))
+  batches.map((batch) => llm.analyzeTools(batch)),
 );
 ```
 
@@ -241,7 +241,7 @@ Deno.test("grouper satisfies tool count constraints", async () => {
   const groups = await groupTools(tools, mockLLM);
 
   assertEquals(groups.length >= 3 && groups.length <= 10, true);
-  groups.forEach(group => {
+  groups.forEach((group) => {
     assertEquals(group.tools.length >= 5 && group.tools.length <= 20, true);
   });
 });
@@ -297,15 +297,15 @@ jobs:
 
 ### Quality Gate Matrix
 
-| Gate | Tool | Blocking | Configuration |
-|------|------|----------|---------------|
-| **Linting** | `deno lint` | ✅ Yes | Strict mode, zero warnings |
-| **Formatting** | `deno fmt` | ✅ Yes | Standard Deno style |
-| **Unit Tests** | `deno test tests/unit/` | ✅ Yes | 100% must pass |
-| **Integration Tests** | `deno test tests/integration/` | ✅ Yes | 100% must pass |
-| **Distribution Tests** | `deno test tests/distribution/` | ✅ Yes | Parity validation |
-| **Type Checking** | `deno check` | ✅ Yes | Strict TypeScript mode |
-| **Coverage** | `deno coverage` | ⚠️ Warning | Minimum 80% (not blocking) |
+| Gate                   | Tool                            | Blocking   | Configuration              |
+| ---------------------- | ------------------------------- | ---------- | -------------------------- |
+| **Linting**            | `deno lint`                     | ✅ Yes     | Strict mode, zero warnings |
+| **Formatting**         | `deno fmt`                      | ✅ Yes     | Standard Deno style        |
+| **Unit Tests**         | `deno test tests/unit/`         | ✅ Yes     | 100% must pass             |
+| **Integration Tests**  | `deno test tests/integration/`  | ✅ Yes     | 100% must pass             |
+| **Distribution Tests** | `deno test tests/distribution/` | ✅ Yes     | Parity validation          |
+| **Type Checking**      | `deno check`                    | ✅ Yes     | Strict TypeScript mode     |
+| **Coverage**           | `deno coverage`                 | ⚠️ Warning | Minimum 80% (not blocking) |
 
 ### Workflow Files Structure
 
@@ -323,20 +323,24 @@ jobs:
 ### CI Pipeline Phases
 
 **Phase 1: Quality Gates** (runs first, fast feedback)
+
 - Lint check (30s)
 - Format check (30s)
 - Type check (1min)
 
 **Phase 2: Testing** (parallel across OS matrix)
+
 - Unit tests (5-10min per OS)
 - Integration tests (10-15min per OS)
 
 **Phase 3: Distribution** (only on main branch)
+
 - Build Deno binary (2min)
 - Build npm package (2min)
 - Distribution parity tests (5min)
 
 **Phase 4: Release** (only on tag push)
+
 - Create GitHub Release
 - Upload Deno binary artifacts
 - Publish npm package
@@ -345,6 +349,7 @@ jobs:
 ### Environment Variables & Secrets
 
 Required GitHub Secrets:
+
 - `ANTHROPIC_API_KEY` (for integration tests with real LLM)
 - `OPENAI_API_KEY` (for multi-provider testing)
 - `NPM_TOKEN` (for automated npm publishing)
@@ -376,6 +381,7 @@ Required GitHub Secrets:
 ### Branch Protection Rules
 
 Required for `main` branch:
+
 - ✅ Require status checks to pass before merging
   - ✅ lint
   - ✅ test (all OS matrix)
@@ -389,6 +395,7 @@ Required for `main` branch:
 **Versioning**: Semantic Versioning (MAJOR.MINOR.PATCH)
 
 **Automated Release Process**:
+
 1. Developer creates tag: `git tag v1.0.0 && git push --tags`
 2. GitHub Actions triggers release workflow
 3. Builds both distributions (Deno binary + npm package)

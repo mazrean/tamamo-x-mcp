@@ -3,7 +3,7 @@
  * Enforces grouping constraints and validates tool groups
  */
 
-import type { ToolGroup, GroupingConstraints } from "../types/index.ts";
+import type { GroupingConstraints, ToolGroup } from "../types/index.ts";
 
 export interface ValidationResult {
   valid: boolean;

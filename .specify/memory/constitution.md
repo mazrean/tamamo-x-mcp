@@ -133,12 +133,14 @@ deno test --filter integration
 ```
 
 **Branch Protection**: Main branch MUST be protected with:
+
 - Required status checks (all quality gates MUST pass)
 - Up-to-date branch requirement before merge
 - No force pushes or deletions
 - Linear history (no merge commits)
 
 **Continuous Deployment**: Release automation SHOULD include:
+
 - Automated versioning (semantic versioning)
 - Changelog generation from commits
 - Multi-platform artifact builds

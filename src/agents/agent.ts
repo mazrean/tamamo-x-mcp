@@ -4,12 +4,12 @@
  */
 
 import type {
-  Tool,
-  ToolGroup,
-  SubAgent,
   AgentRequest,
   AgentResponse,
   LLMProviderConfig,
+  SubAgent,
+  Tool,
+  ToolGroup,
 } from "../types/index.ts";
 
 /**
@@ -122,7 +122,8 @@ export async function executeAgent(
     // 2. Execute agent with LLM
     // 3. Track which tools were used
     // For now, return a mock successful response for testing
-    const result = `Mock execution result for agent ${subAgent.name} with prompt: ${request.prompt}`;
+    const result =
+      `Mock execution result for agent ${subAgent.name} with prompt: ${request.prompt}`;
     const toolsUsed: string[] = []; // In real impl, track actual tools used
 
     return {

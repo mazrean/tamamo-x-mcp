@@ -23,28 +23,33 @@ Build an MCP server that intelligently groups tools from configured MCP servers 
 
 ## Constitution Check
 
-*GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
+_GATE: Must pass before Phase 0 research. Re-check after Phase 1 design._
 
 ### I. Test-First Development (NON-NEGOTIABLE)
+
 - ✅ **PASS**: Plan includes test structure in project layout
 - ✅ **PASS**: TDD workflow will be enforced per constitution (write tests → verify fail → implement)
 
 ### II. Quality Gates (NON-NEGOTIABLE)
+
 - ✅ **PASS**: Deno lint configured for zero-error enforcement
 - ✅ **PASS**: Unit and integration test suites planned
 - ✅ **PASS**: Quality gates align with constitution requirements
 
 ### III. Modular Agent Design
+
 - ✅ **PASS**: Feature explicitly requires 3-10 agent groups (FR-006)
 - ✅ **PASS**: Each group must contain 5-20 complementary tools (FR-006)
 - ✅ **PASS**: Clear separation of concerns via role-based grouping (FR-007)
 
 ### IV. API-First & Provider Agnostic
+
 - ✅ **PASS**: Multi-provider LLM support required (FR-008: 6 providers)
 - ✅ **PASS**: Credential reuse from CLI tools specified (FR-009)
 - ✅ **PASS**: No credential storage in config files (FR-010)
 
 ### V. Distribution Flexibility
+
 - ✅ **PASS**: Deno standalone binary required (FR-013)
 - ✅ **PASS**: npm package distribution required (FR-014)
 - ✅ **PASS**: Feature parity enforcement specified (FR-015)
@@ -154,6 +159,7 @@ Module dependency graph (implement in topological order):
 ```
 
 **Implementation Order** (topological sort):
+
 1. Types (`src/types/`)
 2. Config (`src/config/loader.ts`, `src/config/validator.ts`)
 3. MCP Client (`src/mcp/client.ts`)
@@ -172,6 +178,7 @@ Module dependency graph (implement in topological order):
 **Goal**: Set up project infrastructure and core types.
 
 **Tasks**:
+
 1. Initialize Deno project (`deno.json`, `deno.lock`, `.gitignore`)
 2. Define TypeScript types in `src/types/`
    - **Reference**: [data-model.md](data-model.md) § 1-10 (all entities)
@@ -185,12 +192,14 @@ Module dependency graph (implement in topological order):
    - Validates against JSON Schema
 
 **Artifacts to Reference**:
+
 - [data-model.md](data-model.md) § 1-10 (all entities)
 - [contracts/config-schema.json](contracts/config-schema.json) (validation schema)
 
 **Milestone**: Config can be loaded and validated against schema. Tests pass.
 
 **Test Coverage**:
+
 - `tests/unit/config/loader_test.ts`: Load valid/invalid configs
 - `tests/unit/config/validator_test.ts`: Validation rules enforcement
 
@@ -201,6 +210,7 @@ Module dependency graph (implement in topological order):
 **Goal**: Connect to MCP servers and discover tools.
 
 **Tasks**:
+
 1. Implement MCP client (`src/mcp/client.ts`)
    - **Reference**: [research.md](research.md) § 2 (MCP SDK decision: `@modelcontextprotocol/sdk`)
    - **Reference**: [contracts/mcp-protocol.md](contracts/mcp-protocol.md) § 1-3 (client-mode methods)
@@ -214,6 +224,7 @@ Module dependency graph (implement in topological order):
    - Mock MCP server responses
 
 **Artifacts to Reference**:
+
 - [research.md](research.md) § 2 (MCP protocol integration)
 - [contracts/mcp-protocol.md](contracts/mcp-protocol.md) (all client-mode interactions)
 - [data-model.md](data-model.md) § 6 (Tool entity structure)
@@ -221,6 +232,7 @@ Module dependency graph (implement in topological order):
 **Milestone**: Can connect to MCP server and list all tools. Tests pass.
 
 **Test Coverage**:
+
 - `tests/unit/mcp/client_test.ts`: Connection, initialization, error handling
 - `tests/unit/mcp/discovery_test.ts`: Tool parsing from MCP responses
 - `tests/integration/mcp_discovery_test.ts`: Real MCP server integration (with test fixture server)
@@ -232,6 +244,7 @@ Module dependency graph (implement in topological order):
 **Goal**: Support multiple LLM providers with unified interface.
 
 **Tasks**:
+
 1. Implement credential discovery (`src/llm/credentials.ts`)
    - **Reference**: [research.md](research.md) § 4 (credential discovery strategy)
    - **Reference**: [data-model.md](data-model.md) § 3 (LLMProviderConfig)
@@ -253,6 +266,7 @@ Module dependency graph (implement in topological order):
    - Mock LLM API responses
 
 **Artifacts to Reference**:
+
 - [research.md](research.md) § 1 (LLM provider SDKs selection)
 - [research.md](research.md) § 4 (credential discovery locations)
 - [data-model.md](data-model.md) § 3 (LLMProviderConfig entity)
@@ -260,6 +274,7 @@ Module dependency graph (implement in topological order):
 **Milestone**: Can invoke any of 6 LLM providers with discovered credentials. Tests pass.
 
 **Test Coverage**:
+
 - `tests/unit/llm/credentials_test.ts`: Credential discovery from CLI tools
 - `tests/unit/llm/providers/*_test.ts`: Each provider adapter
 - `tests/unit/llm/client_test.ts`: Unified interface routing
@@ -271,6 +286,7 @@ Module dependency graph (implement in topological order):
 **Goal**: Group tools using LLM analysis with constraint validation.
 
 **Tasks**:
+
 1. Implement LLM analyzer (`src/grouping/analyzer.ts`)
    - **Reference**: [research.md](research.md) § 6 (LLM request batching for performance)
    - **Reference**: [spec.md](spec.md) FR-005, FR-006, FR-007
@@ -291,6 +307,7 @@ Module dependency graph (implement in topological order):
    - Test with fixture tool catalogs (50+ tools)
 
 **Artifacts to Reference**:
+
 - [research.md](research.md) § 6 (performance optimization: batching, caching)
 - [data-model.md](data-model.md) § 5 (GroupingConstraints)
 - [data-model.md](data-model.md) § 7 (ToolGroup entity)
@@ -299,6 +316,7 @@ Module dependency graph (implement in topological order):
 **Milestone**: Can group 50+ tools into 3-10 valid groups satisfying all constraints. Tests pass.
 
 **Test Coverage**:
+
 - `tests/unit/grouping/analyzer_test.ts`: LLM analysis batching
 - `tests/unit/grouping/grouper_test.ts`: Grouping algorithm correctness
 - `tests/unit/grouping/validator_test.ts`: Constraint validation
@@ -311,6 +329,7 @@ Module dependency graph (implement in topological order):
 **Goal**: Execute sub-agents backed by tool groups.
 
 **Tasks**:
+
 1. Implement agent execution (`src/agents/agent.ts`)
    - **Reference**: [research.md](research.md) § 3 (Mastra framework integration strategy)
    - **Reference**: [data-model.md](data-model.md) § 8 (SubAgent entity)
@@ -329,6 +348,7 @@ Module dependency graph (implement in topological order):
    - Test MCP server protocol compliance
 
 **Artifacts to Reference**:
+
 - [research.md](research.md) § 3 (Mastra agent orchestration)
 - [contracts/mcp-protocol.md](contracts/mcp-protocol.md) § 4-6 (server mode)
 - [data-model.md](data-model.md) § 8-10 (SubAgent, AgentRequest, AgentResponse)
@@ -336,6 +356,7 @@ Module dependency graph (implement in topological order):
 **Milestone**: Can start MCP server, expose sub-agents, and invoke them via MCP protocol. Tests pass.
 
 **Test Coverage**:
+
 - `tests/unit/agents/agent_test.ts`: Agent execution with Mastra
 - `tests/unit/agents/router_test.ts`: Request routing logic
 - `tests/unit/mcp/server_test.ts`: MCP server initialization
@@ -348,6 +369,7 @@ Module dependency graph (implement in topological order):
 **Goal**: Implement init, build, mcp commands with user-facing workflows.
 
 **Tasks**:
+
 1. Implement `init` command (`src/cli/commands/init.ts`)
    - **Reference**: [quickstart.md](quickstart.md) § "Step 1: Initialize Configuration"
    - **Reference**: [spec.md](spec.md) User Story 1 (acceptance scenarios)
@@ -367,12 +389,14 @@ Module dependency graph (implement in topological order):
    - Route to appropriate command handler
 
 **Artifacts to Reference**:
+
 - [quickstart.md](quickstart.md) § Steps 1-3 (user workflows)
 - [spec.md](spec.md) User Stories 1, 2, 4 (acceptance scenarios)
 
 **Milestone**: All 3 CLI commands functional end-to-end (`init` → `build` → `mcp`). Tests pass.
 
 **Test Coverage**:
+
 - `tests/integration/init_workflow_test.ts`: Full init command workflow
 - `tests/integration/build_workflow_test.ts`: Full build command workflow
 - `tests/integration/mcp_server_test.ts`: Full mcp command workflow
@@ -386,6 +410,7 @@ Module dependency graph (implement in topological order):
 **Tasks**:
 
 #### 6.1 Distribution Build Configuration
+
 1. Configure Deno compilation (`deno.json`)
    - **Reference**: [research.md](research.md) § 5 (dual distribution strategy)
    - **Reference**: [spec.md](spec.md) FR-013 (Deno binary requirement)
@@ -401,6 +426,7 @@ Module dependency graph (implement in topological order):
    - Test both distributions against identical test suites
 
 #### 6.2 CI/CD Pipeline Setup (GitHub Actions)
+
 1. Create main CI workflow (`.github/workflows/ci.yml`)
    - **Reference**: [research.md](research.md) § 8 (CI/CD Strategy)
    - **Reference**: [contracts/ci-workflows.md](contracts/ci-workflows.md) (workflow specifications)
@@ -428,6 +454,7 @@ Module dependency graph (implement in topological order):
    - No force pushes to main
 
 #### 6.3 CI/CD Testing & Validation
+
 1. Write CI-specific tests (`tests/ci/`)
    - Test that CI workflow catches lint violations
    - Test that CI workflow catches test failures
@@ -441,6 +468,7 @@ Module dependency graph (implement in topological order):
    - Validate npm package can be published (dry-run)
 
 **Artifacts to Reference**:
+
 - [research.md](research.md) § 5 (distribution build configuration)
 - [research.md](research.md) § 8 (CI/CD Strategy - comprehensive)
 - [contracts/ci-workflows.md](contracts/ci-workflows.md) (GitHub Actions specifications)
@@ -448,12 +476,14 @@ Module dependency graph (implement in topological order):
 - [spec.md](spec.md) FR-013, FR-014, FR-015 (distribution requirements)
 
 **Milestone**:
+
 - ✅ Both Deno binary and npm package pass identical test suites (SC-007)
 - ✅ CI/CD pipeline automatically enforces all quality gates
 - ✅ Release automation functional (tag → GitHub Release + npm publish)
 - ✅ All platforms tested automatically (Linux, macOS, Windows)
 
 **Test Coverage**:
+
 - `tests/distribution/deno_binary_test.ts`: Deno binary validation
 - `tests/distribution/npm_package_test.ts`: npm package validation
 - `tests/distribution/parity_test.ts`: Feature parity verification
@@ -468,6 +498,7 @@ Module dependency graph (implement in topological order):
 **Total Estimated Time**: 24-32 days for full implementation (including CI/CD)
 
 **Critical Path**:
+
 1. Foundation (Types, Config) →
 2. MCP Client →
 3. LLM Abstraction →
@@ -477,12 +508,14 @@ Module dependency graph (implement in topological order):
 7. Distribution + CI/CD
 
 **Parallel Opportunities**:
+
 - Unit tests can be written in parallel with implementation
 - Provider adapters (Phase 2) can be implemented in parallel
 - CLI commands (Phase 5) can be partially parallelized
 - CI workflow creation can happen in parallel with Phase 5 (CLI Commands)
 
 **Quality Gates** (automated via CI/CD):
+
 - ✅ Zero lint errors (`deno lint` - enforced by CI)
 - ✅ Code formatting (`deno fmt --check` - enforced by CI)
 - ✅ Type checking (`deno check` - enforced by CI)
@@ -492,6 +525,7 @@ Module dependency graph (implement in topological order):
 - ⚠️ Code coverage ≥80% (`deno coverage` - warning only, not blocking)
 
 **CI/CD Enforcement**:
+
 - All quality gates run automatically on every push and PR
 - Branch protection prevents merging failing builds
 - Release automation eliminates manual release process
@@ -503,7 +537,7 @@ Module dependency graph (implement in topological order):
 
 > **Fill ONLY if Constitution Check has violations that must be justified**
 
-| Violation | Why Needed | Simpler Alternative Rejected Because |
-|-----------|------------|-------------------------------------|
-| [e.g., 4th project] | [current need] | [why 3 projects insufficient] |
-| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient] |
+| Violation                  | Why Needed         | Simpler Alternative Rejected Because |
+| -------------------------- | ------------------ | ------------------------------------ |
+| [e.g., 4th project]        | [current need]     | [why 3 projects insufficient]        |
+| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient]  |

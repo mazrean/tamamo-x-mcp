@@ -1,6 +1,6 @@
 import { assertEquals, assertStringIncludes } from "https://deno.land/std@0.224.0/assert/mod.ts";
-import { describe, it, beforeEach, afterEach } from "https://deno.land/std@0.224.0/testing/bdd.ts";
-import { showHelp, showVersion, main } from "../../../src/cli/main.ts";
+import { afterEach, beforeEach, describe, it } from "https://deno.land/std@0.224.0/testing/bdd.ts";
+import { main, showHelp, showVersion } from "../../../src/cli/main.ts";
 
 /**
  * Unit tests for CLI main entry point

@@ -1,7 +1,7 @@
-import { assertEquals, assert, assertExists } from "https://deno.land/std@0.224.0/assert/mod.ts";
+import { assert, assertEquals, assertExists } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import { describe, it } from "https://deno.land/std@0.224.0/testing/bdd.ts";
 import { getToolSubset } from "../../fixtures/mock_tools.ts";
-import type { Tool, ProjectContext, LLMClient } from "../../../src/types/index.ts";
+import type { LLMClient, ProjectContext, Tool } from "../../../src/types/index.ts";
 import { analyzeTools } from "../../../src/grouping/analyzer.ts";
 
 /**
@@ -166,7 +166,7 @@ describe("Grouping Analyzer", () => {
         assertExists(rel.score, "Relationship should have score");
         assert(
           rel.score >= 0 && rel.score <= 1,
-          `Score should be in [0, 1], got ${rel.score}`
+          `Score should be in [0, 1], got ${rel.score}`,
         );
       });
     });

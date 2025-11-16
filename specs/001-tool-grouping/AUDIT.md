@@ -46,6 +46,7 @@ Implementation plan and design artifacts have been generated successfully. Howev
 **Problem**: plan.md does not tell implementers WHERE to start or WHAT to reference.
 
 **Example**: When implementing `src/llm/providers/anthropic.ts`, developer should be told:
+
 - "See research.md § 1 for SDK selection rationale"
 - "See data-model.md § 3 (LLMProviderConfig) for entity structure"
 - "See research.md § 4 for credential discovery strategy"
@@ -59,6 +60,7 @@ Implementation plan and design artifacts have been generated successfully. Howev
 **Problem**: Unclear which modules must be implemented first.
 
 **Example**: `src/grouping/grouper.ts` depends on:
+
 - `src/llm/client.ts` (LLM abstraction)
 - `src/mcp/client.ts` (tool discovery)
 - `src/grouping/validator.ts` (constraint checking)
@@ -72,6 +74,7 @@ Implementation plan and design artifacts have been generated successfully. Howev
 **Problem**: Plan doesn't break implementation into phases with milestones.
 
 **Should Have**:
+
 - **Phase 1**: Core infrastructure (config, types, MCP client)
 - **Phase 2**: LLM abstraction layer
 - **Phase 3**: Tool grouping engine
@@ -87,12 +90,12 @@ Implementation plan and design artifacts have been generated successfully. Howev
 
 **Problem**: Artifacts don't reference each other effectively.
 
-| Artifact | Should Reference | Current State |
-|----------|------------------|---------------|
-| plan.md | research.md decisions | ❌ No links |
-| plan.md | data-model.md entities | ❌ No links |
-| plan.md | contracts/ schemas | ❌ No links |
-| data-model.md | contracts/config-schema.json | ❌ Not linked |
+| Artifact      | Should Reference                     | Current State    |
+| ------------- | ------------------------------------ | ---------------- |
+| plan.md       | research.md decisions                | ❌ No links      |
+| plan.md       | data-model.md entities               | ❌ No links      |
+| plan.md       | contracts/ schemas                   | ❌ No links      |
+| data-model.md | contracts/config-schema.json         | ❌ Not linked    |
 | quickstart.md | data-model.md (for config structure) | ⚠️ Implicit only |
 
 ---
@@ -111,6 +114,7 @@ Add to plan.md after "Project Structure":
 **Goal**: Set up project infrastructure and core types.
 
 **Tasks**:
+
 1. Initialize Deno project (`deno.json`, `deno.lock`)
 2. Define TypeScript types (see data-model.md § 1-5)
    - Configuration, MCPServerConfig, LLMProviderConfig
@@ -121,6 +125,7 @@ Add to plan.md after "Project Structure":
    - Reference: data-model.md § 1 (validation rules)
 
 **Artifacts to Reference**:
+
 - data-model.md § 1-10 (all entities)
 - contracts/config-schema.json (validation schema)
 
@@ -133,6 +138,7 @@ Add to plan.md after "Project Structure":
 **Goal**: Connect to MCP servers and discover tools.
 
 **Tasks**:
+
 1. Implement MCP client (src/mcp/client.ts)
    - Reference: research.md § 2 (MCP SDK decision)
    - Reference: contracts/mcp-protocol.md § 1-3
@@ -143,6 +149,7 @@ Add to plan.md after "Project Structure":
    - Reference: research.md § 7 (testing strategy)
 
 **Artifacts to Reference**:
+
 - research.md § 2 (MCP protocol integration)
 - contracts/mcp-protocol.md (all client-mode methods)
 - data-model.md § 6 (Tool entity)
@@ -156,6 +163,7 @@ Add to plan.md after "Project Structure":
 **Goal**: Support multiple LLM providers with unified interface.
 
 **Tasks**:
+
 1. Implement credential discovery (src/llm/credentials.ts)
    - Reference: research.md § 4 (credential discovery strategy)
    - Reference: data-model.md § 3 (LLMProviderConfig)
@@ -169,6 +177,7 @@ Add to plan.md after "Project Structure":
 4. Write unit tests (tests/unit/llm/)
 
 **Artifacts to Reference**:
+
 - research.md § 1 (LLM provider SDKs)
 - research.md § 4 (credential discovery)
 - data-model.md § 3 (LLMProviderConfig)
@@ -182,6 +191,7 @@ Add to plan.md after "Project Structure":
 **Goal**: Group tools using LLM analysis.
 
 **Tasks**:
+
 1. Implement LLM analyzer (src/grouping/analyzer.ts)
    - Reference: research.md § 6 (LLM request batching)
    - Uses: src/llm/client.ts
@@ -194,6 +204,7 @@ Add to plan.md after "Project Structure":
    - Reference: research.md § 7 (testing strategy)
 
 **Artifacts to Reference**:
+
 - research.md § 6 (performance optimization)
 - data-model.md § 5 (GroupingConstraints)
 - data-model.md § 7 (ToolGroup)
@@ -208,6 +219,7 @@ Add to plan.md after "Project Structure":
 **Goal**: Execute sub-agents backed by tool groups.
 
 **Tasks**:
+
 1. Implement agent execution (src/agents/agent.ts)
    - Reference: research.md § 3 (Mastra integration)
    - Reference: data-model.md § 8 (SubAgent entity)
@@ -218,6 +230,7 @@ Add to plan.md after "Project Structure":
 4. Write integration tests
 
 **Artifacts to Reference**:
+
 - research.md § 3 (Mastra framework integration)
 - contracts/mcp-protocol.md § 4-6 (server mode)
 - data-model.md § 8-10 (SubAgent, Request, Response)
@@ -231,6 +244,7 @@ Add to plan.md after "Project Structure":
 **Goal**: Implement init, build, mcp commands.
 
 **Tasks**:
+
 1. Implement init command (src/cli/commands/init.ts)
    - Reference: quickstart.md § "Step 1"
    - Reference: spec.md User Story 1
@@ -243,6 +257,7 @@ Add to plan.md after "Project Structure":
 4. Implement CLI orchestration (src/cli/main.ts)
 
 **Artifacts to Reference**:
+
 - quickstart.md (all 3 steps)
 - spec.md User Stories 1, 2, 4
 
@@ -255,6 +270,7 @@ Add to plan.md after "Project Structure":
 **Goal**: Build Deno binary and npm package.
 
 **Tasks**:
+
 1. Configure Deno compilation (deno.json)
    - Reference: research.md § 5 (dual distribution strategy)
 2. Configure npm package build
@@ -263,6 +279,7 @@ Add to plan.md after "Project Structure":
 4. Run full test suite against both distributions
 
 **Artifacts to Reference**:
+
 - research.md § 5 (distribution strategy)
 - spec.md User Story 5 (acceptance criteria)
 
@@ -277,29 +294,29 @@ Add visual dependency map:
 
 ```markdown
 ## Module Dependencies
-
 ```
+
 [Types] ──────────────────────────┐
-   │                               │
-   ↓                               ↓
+│ │
+↓ ↓
 [Config] ─→ [MCP Client] ─→ [Tool Discovery]
-   │              │                │
-   │              │                ↓
-   │              │         [LLM Client] ←─ [Credentials]
-   │              │                │
-   │              │                ↓
-   │              │         [Tool Grouper] ←─ [Validator]
-   │              │                │
-   │              │                ↓
-   │              │         [Tool Groups]
-   │              │                │
-   │              ↓                ↓
-   └─────→ [Sub-Agent] ←──────────┘
-                  │
-                  ↓
-           [MCP Server] ─→ [CLI Commands]
-```
+│ │ │
+│ │ ↓
+│ │ [LLM Client] ←─ [Credentials]
+│ │ │
+│ │ ↓
+│ │ [Tool Grouper] ←─ [Validator]
+│ │ │
+│ │ ↓
+│ │ [Tool Groups]
+│ │ │
+│ ↓ ↓
+└─────→ [Sub-Agent] ←──────────┘
+│
+↓
+[MCP Server] ─→ [CLI Commands]
 
+```
 **Implementation Order** (topological sort):
 1. Types
 2. Config (loader + validator)
@@ -355,15 +372,15 @@ When implementing these entities:
 
 ## Summary of Required Changes
 
-| File | Change Required | Priority |
-|------|----------------|----------|
-| plan.md | Add Implementation Roadmap section | 🔴 Critical |
-| plan.md | Add Module Dependency Graph | 🟡 High |
-| plan.md | Add Design Artifacts reference section | 🟡 High |
-| data-model.md | Add Implementation References section | 🟢 Medium |
-| research.md | No changes (well-structured) | ✅ None |
-| contracts/* | No changes (complete) | ✅ None |
-| quickstart.md | No changes (serves as reference) | ✅ None |
+| File          | Change Required                        | Priority    |
+| ------------- | -------------------------------------- | ----------- |
+| plan.md       | Add Implementation Roadmap section     | 🔴 Critical |
+| plan.md       | Add Module Dependency Graph            | 🟡 High     |
+| plan.md       | Add Design Artifacts reference section | 🟡 High     |
+| data-model.md | Add Implementation References section  | 🟢 Medium   |
+| research.md   | No changes (well-structured)           | ✅ None     |
+| contracts/*   | No changes (complete)                  | ✅ None     |
+| quickstart.md | No changes (serves as reference)       | ✅ None     |
 
 ---
 
@@ -385,28 +402,31 @@ After implementing recommendations, verify:
 ### ✅ Implemented Recommendations
 
 **Recommendation 1: Implementation Roadmap** - ✅ **COMPLETE**
+
 - Added 6-phase roadmap to [plan.md](plan.md)
 - Each phase includes: Goal, Tasks, Artifacts to Reference, Milestone, Test Coverage
 - Total estimated time: 23-30 days
 - Clear critical path defined
 
 **Recommendation 2: Module Dependency Graph** - ✅ **COMPLETE**
+
 - ASCII dependency graph added to [plan.md](plan.md)
 - Topological sort implementation order (1-10)
 - Clear visualization of module relationships
 
 **Recommendation 3: Cross-References Enhanced** - ✅ **COMPLETE**
+
 - "Design Artifacts" section added to [plan.md](plan.md)
 - "Implementation References" section added to [data-model.md](data-model.md)
 - Every phase links to specific sections in research.md, data-model.md, contracts/, spec.md
 
 ### Files Modified
 
-| File | Changes Made | Status |
-|------|-------------|--------|
-| [plan.md](plan.md) | Added: Design Artifacts, Module Dependencies, Implementation Roadmap (Phases 0-6), Implementation Summary | ✅ Complete |
-| [data-model.md](data-model.md) | Added: Implementation References section with links to all related docs | ✅ Complete |
-| [AUDIT.md](AUDIT.md) | Updated: Validation checklist, remediation summary | ✅ Complete |
+| File                           | Changes Made                                                                                              | Status      |
+| ------------------------------ | --------------------------------------------------------------------------------------------------------- | ----------- |
+| [plan.md](plan.md)             | Added: Design Artifacts, Module Dependencies, Implementation Roadmap (Phases 0-6), Implementation Summary | ✅ Complete |
+| [data-model.md](data-model.md) | Added: Implementation References section with links to all related docs                                   | ✅ Complete |
+| [AUDIT.md](AUDIT.md)           | Updated: Validation checklist, remediation summary                                                        | ✅ Complete |
 
 ---
 
@@ -423,18 +443,21 @@ After implementing recommendations, verify:
 ## Before/After Comparison
 
 ### Before Audit
+
 - ❌ No implementation sequence
 - ❌ No cross-references
 - ❌ No module dependencies
 - ❌ Developer would struggle to start
 
 ### After Remediation
+
 - ✅ 6-phase roadmap with 24-32 day estimate (including CI/CD)
 - ✅ Every task references specific design docs
 - ✅ Module dependency graph with topological order
 - ✅ Developer can start immediately from Phase 0
 
 ### After CI/CD Integration (Latest Update)
+
 - ✅ CI/CD automation fully specified in research.md § 8
 - ✅ GitHub Actions workflows detailed in contracts/ci-workflows.md
 - ✅ Quality gates automated (lint, format, type-check, tests)
@@ -449,16 +472,17 @@ After implementing recommendations, verify:
 
 ### Additional Files Modified
 
-| File | CI/CD Changes | Status |
-|------|---------------|--------|
-| [research.md](research.md) | Added § 8: CI/CD Strategy (GitHub Actions architecture) | ✅ Complete |
-| [plan.md](plan.md) | Expanded Phase 6 with CI/CD tasks (6.1-6.3 subsections) | ✅ Complete |
-| [contracts/ci-workflows.md](contracts/ci-workflows.md) | Complete GitHub Actions workflow specifications (NEW) | ✅ Complete |
-| [constitution.md](../../.specify/memory/constitution.md) | Added CI/CD Automation section, bumped to v1.0.1 | ✅ Complete |
+| File                                                     | CI/CD Changes                                           | Status      |
+| -------------------------------------------------------- | ------------------------------------------------------- | ----------- |
+| [research.md](research.md)                               | Added § 8: CI/CD Strategy (GitHub Actions architecture) | ✅ Complete |
+| [plan.md](plan.md)                                       | Expanded Phase 6 with CI/CD tasks (6.1-6.3 subsections) | ✅ Complete |
+| [contracts/ci-workflows.md](contracts/ci-workflows.md)   | Complete GitHub Actions workflow specifications (NEW)   | ✅ Complete |
+| [constitution.md](../../.specify/memory/constitution.md) | Added CI/CD Automation section, bumped to v1.0.1        | ✅ Complete |
 
 ### CI/CD Specifications Added
 
 **1. Main CI Workflow** (`.github/workflows/ci.yml`):
+
 - Quality gates job (lint, format, type-check)
 - Matrix testing across Linux, macOS, Windows
 - Parallel unit and integration tests
@@ -467,6 +491,7 @@ After implementing recommendations, verify:
 - Distribution parity testing
 
 **2. Release Workflow** (`.github/workflows/release.yml`):
+
 - Semantic version validation
 - Multi-platform binary builds
 - Automated npm publishing with provenance
@@ -474,15 +499,18 @@ After implementing recommendations, verify:
 - Binary artifact uploads
 
 **3. Dependabot Configuration** (`.github/dependabot.yml`):
+
 - Weekly dependency updates
 - GitHub Actions version updates
 - Automated PR creation
 
 **4. Distribution Validation** (`.github/workflows/distribution.yml`):
+
 - Nightly deep parity testing
 - Automated issue creation on violations
 
 **5. Branch Protection Rules**:
+
 - Required status checks (all quality gates)
 - Code review requirements
 - Linear history enforcement
@@ -490,30 +518,33 @@ After implementing recommendations, verify:
 
 ### CI/CD Quality Gate Matrix
 
-| Gate | Tool | Blocking | Automation |
-|------|------|----------|------------|
-| Linting | `deno lint` | ✅ Yes | GitHub Actions |
-| Formatting | `deno fmt --check` | ✅ Yes | GitHub Actions |
-| Type Checking | `deno check` | ✅ Yes | GitHub Actions |
-| Unit Tests | `deno test tests/unit/` | ✅ Yes | GitHub Actions (3 OS) |
-| Integration Tests | `deno test tests/integration/` | ✅ Yes | GitHub Actions (3 OS) |
-| Distribution Parity | `tests/distribution/` | ✅ Yes | GitHub Actions |
-| Coverage | `deno coverage` | ⚠️ Warning | GitHub Actions + Codecov |
+| Gate                | Tool                           | Blocking   | Automation               |
+| ------------------- | ------------------------------ | ---------- | ------------------------ |
+| Linting             | `deno lint`                    | ✅ Yes     | GitHub Actions           |
+| Formatting          | `deno fmt --check`             | ✅ Yes     | GitHub Actions           |
+| Type Checking       | `deno check`                   | ✅ Yes     | GitHub Actions           |
+| Unit Tests          | `deno test tests/unit/`        | ✅ Yes     | GitHub Actions (3 OS)    |
+| Integration Tests   | `deno test tests/integration/` | ✅ Yes     | GitHub Actions (3 OS)    |
+| Distribution Parity | `tests/distribution/`          | ✅ Yes     | GitHub Actions           |
+| Coverage            | `deno coverage`                | ⚠️ Warning | GitHub Actions + Codecov |
 
 ### Implementation Impact
 
 **Phase 6 Expansion**:
+
 - Estimated time: 2-3 days → 3-4 days
 - New tasks: 6.2 (CI/CD Pipeline Setup), 6.3 (CI/CD Testing)
 - Total implementation estimate: 23-30 days → 24-32 days
 
 **Quality Assurance**:
+
 - Manual quality gates → Fully automated enforcement
 - Post-merge validation → Pre-merge blocking
 - Manual releases → Tag-triggered automation
 - Single-platform testing → Cross-platform matrix (3 OS)
 
 **Developer Experience**:
+
 - Immediate feedback on quality violations (CI runs on push)
 - Cannot merge code that fails any quality gate
 - Releases fully automated (no manual steps)
@@ -537,4 +568,4 @@ After CI/CD integration, verify:
 
 ---
 
-*This audit, remediation, and CI/CD integration ensures the implementation team has a clear, actionable path from design to code with fully automated quality enforcement. All artifacts are now production-ready with continuous delivery capabilities.*
+_This audit, remediation, and CI/CD integration ensures the implementation team has a clear, actionable path from design to code with fully automated quality enforcement. All artifacts are now production-ready with continuous delivery capabilities._

@@ -22,7 +22,9 @@ export async function loadConfig(filePath: string): Promise<Configuration> {
       return config;
     } catch (parseError) {
       throw new Error(
-        `Invalid JSON in configuration file: ${parseError instanceof Error ? parseError.message : String(parseError)}`,
+        `Invalid JSON in configuration file: ${
+          parseError instanceof Error ? parseError.message : String(parseError)
+        }`,
       );
     }
   } catch (readError) {

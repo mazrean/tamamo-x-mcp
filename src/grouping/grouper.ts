@@ -4,13 +4,13 @@
  */
 
 import type {
+  GroupingConstraints,
+  LLMClient,
+  ProjectContext,
   Tool,
   ToolGroup,
-  GroupingConstraints,
-  ProjectContext,
-  LLMClient,
 } from "../types/index.ts";
-import { analyzeTools, type AnalysisResult } from "./analyzer.ts";
+import { type AnalysisResult, analyzeTools } from "./analyzer.ts";
 import { validateGroups } from "./validator.ts";
 
 /**
@@ -47,9 +47,7 @@ export async function groupTools(
   // Step 3.5: Ensure minimum groups constraint is met
   while (finalGroups.length < constraints.minGroups && finalGroups.length > 0) {
     // Find largest group to split
-    const largestGroup = finalGroups.reduce((a, b) =>
-      a.tools.length > b.tools.length ? a : b
-    );
+    const largestGroup = finalGroups.reduce((a, b) => a.tools.length > b.tools.length ? a : b);
 
     // Strategy 1: Split if the group has enough tools to create two valid groups
     if (largestGroup.tools.length >= constraints.minToolsPerGroup * 2) {
@@ -181,7 +179,7 @@ export async function groupTools(
 
     // Merge them
     const mergedTools = [...smallest1.tools, ...smallest2.tools];
-    const mergedName = `${smallest1.name.split('_')[0]}_${smallest2.name.split('_')[0]}_merged`;
+    const mergedName = `${smallest1.name.split("_")[0]}_${smallest2.name.split("_")[0]}_merged`;
     const mergedDescription = `Merged: ${smallest1.description}`;
 
     // Add merged group (don't split it)
@@ -190,7 +188,8 @@ export async function groupTools(
       name: mergedName,
       description: mergedDescription,
       tools: mergedTools,
-      complementarityScore: ((smallest1.complementarityScore || 0.5) + (smallest2.complementarityScore || 0.5)) / 2,
+      complementarityScore:
+        ((smallest1.complementarityScore || 0.5) + (smallest2.complementarityScore || 0.5)) / 2,
     });
 
     mergeIterations++;
@@ -443,9 +442,7 @@ function assignRemainingTools(
       // Force assignment to existing groups (distribute evenly)
       // but respect maxToolsPerGroup when possible
       for (const tool of stillUnassigned) {
-        const targetGroup = groups.reduce((a, b) =>
-          a.tools.length < b.tools.length ? a : b
-        );
+        const targetGroup = groups.reduce((a, b) => a.tools.length < b.tools.length ? a : b);
         targetGroup.tools.push(tool);
       }
     }
@@ -516,9 +513,7 @@ function createDefaultGroups(
   // Ensure we meet minimum groups constraint
   while (mergedGroups.length < constraints.minGroups && tools.length > 0) {
     // Split largest group
-    const largestGroup = mergedGroups.reduce((a, b) =>
-      a.tools.length > b.tools.length ? a : b
-    );
+    const largestGroup = mergedGroups.reduce((a, b) => a.tools.length > b.tools.length ? a : b);
     const index = mergedGroups.indexOf(largestGroup);
     mergedGroups.splice(index, 1);
 
@@ -583,9 +578,7 @@ function mergeSmallGroups(
 
     if (groupsWithSpace.length > 0) {
       // Add to group with most space
-      const targetGroup = groupsWithSpace.reduce((a, b) =>
-        a.tools.length < b.tools.length ? a : b
-      );
+      const targetGroup = groupsWithSpace.reduce((a, b) => a.tools.length < b.tools.length ? a : b);
       targetGroup.tools.push(...mergedTools);
     } else {
       // Distribute tools across groups without exceeding max
@@ -597,9 +590,7 @@ function mergeSmallGroups(
           groupWithSpace.tools.push(tool);
         } else {
           // All groups are at max - force into smallest group
-          const smallestGroup = result.reduce((a, b) =>
-            a.tools.length < b.tools.length ? a : b
-          );
+          const smallestGroup = result.reduce((a, b) => a.tools.length < b.tools.length ? a : b);
           smallestGroup.tools.push(tool);
         }
       }
@@ -633,8 +624,7 @@ function calculateComplementarityScore(
   }
 
   // Average of relationship scores
-  const avgScore =
-    relevantRelationships.reduce((sum, r) => sum + r.score, 0) /
+  const avgScore = relevantRelationships.reduce((sum, r) => sum + r.score, 0) /
     relevantRelationships.length;
 
   return Math.max(0, Math.min(1, avgScore));

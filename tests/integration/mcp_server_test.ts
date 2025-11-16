@@ -1,21 +1,12 @@
 import {
+  assert,
   assertEquals,
   assertExists,
-  assert,
   assertRejects,
 } from "https://deno.land/std@0.224.0/assert/mod.ts";
-import {
-  describe,
-  it,
-  beforeEach,
-  afterEach,
-} from "https://deno.land/std@0.224.0/testing/bdd.ts";
+import { afterEach, beforeEach, describe, it } from "https://deno.land/std@0.224.0/testing/bdd.ts";
 import { join } from "https://deno.land/std@0.224.0/path/mod.ts";
-import type {
-  ToolGroup,
-  AgentRequest,
-  AgentResponse,
-} from "../../src/types/index.ts";
+import type { AgentRequest, AgentResponse, ToolGroup } from "../../src/types/index.ts";
 import { MOCK_TOOLS } from "../fixtures/mock_tools.ts";
 
 /**

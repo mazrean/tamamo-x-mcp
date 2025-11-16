@@ -14,6 +14,7 @@ This document specifies GitHub Actions workflows for continuous integration, dis
 **Purpose**: Enforce quality gates on every push and pull request
 
 **Triggers**:
+
 - Push to any branch
 - Pull request to any branch
 
@@ -146,7 +147,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: "20"
 
       - name: Download artifacts
         uses: actions/download-artifact@v3
@@ -169,6 +170,7 @@ jobs:
 ```
 
 **Quality Gate Enforcement**:
+
 - ✅ Lint errors → Build fails
 - ✅ Format violations → Build fails
 - ✅ Type errors → Build fails
@@ -183,17 +185,18 @@ jobs:
 **Purpose**: Automated release on tag push
 
 **Triggers**:
+
 - Tag push matching `v*.*.*`
 
 **Jobs**:
 
-```yaml
+````yaml
 name: Release
 
 on:
   push:
     tags:
-      - 'v*.*.*'
+      - "v*.*.*"
 
 permissions:
   contents: write # For creating releases
@@ -341,9 +344,10 @@ jobs:
             dist/tamamo-x-windows.exe
           draft: false
           prerelease: false
-```
+````
 
 **Release Process**:
+
 1. Developer pushes tag: `git tag v1.0.0 && git push --tags`
 2. Workflow validates semantic version
 3. Builds binaries for Linux, macOS, Windows
@@ -404,7 +408,7 @@ name: Distribution Validation
 
 on:
   schedule:
-    - cron: '0 2 * * *' # 2 AM UTC daily
+    - cron: "0 2 * * *" # 2 AM UTC daily
   workflow_dispatch: # Manual trigger
 
 jobs:
@@ -423,7 +427,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: "20"
 
       - name: Build both distributions
         run: |
@@ -498,13 +502,14 @@ restrictions:
 
 **Required GitHub Secrets** (Repository Settings → Secrets → Actions):
 
-| Secret Name | Purpose | Used By | Required |
-|-------------|---------|---------|----------|
-| `NPM_TOKEN` | Publish npm packages | `release.yml` | ✅ Yes |
+| Secret Name         | Purpose                         | Used By             | Required    |
+| ------------------- | ------------------------------- | ------------------- | ----------- |
+| `NPM_TOKEN`         | Publish npm packages            | `release.yml`       | ✅ Yes      |
 | `ANTHROPIC_API_KEY` | Integration tests with real LLM | `ci.yml` (optional) | ⚠️ Optional |
-| `OPENAI_API_KEY` | Multi-provider testing | `ci.yml` (optional) | ⚠️ Optional |
+| `OPENAI_API_KEY`    | Multi-provider testing          | `ci.yml` (optional) | ⚠️ Optional |
 
 **Security Best Practices**:
+
 - Use environment-specific secrets for staging vs production
 - Rotate tokens quarterly
 - Use GitHub Environments for production deployments
@@ -516,17 +521,18 @@ restrictions:
 
 ### Success Metrics
 
-| Metric | Target | Measurement |
-|--------|--------|-------------|
-| **CI Success Rate** | >95% | Green builds / Total builds |
-| **Average Build Time** | <20min | CI workflow duration |
-| **Test Flakiness** | 0% | Flaky tests / Total tests |
-| **Coverage Trend** | ≥80% | Code coverage over time |
-| **Release Frequency** | Weekly | Tags pushed / Week |
+| Metric                 | Target | Measurement                 |
+| ---------------------- | ------ | --------------------------- |
+| **CI Success Rate**    | >95%   | Green builds / Total builds |
+| **Average Build Time** | <20min | CI workflow duration        |
+| **Test Flakiness**     | 0%     | Flaky tests / Total tests   |
+| **Coverage Trend**     | ≥80%   | Code coverage over time     |
+| **Release Frequency**  | Weekly | Tags pushed / Week          |
 
 ### Alerts
 
 Set up GitHub Actions workflow notifications:
+
 - ❌ Failed builds → Slack/Email
 - ⚠️ Coverage drop >5% → GitHub Issue
 - ❌ Distribution parity violation → GitHub Issue + Slack

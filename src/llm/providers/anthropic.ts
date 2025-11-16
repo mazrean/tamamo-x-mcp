@@ -4,7 +4,7 @@
  */
 
 import Anthropic from "npm:@anthropic-ai/sdk@0.32.1";
-import type { LLMClient, CompletionOptions } from "../client.ts";
+import type { CompletionOptions, LLMClient } from "../client.ts";
 
 const DEFAULT_MODEL = "claude-3-5-sonnet-20241022";
 

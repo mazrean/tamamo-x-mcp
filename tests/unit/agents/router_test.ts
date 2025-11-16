@@ -1,25 +1,17 @@
-import {
-  assertEquals,
-  assertExists,
-  assert,
-} from "https://deno.land/std@0.224.0/assert/mod.ts";
-import {
-  describe,
-  it,
-  beforeEach,
-} from "https://deno.land/std@0.224.0/testing/bdd.ts";
+import { assert, assertEquals, assertExists } from "https://deno.land/std@0.224.0/assert/mod.ts";
+import { beforeEach, describe, it } from "https://deno.land/std@0.224.0/testing/bdd.ts";
 import type {
-  ToolGroup,
-  SubAgent,
   AgentRequest,
   LLMProviderConfig,
+  SubAgent,
+  ToolGroup,
 } from "../../../src/types/index.ts";
 import {
+  createErrorResponse,
+  createSuccessResponse,
   findAgentById,
   routeRequest,
   validateRequest,
-  createSuccessResponse,
-  createErrorResponse,
 } from "../../../src/agents/router.ts";
 import { MOCK_TOOLS } from "../../fixtures/mock_tools.ts";
 
@@ -383,9 +375,7 @@ describe("Request Routing", () => {
       }));
 
       // Act
-      const agents = concurrentRequests.map((req) =>
-        routeRequest(req, mockSubAgents)
-      );
+      const agents = concurrentRequests.map((req) => routeRequest(req, mockSubAgents));
 
       // Assert
       assertEquals(agents.length, 10);

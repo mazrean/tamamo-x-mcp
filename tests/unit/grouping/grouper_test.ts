@@ -1,7 +1,13 @@
-import { assertEquals, assert, assertExists } from "https://deno.land/std@0.224.0/assert/mod.ts";
+import { assert, assertEquals, assertExists } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import { describe, it } from "https://deno.land/std@0.224.0/testing/bdd.ts";
-import { MOCK_TOOLS, getToolSubset, getToolsByCategory } from "../../fixtures/mock_tools.ts";
-import type { Tool, ToolGroup, ProjectContext, GroupingConstraints, LLMClient } from "../../../src/types/index.ts";
+import { getToolsByCategory, getToolSubset, MOCK_TOOLS } from "../../fixtures/mock_tools.ts";
+import type {
+  GroupingConstraints,
+  LLMClient,
+  ProjectContext,
+  Tool,
+  ToolGroup,
+} from "../../../src/types/index.ts";
 import { groupTools } from "../../../src/grouping/grouper.ts";
 
 /**
@@ -227,7 +233,10 @@ describe("Grouping Algorithm", () => {
       // Assert
       groups.forEach((group) => {
         assertExists(group.description, "Group should have a description");
-        assert(group.description.length >= 10, "Description should be meaningful (at least 10 chars)");
+        assert(
+          group.description.length >= 10,
+          "Description should be meaningful (at least 10 chars)",
+        );
       });
     });
   });
@@ -337,7 +346,7 @@ describe("Grouping Algorithm", () => {
         assert(error instanceof Error);
         assert(
           error.message.includes("validation") || error.message.includes("constraint"),
-          "Error should mention validation or constraints"
+          "Error should mention validation or constraints",
         );
         return; // Test passes - gracefully handled by throwing informative error
       }

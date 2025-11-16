@@ -69,23 +69,27 @@ specs/001-tool-grouping/    # Detailed feature specification
 ## Key Architecture Patterns
 
 ### Configuration Management
+
 - Configuration stored in `tamamo-x.config.json` at project root
 - Embeds MCP server configurations in `.mcp.json` format
 - Credentials NEVER stored in config (discovered from CLI tools or env vars)
 - See [contracts/config-schema.json](specs/001-tool-grouping/contracts/config-schema.json)
 
 ### Multi-Provider LLM Abstraction
+
 - Unified `LLMClient` interface abstracts 6 providers: Anthropic, OpenAI, Gemini, Vercel AI, AWS Bedrock, OpenRouter
 - Credential discovery from Claude Code, Codex, Gemini CLI
 - See [src/llm/client.ts](src/llm/client.ts) and [src/llm/providers/](src/llm/providers/)
 
 ### Tool Grouping Algorithm
+
 - LLM analyzes tools in batches (10 tools per request for performance)
 - Groups satisfy constraints: 5-20 tools per group, 3-10 total groups
 - Uses project context (Agent.md, CLAUDE.md) for domain-aware grouping
 - See [src/grouping/](src/grouping/)
 
 ### Sub-Agent System
+
 - Mastra framework wraps MCP tools as agent capabilities
 - Each group becomes a specialized sub-agent
 - Request routing by agent ID
@@ -113,19 +117,23 @@ The project provides three main commands:
 ## Distribution
 
 Two distribution formats with identical functionality:
+
 - **Deno standalone binary**: Zero-dependency executable (`deno task compile`)
 - **npm package**: Executable via `npx tamamo-x-mcp` (`deno task npm:build`)
 
 <!-- MANUAL ADDITIONS START -->
+
 ## Development Guidelines
 
 You are working on a project that follows these strict development practices:
 
 ### Development Methodology
+
 - Follow t-wada's TDD (Test-Driven Development) approach
 - Make one commit per completed task
 
 ### Task Completion Requirements
+
 After completing each task, you **MUST** perform ALL of the following steps in order:
 
 1. **Code Quality Checks**
@@ -144,7 +152,9 @@ After completing each task, you **MUST** perform ALL of the following steps in o
    - Update task progress in `docs/llm/PLAN.md`
 
 ### Important Notes
+
 - Do NOT skip any of these steps
 - Do NOT update `docs/llm/PLAN.md` until steps 1-3 are completed
 - Always perform these steps in the specified order
+
 <!-- MANUAL ADDITIONS END -->

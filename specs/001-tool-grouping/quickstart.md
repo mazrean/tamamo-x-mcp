@@ -171,22 +171,22 @@ import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js"
 
 const client = new Client({
   name: "my-client",
-  version: "1.0.0"
+  version: "1.0.0",
 }, {
-  capabilities: {}
+  capabilities: {},
 });
 
 const transport = new StdioClientTransport({
   command: "tamamo-x-mcp",
-  args: ["mcp"]
+  args: ["mcp"],
 });
 
-await client.connect(transport);  // Handshake happens automatically
+await client.connect(transport); // Handshake happens automatically
 const tools = await client.listTools();
 
 // Call sub-agent
 const result = await client.callTool("search_agent", {
-  task: "Find all TODO comments in the codebase"
+  task: "Find all TODO comments in the codebase",
 });
 ```
 
@@ -423,7 +423,7 @@ TAMAMO_LOG_LEVEL=debug tamamo-x-mcp mcp
 ### Programmatic Access
 
 ```typescript
-import { loadConfig, buildGroups, startServer } from "tamamo-x-mcp/sdk";
+import { buildGroups, loadConfig, startServer } from "tamamo-x-mcp/sdk";
 
 // Load config
 const config = await loadConfig("./tamamo-x.config.json");
@@ -434,7 +434,7 @@ const groups = await buildGroups(config);
 // Start server programmatically
 const server = await startServer(groups, {
   transport: "http",
-  port: 3000
+  port: 3000,
 });
 ```
 

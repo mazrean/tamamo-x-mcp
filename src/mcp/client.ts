@@ -105,7 +105,9 @@ export class MCPClient {
       this.connected = true;
     } catch (error) {
       throw new Error(
-        `Failed to connect to ${this.config.name}: ${error instanceof Error ? error.message : String(error)}`,
+        `Failed to connect to ${this.config.name}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
         { cause: error },
       );
     }
@@ -209,9 +211,12 @@ export class MCPClient {
     try {
       await this.client.close();
     } catch (error) {
-      throw new Error(`Failed to disconnect: ${error instanceof Error ? error.message : String(error)}`, {
-        cause: error,
-      });
+      throw new Error(
+        `Failed to disconnect: ${error instanceof Error ? error.message : String(error)}`,
+        {
+          cause: error,
+        },
+      );
     } finally {
       // Always reset connected flag, even if close() fails
       this.connected = false;

@@ -1,6 +1,6 @@
 import { assertEquals, assertExists } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import { describe, it } from "https://deno.land/std@0.224.0/testing/bdd.ts";
-import { parseTools, discoverAllTools, extractToolMetadata } from "../../../src/mcp/discovery.ts";
+import { discoverAllTools, extractToolMetadata, parseTools } from "../../../src/mcp/discovery.ts";
 
 /**
  * Unit tests for tool discovery
@@ -218,7 +218,11 @@ describe("Tool Discovery", () => {
           properties: {
             pattern: { type: "string", description: "Search pattern" },
             path: { type: "string", description: "Path to search in" },
-            case_sensitive: { type: "boolean", description: "Case sensitive search", default: false },
+            case_sensitive: {
+              type: "boolean",
+              description: "Case sensitive search",
+              default: false,
+            },
           },
           required: ["pattern"],
         },

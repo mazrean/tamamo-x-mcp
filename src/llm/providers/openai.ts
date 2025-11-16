@@ -4,7 +4,7 @@
  */
 
 import OpenAI from "npm:openai@4.77.3";
-import type { LLMClient, CompletionOptions } from "../client.ts";
+import type { CompletionOptions, LLMClient } from "../client.ts";
 
 const DEFAULT_MODEL = "gpt-4o";
 

@@ -102,7 +102,9 @@ async function importMCPServers(projectRoot: string): Promise<MCPServerConfig[]>
 
     return servers;
   } catch (error) {
-    console.warn(`Failed to import .mcp.json: ${error instanceof Error ? error.message : String(error)}`);
+    console.warn(
+      `Failed to import .mcp.json: ${error instanceof Error ? error.message : String(error)}`,
+    );
     return [];
   }
 }

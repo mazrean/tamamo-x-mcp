@@ -5,7 +5,7 @@
 **Status**: Draft
 **Input**: User description: "設定されたMCPサーバーのツールを役割ごとにまとめてサブAIエージェント化し、再構築したツールとして提供するMCPサーバーです。"
 
-## User Scenarios & Testing *(mandatory)*
+## User Scenarios & Testing _(mandatory)_
 
 ### User Story 1 - Initialize Configuration & Tool Discovery (Priority: P1)
 
@@ -115,7 +115,7 @@ A developer wants to install and run tamamo-x-mcp in their preferred environment
 - **What happens when tools have overlapping functionality across groups?**
   LLM-based grouping analyzes tool relationships and assigns each tool to the most appropriate group based on primary purpose. Tools with broad utility (e.g., logging, error handling) may be included in multiple groups if needed.
 
-## Requirements *(mandatory)*
+## Requirements _(mandatory)_
 
 ### Functional Requirements
 
@@ -147,7 +147,7 @@ A developer wants to install and run tamamo-x-mcp in their preferred environment
 
 - **Project Context**: Information about the project that informs grouping decisions. Contains: Agent.md content, CLAUDE.md content, project type/domain, custom grouping hints.
 
-## Success Criteria *(mandatory)*
+## Success Criteria _(mandatory)_
 
 ### Measurable Outcomes
 

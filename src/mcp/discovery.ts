@@ -67,9 +67,7 @@ export function parseTools(
     throw new Error("Response must contain a 'tools' array");
   }
 
-  return response.tools.map((tool) =>
-    extractToolMetadata(tool as never, serverName)
-  );
+  return response.tools.map((tool) => extractToolMetadata(tool as never, serverName));
 }
 
 /**

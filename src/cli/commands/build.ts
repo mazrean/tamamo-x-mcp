@@ -14,8 +14,12 @@ import { validateConfig } from "../../config/validator.ts";
 import { discoverAllTools } from "../../mcp/discovery.ts";
 import { groupTools } from "../../grouping/grouper.ts";
 import { createLLMClient } from "../../llm/client.ts";
-import { discoverCredentials, discoverBedrockCredentials, type BedrockCredentials } from "../../llm/credentials.ts";
-import type { ToolGroup, ProjectContext, Configuration } from "../../types/index.ts";
+import {
+  type BedrockCredentials,
+  discoverBedrockCredentials,
+  discoverCredentials,
+} from "../../llm/credentials.ts";
+import type { Configuration, ProjectContext, ToolGroup } from "../../types/index.ts";
 
 const CONFIG_FILE = "tamamo-x.config.json";
 const GROUPS_OUTPUT_DIR = ".tamamo-x";
@@ -180,7 +184,9 @@ export async function build(): Promise<void> {
     credentials = await discoverBedrockCredentials();
     if (!credentials) {
       console.error("Error: AWS Bedrock credentials not found");
-      console.error("Please set AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, and AWS_REGION environment variables.");
+      console.error(
+        "Please set AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, and AWS_REGION environment variables.",
+      );
       Deno.exit(1);
     }
   } else {
@@ -206,7 +212,9 @@ export async function build(): Promise<void> {
     maxGroups: 10,
   };
 
-  console.log(`  Constraints: ${constraints.minGroups}-${constraints.maxGroups} groups, ${constraints.minToolsPerGroup}-${constraints.maxToolsPerGroup} tools per group`);
+  console.log(
+    `  Constraints: ${constraints.minGroups}-${constraints.maxGroups} groups, ${constraints.minToolsPerGroup}-${constraints.maxToolsPerGroup} tools per group`,
+  );
 
   let groups: ToolGroup[];
   try {
@@ -217,7 +225,9 @@ export async function build(): Promise<void> {
       context,
     );
   } catch (error) {
-    console.error(`Error during grouping: ${error instanceof Error ? error.message : String(error)}`);
+    console.error(
+      `Error during grouping: ${error instanceof Error ? error.message : String(error)}`,
+    );
     Deno.exit(1);
   }
 

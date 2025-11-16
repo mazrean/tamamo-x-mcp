@@ -7,7 +7,7 @@ import {
   BedrockRuntimeClient,
   InvokeModelCommand,
 } from "npm:@aws-sdk/client-bedrock-runtime@3.716.0";
-import type { LLMClient, CompletionOptions } from "../client.ts";
+import type { CompletionOptions, LLMClient } from "../client.ts";
 import type { BedrockCredentials } from "../credentials.ts";
 
 export function createBedrockClient(

@@ -1,4 +1,8 @@
-import { assertEquals, assertExists, assertRejects } from "https://deno.land/std@0.224.0/assert/mod.ts";
+import {
+  assertEquals,
+  assertExists,
+  assertRejects,
+} from "https://deno.land/std@0.224.0/assert/mod.ts";
 import { describe, it } from "https://deno.land/std@0.224.0/testing/bdd.ts";
 import { MCPClient } from "../../../src/mcp/client.ts";
 
@@ -129,7 +133,6 @@ describe("MCP Client", () => {
       assertEquals(client.isConnected, false);
     });
   });
-
 
   describe("Environment variables", () => {
     it("should pass environment variables to stdio server process", () => {

@@ -149,7 +149,7 @@ const packageJson = {
 
 await Deno.writeTextFile(
   join(NPM_DIR, "package.json"),
-  JSON.stringify(packageJson, null, 2)
+  JSON.stringify(packageJson, null, 2),
 );
 console.log("  ✓ package.json created");
 

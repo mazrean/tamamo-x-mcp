@@ -111,7 +111,9 @@ describe("Config Validator", () => {
       // Assert
       assertEquals(result.valid, false);
       assertEquals(
-        result.errors.some((e) => e.field.includes("mcpServers[0]") && e.message.includes("object")),
+        result.errors.some((e) =>
+          e.field.includes("mcpServers[0]") && e.message.includes("object")
+        ),
         true,
       );
     });
@@ -131,7 +133,9 @@ describe("Config Validator", () => {
       // Assert
       assertEquals(result.valid, false);
       assertEquals(
-        result.errors.some((e) => e.field.includes("mcpServers[0]") && e.message.includes("object")),
+        result.errors.some((e) =>
+          e.field.includes("mcpServers[0]") && e.message.includes("object")
+        ),
         true,
       );
     });
@@ -151,7 +155,9 @@ describe("Config Validator", () => {
       // Assert
       assertEquals(result.valid, false);
       assertEquals(
-        result.errors.some((e) => e.field.includes("mcpServers[0]") && e.message.includes("object")),
+        result.errors.some((e) =>
+          e.field.includes("mcpServers[0]") && e.message.includes("object")
+        ),
         true,
       );
     });
@@ -735,9 +741,7 @@ describe("Config Validator", () => {
       // Assert
       assertEquals(result.valid, false);
       assertEquals(
-        result.errors.some((e) =>
-          e.message.includes("credential") || e.message.includes("apiKey")
-        ),
+        result.errors.some((e) => e.message.includes("credential") || e.message.includes("apiKey")),
         true,
       );
     });

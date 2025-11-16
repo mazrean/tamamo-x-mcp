@@ -4,12 +4,9 @@
  */
 
 import { join } from "jsr:@std/path@^1.0.0";
-import type { ToolGroup, LLMProviderConfig, SubAgent } from "../../types/index.ts";
+import type { LLMProviderConfig, SubAgent, ToolGroup } from "../../types/index.ts";
 import { createSubAgent } from "../../agents/agent.ts";
-import {
-  createMCPServer,
-  startServer,
-} from "../../mcp/server.ts";
+import { createMCPServer, startServer } from "../../mcp/server.ts";
 import { loadConfig } from "../../config/loader.ts";
 
 /**
@@ -95,9 +92,7 @@ export async function mcpCommand(): Promise<void> {
     await new Promise(() => {}); // Run forever
   } catch (error) {
     console.error(
-      `Error starting MCP server: ${
-        error instanceof Error ? error.message : "Unknown error"
-      }`,
+      `Error starting MCP server: ${error instanceof Error ? error.message : "Unknown error"}`,
     );
     Deno.exit(1);
   }

@@ -5,7 +5,7 @@
 
 import { generateText } from "npm:ai@4.1.12";
 import { createOpenAI } from "npm:@ai-sdk/openai@1.0.11";
-import type { LLMClient, CompletionOptions } from "../client.ts";
+import type { CompletionOptions, LLMClient } from "../client.ts";
 
 export function createVercelClient(
   apiKey: string,

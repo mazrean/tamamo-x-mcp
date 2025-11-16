@@ -3,7 +3,7 @@
  * Analyzes tools in batches and provides grouping suggestions
  */
 
-import type { Tool, ProjectContext } from "../types/index.ts";
+import type { ProjectContext, Tool } from "../types/index.ts";
 import type { LLMClient } from "../llm/client.ts";
 
 export interface ToolRelationship {

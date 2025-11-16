@@ -1,25 +1,16 @@
 import {
+  assert,
   assertEquals,
   assertExists,
-  assert,
   assertRejects,
 } from "https://deno.land/std@0.224.0/assert/mod.ts";
+import { beforeEach, describe, it } from "https://deno.land/std@0.224.0/testing/bdd.ts";
+import type { AgentRequest, LLMProviderConfig, Tool, ToolGroup } from "../../../src/types/index.ts";
 import {
-  describe,
-  it,
-  beforeEach,
-} from "https://deno.land/std@0.224.0/testing/bdd.ts";
-import type {
-  ToolGroup,
-  Tool,
-  AgentRequest,
-  LLMProviderConfig,
-} from "../../../src/types/index.ts";
-import {
-  wrapToolForMastra,
-  wrapToolsForMastra,
   createSubAgent,
   executeAgent,
+  wrapToolForMastra,
+  wrapToolsForMastra,
 } from "../../../src/agents/agent.ts";
 import { MOCK_TOOLS } from "../../fixtures/mock_tools.ts";
 
