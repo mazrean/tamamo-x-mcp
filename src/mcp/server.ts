@@ -18,6 +18,7 @@ import { routeRequest } from "../agents/router.ts";
  */
 export interface MCPServer {
   subAgents: SubAgent[];
+  instructions?: string;
   getTools: () => MCPAgentTool[];
 }
 
@@ -37,9 +38,13 @@ export interface MCPAgentTool {
 /**
  * Create an MCP server with sub-agents
  */
-export function createMCPServer(subAgents: SubAgent[]): MCPServer {
+export function createMCPServer(
+  subAgents: SubAgent[],
+  instructions?: string,
+): MCPServer {
   return {
     subAgents,
+    instructions,
     getTools: () => subAgents.map((agent) => createAgentTool(agent)),
   };
 }

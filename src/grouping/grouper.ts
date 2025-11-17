@@ -156,7 +156,7 @@ async function requestGroupsFromLLM(
   for (let step3Attempt = 1; step3Attempt <= 3; step3Attempt++) {
     try {
       let currentPrompt = step3UserPrompt;
-      let currentConversation = [...conversationHistory];
+      const currentConversation = [...conversationHistory];
 
       // On first attempt, add Step 3 system prompt if it's different
       if (step3Attempt === 1) {

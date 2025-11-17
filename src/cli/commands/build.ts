@@ -105,17 +105,99 @@ async function readProjectContext(
 }
 
 /**
- * Save tool groups to .tamamo-x/groups.json
+ * Generate usage instructions for the MCP server based on tool groups
+ * Uses LLM to create tailored instructions based on serena MCP's template
  */
-async function saveGroups(groups: ToolGroup[]): Promise<void> {
+async function generateInstructions(
+  groups: ToolGroup[],
+  llmClient: ReturnType<typeof createLLMClient>,
+  context?: ProjectContext,
+): Promise<string> {
+  const serenaMCPTemplate =
+    `You are a professional coding agent with access to specialized tool groups for various development tasks.
+
+CORE PRINCIPLES:
+1. **Resource Efficiency**: Only use tools and read code when necessary for the task at hand
+2. **Intelligent Tool Selection**: Choose the right agent group based on the task requirements
+3. **Step-by-Step Approach**: Break down complex tasks and explain your reasoning
+4. **Minimal Code Reading**: Prefer symbolic/overview tools over reading entire files
+
+AVAILABLE AGENT GROUPS:
+{{GROUPS_SUMMARY}}
+
+TOOL USAGE GUIDELINES:
+- **File Operations**: Use list_dir, find_file for navigation. Avoid reading entire files unnecessarily
+- **Code Exploration**: Use symbolic tools (get_symbols_overview, find_symbol) for targeted code reading
+- **Editing**: Use symbolic editing (replace_symbol_body, insert_after_symbol) when modifying entire symbols
+- **Pattern Search**: Use search_for_pattern when symbol names are unknown
+- **Memory Management**: Use read_memory/write_memory for persistent project knowledge
+
+IMPORTANT WARNINGS:
+- DO NOT read entire files without need - use overview and symbolic tools first
+- DO NOT re-analyze code you've already read with symbolic tools
+- DO NOT use tools from unavailable agent groups
+
+When uncertain about which agent group to use, ask for clarification rather than making assumptions.`;
+
+  const groupsSummary = groups.map((g, idx) => {
+    const toolNames = g.tools.map((t) => `${t.serverName}:${t.name}`).join(", ");
+    return `${idx + 1}. **${g.name}** (${g.tools.length} tools)
+   Purpose: ${g.description}
+   Tools: ${toolNames}`;
+  }).join("\n\n");
+
+  const prompt =
+    `Based on the following tool groups for an MCP server, generate comprehensive usage instructions for LLMs.
+
+Use this template as inspiration (from serena MCP), but adapt it to fit the available tool groups:
+
+${serenaMCPTemplate}
+
+AVAILABLE TOOL GROUPS:
+${groupsSummary}
+
+${context?.fullContent ? `\nPROJECT CONTEXT:\n${context.fullContent.slice(0, 2000)}` : ""}
+
+Generate clear, actionable instructions that:
+1. Explain the purpose and capabilities of this MCP server
+2. Provide guidance on which agent groups to use for different tasks
+3. Include best practices for tool usage based on the available groups
+4. Warn about common mistakes (e.g., reading entire files, using unavailable tools)
+5. Maintain the professional, instructional tone of the template
+
+The instructions should be comprehensive but concise (aim for 300-500 words).`;
+
+  const instructions = await llmClient.complete(prompt, {
+    system:
+      "You are an expert at writing clear, actionable instructions for AI agents. Generate professional documentation that helps LLMs use MCP servers effectively.",
+    temperature: 0.4,
+  });
+
+  return instructions.trim();
+}
+
+/**
+ * Save tool groups and instructions to .tamamo-x/groups.json
+ */
+async function saveGroups(
+  groups: ToolGroup[],
+  instructions: string,
+): Promise<void> {
   const outputDir = GROUPS_OUTPUT_DIR;
   const outputPath = join(outputDir, GROUPS_OUTPUT_FILE);
 
   // Ensure output directory exists
   await ensureDir(outputDir);
 
-  // Write groups with proper formatting
-  const content = JSON.stringify(groups, null, 2);
+  // Write groups with instructions
+  const content = JSON.stringify(
+    {
+      instructions,
+      groups,
+    },
+    null,
+    2,
+  );
   await Deno.writeTextFile(outputPath, content + "\n");
 
   console.log(`✓ Saved ${groups.length} agent groups to ${outputPath}`);
@@ -246,8 +328,13 @@ export async function build(): Promise<void> {
   });
   console.log();
 
-  // Step 7: Save groups
-  await saveGroups(groups);
+  // Step 7: Generate usage instructions
+  console.log("Generating usage instructions...");
+  const instructions = await generateInstructions(groups, llmClient, context);
+  console.log("✓ Instructions generated\n");
+
+  // Step 8: Save groups and instructions
+  await saveGroups(groups, instructions);
 
   console.log("\n✓ Build complete! Run 'tamamo-x-mcp mcp' to start the MCP server.");
 }

@@ -10,17 +10,28 @@ import { createMCPServer, startServer } from "../../mcp/server.ts";
 import { loadConfig } from "../../config/loader.ts";
 
 /**
- * Load tool groups from .tamamo-x/groups.json
+ * Load tool groups and instructions from .tamamo-x/groups.json
  */
 export async function loadGroups(
   groupsPath?: string,
-): Promise<ToolGroup[]> {
+): Promise<{ groups: ToolGroup[]; instructions?: string }> {
   const path = groupsPath || join(Deno.cwd(), ".tamamo-x", "groups.json");
 
   try {
     const content = await Deno.readTextFile(path);
-    const groups = JSON.parse(content) as ToolGroup[];
-    return groups;
+    const data = JSON.parse(content);
+
+    // Support both old format (array) and new format (object with instructions)
+    if (Array.isArray(data)) {
+      // Old format: just array of groups
+      return { groups: data as ToolGroup[] };
+    } else {
+      // New format: object with instructions and groups
+      return {
+        groups: data.groups as ToolGroup[],
+        instructions: data.instructions,
+      };
+    }
   } catch (error) {
     if (error instanceof Deno.errors.NotFound) {
       throw new Error(
@@ -51,9 +62,9 @@ export async function mcpCommand(): Promise<void> {
     const configPath = join(Deno.cwd(), "tamamo-x.config.json");
     const config = await loadConfig(configPath);
 
-    // Load tool groups
+    // Load tool groups and instructions
     console.log("Loading tool groups...");
-    const groups = await loadGroups();
+    const { groups, instructions } = await loadGroups();
 
     if (groups.length === 0) {
       console.error(
@@ -68,7 +79,7 @@ export async function mcpCommand(): Promise<void> {
 
     // Create MCP server
     console.log("Starting tamamo-x MCP server...");
-    const server = createMCPServer(subAgents);
+    const server = createMCPServer(subAgents, instructions);
 
     // Start server
     const started = await startServer(server);
@@ -101,6 +112,8 @@ export async function mcpCommand(): Promise<void> {
 /**
  * Test helper: Load groups with custom path
  */
-export async function loadGroupsForTest(path: string): Promise<ToolGroup[]> {
+export async function loadGroupsForTest(
+  path: string,
+): Promise<{ groups: ToolGroup[]; instructions?: string }> {
   return await loadGroups(path);
 }
