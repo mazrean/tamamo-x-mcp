@@ -75,6 +75,8 @@ export async function groupTools(
  * Step 1: Analyze project context and tools
  * Step 2: Discuss grouping strategy
  * Step 3: Generate final groups
+ *
+ * If errors occur in Step 3, continues the conversation to fix issues instead of restarting
  */
 async function requestGroupsFromLLM(
   tools: Tool[],
@@ -83,12 +85,33 @@ async function requestGroupsFromLLM(
   context: ProjectContext | undefined,
   attemptNumber: number,
 ): Promise<ToolGroup[]> {
+  // Initialize conversation history with Message type
+  const conversationHistory: Array<{ role: "system" | "user" | "assistant"; content: string }> = [];
+
   // STEP 1: Project Analysis
   console.log("  Step 1/3: Analyzing project context and tools...");
   const analysisPrompt = constructProjectAnalysisPrompt(tools, context);
+
+  // Add system message to conversation
+  conversationHistory.push({
+    role: "system",
+    content: analysisPrompt.systemPrompt,
+  });
+
+  conversationHistory.push({
+    role: "user",
+    content: analysisPrompt.userPrompt,
+  });
+
   const projectAnalysis = await llmClient.complete(analysisPrompt.userPrompt, {
-    system: analysisPrompt.systemPrompt,
+    messages: conversationHistory,
     temperature: 0.5, // Higher temperature for creative analysis
+  });
+
+  // Add assistant response to conversation history
+  conversationHistory.push({
+    role: "assistant",
+    content: projectAnalysis,
   });
 
   // STEP 2: Grouping Strategy Discussion
@@ -98,102 +121,178 @@ async function requestGroupsFromLLM(
     constraints,
     projectAnalysis,
   );
+
+  conversationHistory.push({
+    role: "user",
+    content: strategyPrompt.userPrompt,
+  });
+
   const groupingStrategy = await llmClient.complete(strategyPrompt.userPrompt, {
-    system: strategyPrompt.systemPrompt,
+    messages: conversationHistory,
     temperature: 0.4,
   });
 
-  // STEP 3: Final Grouping Execution
-  console.log("  Step 3/3: Generating final tool groups...");
-  const { systemPrompt, userPrompt } = constructFinalGroupingPrompt(
-    tools,
-    constraints,
-    projectAnalysis,
-    groupingStrategy,
-    attemptNumber,
-  );
-
-  // Request with structured output schema for final grouping
-  const response = await llmClient.complete(userPrompt, {
-    system: systemPrompt,
-    temperature: 0.3, // Low temperature for deterministic, constraint-following output
-    responseSchema: TOOL_GROUPING_RESPONSE_SCHEMA,
+  // Add to conversation history
+  conversationHistory.push({
+    role: "assistant",
+    content: groupingStrategy,
   });
 
-  // Parse LLM response (should be valid JSON due to schema enforcement)
-  let parsed: ToolGroupingResponse;
-  try {
-    parsed = JSON.parse(response);
-  } catch {
-    throw new Error("LLM did not return valid JSON despite schema enforcement");
-  }
+  // STEP 3: Final Grouping Execution with retry logic
+  console.log("  Step 3/3: Generating final tool groups...");
 
-  // Validate response structure
-  if (!Array.isArray(parsed.groups)) {
-    throw new Error("LLM response does not contain 'groups' array");
-  }
-
-  // Convert LLM response to ToolGroup objects
-  const groups: ToolGroup[] = [];
-  const toolMap = new Map(tools.map((t) => [`${t.serverName}:${t.name}`, t]));
-  const assignedToolKeys = new Set<string>();
-
-  for (const groupData of parsed.groups) {
-    if (
-      !groupData.id || !groupData.name || !groupData.description ||
-      !Array.isArray(groupData.toolKeys)
-    ) {
-      throw new Error("Invalid group structure in LLM response");
-    }
-
-    // Map tool keys back to Tool objects
-    const groupTools: Tool[] = [];
-    for (const toolKey of groupData.toolKeys) {
-      const tool = toolMap.get(toolKey);
-      if (!tool) {
-        throw new Error(
-          `LLM returned invalid or misspelled tool key: "${toolKey}"`,
-        );
-      }
-
-      // Check for duplicates
-      if (assignedToolKeys.has(toolKey)) {
-        throw new Error(
-          `LLM assigned tool "${toolKey}" to multiple groups`,
-        );
-      }
-
-      groupTools.push(tool);
-      assignedToolKeys.add(toolKey);
-    }
-
-    if (groupTools.length === 0) {
-      throw new Error(`Group "${groupData.name}" has no valid tools`);
-    }
-
-    groups.push({
-      id: sanitizeId(groupData.id),
-      name: groupData.name,
-      description: groupData.description,
-      tools: groupTools,
-      complementarityScore: typeof groupData.complementarityScore === "number"
-        ? groupData.complementarityScore
-        : 0.5,
-    });
-  }
-
-  // Verify all tools are assigned exactly once
-  if (assignedToolKeys.size !== tools.length) {
-    const allToolKeys = new Set(tools.map((t) => `${t.serverName}:${t.name}`));
-    const missingKeys = [...allToolKeys].filter((k) => !assignedToolKeys.has(k));
-    throw new Error(
-      `LLM failed to assign all tools. Missing ${missingKeys.length} tools: ${
-        missingKeys.slice(0, 5).join(", ")
-      }${missingKeys.length > 5 ? "..." : ""}`,
+  // Get the prompts for Step 3
+  const { systemPrompt: step3SystemPrompt, userPrompt: step3UserPrompt } =
+    constructFinalGroupingPrompt(
+      tools,
+      constraints,
+      projectAnalysis,
+      groupingStrategy,
+      attemptNumber,
     );
+
+  // Try Step 3 up to 3 times, continuing the conversation on errors
+  let lastStep3Error: Error | null = null;
+  for (let step3Attempt = 1; step3Attempt <= 3; step3Attempt++) {
+    try {
+      let currentPrompt = step3UserPrompt;
+      let currentConversation = [...conversationHistory];
+
+      // On first attempt, add Step 3 system prompt if it's different
+      if (step3Attempt === 1) {
+        // Update system message for Step 3
+        currentConversation[0] = {
+          role: "system",
+          content: step3SystemPrompt,
+        };
+      }
+
+      // On retry attempts, add error feedback to continue the conversation
+      if (step3Attempt > 1 && lastStep3Error) {
+        console.log(
+          `  Step 3 retry ${step3Attempt}/3: Continuing conversation to fix errors...`,
+        );
+        currentPrompt = `The previous grouping attempt failed with this error:
+${lastStep3Error.message}
+
+Please fix the issue and generate a corrected grouping that satisfies ALL constraints. Remember:
+- EVERY tool must be assigned to EXACTLY ONE group
+- No tool should appear in multiple groups
+- Group count must be within the valid range
+- Each group must have the correct number of tools
+- Tool keys must be EXACT matches (case-sensitive)
+
+Generate the corrected JSON output now.`;
+      }
+
+      currentConversation.push({
+        role: "user",
+        content: currentPrompt,
+      });
+
+      // Request with structured output schema for final grouping
+      const response = await llmClient.complete("", {
+        messages: currentConversation,
+        temperature: 0.3, // Low temperature for deterministic, constraint-following output
+        responseSchema: TOOL_GROUPING_RESPONSE_SCHEMA,
+      });
+
+      // Add response to conversation history for potential retry
+      currentConversation.push({
+        role: "assistant",
+        content: response,
+      });
+
+      // Parse LLM response (should be valid JSON due to schema enforcement)
+      let parsed: ToolGroupingResponse;
+      try {
+        parsed = JSON.parse(response);
+      } catch {
+        throw new Error("LLM did not return valid JSON despite schema enforcement");
+      }
+
+      // Validate response structure
+      if (!Array.isArray(parsed.groups)) {
+        throw new Error("LLM response does not contain 'groups' array");
+      }
+
+      // Convert LLM response to ToolGroup objects
+      const groups: ToolGroup[] = [];
+      const toolMap = new Map(tools.map((t) => [`${t.serverName}:${t.name}`, t]));
+      const assignedToolKeys = new Set<string>();
+
+      for (const groupData of parsed.groups) {
+        if (
+          !groupData.id || !groupData.name || !groupData.description ||
+          !Array.isArray(groupData.toolKeys)
+        ) {
+          throw new Error("Invalid group structure in LLM response");
+        }
+
+        // Map tool keys back to Tool objects
+        const groupTools: Tool[] = [];
+        for (const toolKey of groupData.toolKeys) {
+          const tool = toolMap.get(toolKey);
+          if (!tool) {
+            throw new Error(
+              `LLM returned invalid or misspelled tool key: "${toolKey}"`,
+            );
+          }
+
+          // Check for duplicates
+          if (assignedToolKeys.has(toolKey)) {
+            throw new Error(
+              `LLM assigned tool "${toolKey}" to multiple groups`,
+            );
+          }
+
+          groupTools.push(tool);
+          assignedToolKeys.add(toolKey);
+        }
+
+        if (groupTools.length === 0) {
+          throw new Error(`Group "${groupData.name}" has no valid tools`);
+        }
+
+        groups.push({
+          id: sanitizeId(groupData.id),
+          name: groupData.name,
+          description: groupData.description,
+          tools: groupTools,
+          complementarityScore: typeof groupData.complementarityScore === "number"
+            ? groupData.complementarityScore
+            : 0.5,
+        });
+      }
+
+      // Verify all tools are assigned exactly once
+      if (assignedToolKeys.size !== tools.length) {
+        const allToolKeys = new Set(tools.map((t) => `${t.serverName}:${t.name}`));
+        const missingKeys = [...allToolKeys].filter((k) => !assignedToolKeys.has(k));
+        throw new Error(
+          `LLM failed to assign all tools. Missing ${missingKeys.length} tools: ${
+            missingKeys.slice(0, 5).join(", ")
+          }${missingKeys.length > 5 ? "..." : ""}`,
+        );
+      }
+
+      // Success! Return the groups
+      return groups;
+    } catch (error) {
+      lastStep3Error = error instanceof Error ? error : new Error(String(error));
+
+      // Log error and continue to retry if not the last attempt
+      if (step3Attempt < 3) {
+        console.warn(`  Step 3 attempt ${step3Attempt}/3 failed: ${lastStep3Error.message}`);
+      } else {
+        // Last attempt failed, throw the error
+        throw lastStep3Error;
+      }
+    }
   }
 
-  return groups;
+  // This should never be reached due to throw in last attempt, but TypeScript needs it
+  throw lastStep3Error || new Error("Failed to generate valid groups in Step 3");
 }
 
 /**

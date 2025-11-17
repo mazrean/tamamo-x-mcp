@@ -20,11 +20,29 @@ export function createAnthropicClient(
     model: selectedModel,
     async complete(prompt: string, options?: CompletionOptions): Promise<string> {
       try {
-        // If responseSchema is provided, enhance prompt with strict JSON instructions
-        let enhancedPrompt = prompt;
-        if (options?.responseSchema) {
-          const schemaStr = JSON.stringify(options.responseSchema, null, 2);
-          enhancedPrompt += `
+        // Prepare messages array
+        let messages: Array<{ role: "user" | "assistant"; content: string }>;
+
+        if (options?.messages && options.messages.length > 0) {
+          // Use conversation history if provided
+          messages = options.messages
+            .filter((m) => m.role !== "system") // System messages handled separately
+            .map((m) => ({
+              role: m.role as "user" | "assistant",
+              content: m.content,
+            }));
+
+          // Add the current prompt as the last user message
+          messages.push({
+            role: "user",
+            content: prompt,
+          });
+        } else {
+          // If responseSchema is provided, enhance prompt with strict JSON instructions
+          let enhancedPrompt = prompt;
+          if (options?.responseSchema) {
+            const schemaStr = JSON.stringify(options.responseSchema, null, 2);
+            enhancedPrompt += `
 
 <json_schema>
 ${schemaStr}
@@ -42,22 +60,30 @@ CRITICAL INSTRUCTIONS FOR JSON OUTPUT:
 9. Ensure array items match their schema definitions
 
 Your ENTIRE response should be parseable by JSON.parse() without any modifications.`;
+          }
+
+          messages = [
+            {
+              role: "user",
+              content: enhancedPrompt,
+            },
+          ];
         }
 
         const createParams: Anthropic.MessageCreateParams = {
           model: selectedModel,
           max_tokens: options?.maxTokens || 4096,
           temperature: options?.temperature,
-          messages: [
-            {
-              role: "user",
-              content: enhancedPrompt,
-            },
-          ],
+          messages,
         };
 
-        // Add system prompt if provided
-        if (options?.system) {
+        // Extract system message from messages array if present, otherwise use options.system
+        if (options?.messages) {
+          const systemMessage = options.messages.find((m) => m.role === "system");
+          if (systemMessage) {
+            createParams.system = systemMessage.content;
+          }
+        } else if (options?.system) {
           createParams.system = options.system;
         }
 

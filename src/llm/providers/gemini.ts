@@ -82,20 +82,60 @@ export function createGeminiClient(
         );
       }
 
+      // Extract system instruction from messages if provided
+      let systemInstruction: string | undefined;
+      if (options?.messages) {
+        const systemMessage = options.messages.find((m) => m.role === "system");
+        if (systemMessage) {
+          systemInstruction = systemMessage.content;
+        }
+      } else if (options?.system) {
+        systemInstruction = options.system;
+      }
+
       const geminiModel = genAI.getGenerativeModel({
         model: selectedModel,
         generationConfig,
+        systemInstruction,
       });
 
-      const result = await geminiModel.generateContent(prompt);
-      const response = result.response;
-      const text = response.text();
+      // Use conversation history if provided
+      if (options?.messages && options.messages.length > 0) {
+        // Filter out system messages (handled separately) and convert to Gemini format
+        const history = options.messages
+          .filter((m) => m.role !== "system")
+          .map((m) => ({
+            role: m.role === "assistant" ? "model" : "user",
+            parts: [{ text: m.content }],
+          }));
 
-      if (!text) {
-        throw new Error("No text content in Gemini API response");
+        // Start a chat with history
+        const chat = geminiModel.startChat({
+          history,
+        });
+
+        // Send the current prompt
+        const result = await chat.sendMessage(prompt);
+        const response = result.response;
+        const text = response.text();
+
+        if (!text) {
+          throw new Error("No text content in Gemini API response");
+        }
+
+        return text;
+      } else {
+        // No conversation history, use simple generateContent
+        const result = await geminiModel.generateContent(prompt);
+        const response = result.response;
+        const text = response.text();
+
+        if (!text) {
+          throw new Error("No text content in Gemini API response");
+        }
+
+        return text;
       }
-
-      return text;
     },
   };
 }

@@ -26,12 +26,19 @@ export function createOpenAIClient(
       // Build request parameters
       const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [];
 
-      // Add system message if provided
-      if (options?.system) {
-        messages.push({ role: "system", content: options.system });
+      // Use conversation history if provided
+      if (options?.messages && options.messages.length > 0) {
+        for (const msg of options.messages) {
+          messages.push({ role: msg.role, content: msg.content });
+        }
+      } else {
+        // Add system message if provided
+        if (options?.system) {
+          messages.push({ role: "system", content: options.system });
+        }
       }
 
-      // Add user message
+      // Add current prompt as user message
       messages.push({ role: "user", content: prompt });
 
       const params: OpenAI.Chat.ChatCompletionCreateParams = {

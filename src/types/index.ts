@@ -39,9 +39,16 @@ export { DEFAULT_GROUPING_CONSTRAINTS } from "../schemas/index.ts";
 // Import schemas directly from "../schemas/index.ts" where validation is needed
 
 // LLM Completion types
+export interface Message {
+  role: "system" | "user" | "assistant";
+  content: string;
+}
+
 export interface CompletionOptions {
   /** System prompt to set the behavior and constraints */
   system?: string;
+  /** Conversation history (alternative to prompt+system) */
+  messages?: Message[];
   temperature?: number;
   maxTokens?: number;
   topP?: number;
