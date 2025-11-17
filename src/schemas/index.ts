@@ -397,6 +397,8 @@ export interface ProjectContext {
   claudeFilePath?: string;
   domain?: string;
   customHints?: string[];
+  /** Full merged content from CLAUDE.md/AGENT.md files for deeper LLM understanding */
+  fullContent?: string;
 }
 
 export interface GroupingConstraints {

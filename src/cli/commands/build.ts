@@ -35,6 +35,7 @@ async function readProjectContext(
   // Start with config-provided context if available
   let domain = configContext?.domain;
   const customHints = configContext?.customHints ? [...configContext.customHints] : [];
+  const contentParts: string[] = []; // Collect full content from all files
 
   // Build list of files to read (config paths + fallback defaults)
   const contextFiles: string[] = [];
@@ -68,6 +69,9 @@ async function readProjectContext(
     try {
       const content = await Deno.readTextFile(filename);
 
+      // Store full content for LLM context
+      contentParts.push(`=== ${filename} ===\n${content}`);
+
       // Extract domain hints from the content if not already set
       if (!domain) {
         const domainMatch = content.match(/(?:Project|Domain):\s*(.+)/i);
@@ -89,10 +93,11 @@ async function readProjectContext(
   }
 
   // Return context if we found anything
-  if (domain || customHints.length > 0) {
+  if (domain || customHints.length > 0 || contentParts.length > 0) {
     return {
       domain: domain || "General purpose development",
       customHints: customHints.slice(0, 10), // Limit to first 10 hints
+      fullContent: contentParts.length > 0 ? contentParts.join("\n\n") : undefined,
     };
   }
 

@@ -107,8 +107,6 @@ export function wrapToolForClaudeAgent(mcpTool: Tool): ReturnType<typeof tool> {
     simpleSchema[key] = value as z.ZodTypeAny;
   }
 
-  // @ts-expect-error - Zod version mismatch between claude-agent-sdk (3.25.x) and project (3.24.x)
-  // causes "Type instantiation is excessively deep" error. Runtime behavior is correct.
   return tool(
     mcpTool.name,
     mcpTool.description,

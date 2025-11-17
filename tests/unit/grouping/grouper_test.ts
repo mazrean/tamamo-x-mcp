@@ -576,7 +576,7 @@ function createMockLLMClient(): LLMClient {
   return {
     provider: "anthropic",
     model: "claude-3-5-sonnet-20241022",
-    complete(prompt: string): Promise<string> {
+    complete(prompt: string, _options?): Promise<string> {
       // Parse constraints from prompt
       const minGroupsMatch = prompt.match(/between (\d+) and (\d+) groups/);
       const minGroups = minGroupsMatch ? parseInt(minGroupsMatch[1]) : 3;

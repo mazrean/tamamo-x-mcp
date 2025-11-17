@@ -40,10 +40,14 @@ export { DEFAULT_GROUPING_CONSTRAINTS } from "../schemas/index.ts";
 
 // LLM Completion types
 export interface CompletionOptions {
+  /** System prompt to set the behavior and constraints */
+  system?: string;
   temperature?: number;
   maxTokens?: number;
   topP?: number;
   stopSequences?: string[];
+  /** JSON schema to enforce structured output (if supported by provider) */
+  responseSchema?: JSONSchemaType;
 }
 
 export interface LLMClient {

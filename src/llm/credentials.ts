@@ -93,7 +93,9 @@ export function discoverBedrockCredentials(): Promise<BedrockCredentials | null>
 /**
  * Discover Anthropic (Claude Code) credentials
  */
-async function discoverAnthropicCredentials(home: string): Promise<string | null> {
+async function discoverAnthropicCredentials(
+  home: string,
+): Promise<string | null> {
   // Try Claude Code credentials first
   const claudeCredsPath = join(home, ".config", "claude", "credentials.json");
   try {
@@ -120,12 +122,12 @@ async function discoverAnthropicCredentials(home: string): Promise<string | null
  */
 async function discoverOpenAICredentials(home: string): Promise<string | null> {
   // Try OpenAI config first
-  const openaiConfigPath = join(home, ".config", "openai", "config.json");
+  const openaiConfigPath = join(home, ".codex", "auth.json");
   try {
     const content = await Deno.readTextFile(openaiConfigPath);
     const config = JSON.parse(content);
-    if (config.apiKey && typeof config.apiKey === "string") {
-      return config.apiKey;
+    if (config.OPENAI_API_KEY && typeof config.OPENAI_API_KEY === "string") {
+      return config.OPENAI_API_KEY;
     }
   } catch {
     // Ignore errors, try env var
@@ -180,7 +182,9 @@ async function discoverGeminiCredentials(home: string): Promise<string | null> {
  * This function should be called by config validator to ensure security
  * Performs deep scanning of all nested objects and values
  */
-export function validateConfigSecurity(config: Record<string, unknown>): boolean {
+export function validateConfigSecurity(
+  config: Record<string, unknown>,
+): boolean {
   // These fields should NEVER be in config (case-insensitive)
   const forbiddenFields = [
     "apikey",

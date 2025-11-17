@@ -15,7 +15,7 @@ describe("Gemini Provider", () => {
 
     it("should use correct default model", async () => {
       const client = await createGeminiClient("AIzaSy-test-key");
-      assertEquals(client.model, "gemini-2.0-flash-exp");
+      assertEquals(client.model, "gemini-2.5-pro-latest");
     });
   });
 
@@ -32,7 +32,7 @@ describe("Gemini Provider", () => {
 // Mock implementations
 function createGeminiClient(_apiKey: string) {
   return Promise.resolve({
-    model: "gemini-2.0-flash-exp",
+    model: "gemini-2.5-pro-latest",
     complete(prompt: string): Promise<string> {
       return Promise.resolve(`Mock Gemini response for: ${prompt}`);
     },

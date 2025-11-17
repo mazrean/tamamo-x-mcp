@@ -15,7 +15,7 @@ describe("Anthropic Provider", () => {
 
     it("should use correct default model", async () => {
       const client = await createAnthropicClient("sk-ant-test-key");
-      assertEquals(client.model, "claude-3-5-sonnet-20241022");
+      assertEquals(client.model, "claude-3-5-haiku-20241022");
     });
   });
 
@@ -38,7 +38,7 @@ describe("Anthropic Provider", () => {
 // Mock implementations
 function createAnthropicClient(_apiKey: string) {
   return Promise.resolve({
-    model: "claude-3-5-sonnet-20241022",
+    model: "claude-3-5-haiku-20241022",
     complete(prompt: string, _options?: { temperature?: number }): Promise<string> {
       return Promise.resolve(`Mock Anthropic response for: ${prompt}`);
     },

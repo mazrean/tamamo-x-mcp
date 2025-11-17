@@ -7,9 +7,9 @@
  * Reference: data-model.md § 2 (MCPServerConfig)
  */
 
-import { Client } from "npm:@modelcontextprotocol/sdk@1.0.4/client/index.js";
-import { StdioClientTransport } from "npm:@modelcontextprotocol/sdk@1.0.4/client/stdio.js";
-import { SSEClientTransport } from "npm:@modelcontextprotocol/sdk@1.0.4/client/sse.js";
+import { Client } from "npm:@modelcontextprotocol/sdk@1.22.0/client/index.js";
+import { StdioClientTransport } from "npm:@modelcontextprotocol/sdk@1.22.0/client/stdio.js";
+import { StreamableHTTPClientTransport } from "npm:@modelcontextprotocol/sdk@1.22.0/client/streamableHttp.js";
 import { z } from "npm:zod@3.24.1";
 import type { MCPServerConfig } from "../types/index.ts";
 
@@ -131,15 +131,52 @@ export class MCPClient {
   }
 
   /**
-   * Connect via HTTP (SSE) transport
+   * Connect via HTTP (Streamable HTTP) transport
+   * MCP Streamable HTTP transport (protocol revision 2025-03-26) specification:
+   * - Single MCP endpoint that supports both POST and GET methods
+   * - Base URL example: https://example.com/mcp
+   * - POST: Client sends JSON-RPC messages to server
+   * - GET: Client receives SSE stream from server
+   * - Session management via Mcp-Session-Id header
+   * - Resumability with event IDs and Last-Event-ID header
    */
   private async connectHttp(): Promise<void> {
     if (!this.config.url) {
       throw new Error("url is required for http transport");
     }
 
-    const transport = new SSEClientTransport(new URL(this.config.url));
-    await this.client.connect(transport);
+    try {
+      const baseUrl = new URL(this.config.url);
+      console.log(`[MCP Client] Connecting to Streamable HTTP transport at ${baseUrl.href}`);
+      console.log(`[MCP Client] Using single MCP endpoint supporting both POST and GET methods`);
+
+      const transport = new StreamableHTTPClientTransport(baseUrl);
+
+      // Add timeout for HTTP connection (30 seconds)
+      const connectPromise = this.client.connect(transport);
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error("Connection timeout after 30 seconds")), 30000);
+      });
+
+      await Promise.race([connectPromise, timeoutPromise]);
+      console.log(`[MCP Client] Successfully connected to ${this.config.name} via Streamable HTTP`);
+    } catch (error) {
+      // Enhanced error message with more details
+      const errorDetails = error instanceof Error ? error.message : JSON.stringify(error);
+
+      // Extract more error information if available
+      const errorCause = error instanceof Error && error.cause ? ` (cause: ${error.cause})` : "";
+
+      throw new Error(
+        `Streamable HTTP connection failed: ${errorDetails}${errorCause}. ` +
+          `Verify that:\n` +
+          `  1. The server at ${this.config.url} is accessible\n` +
+          `  2. The server implements MCP Streamable HTTP transport (single endpoint with POST/GET support)\n` +
+          `  3. CORS is properly configured if connecting from browser context\n` +
+          `  4. No firewall or network issues blocking the connection`,
+        { cause: error },
+      );
+    }
   }
 
   /**

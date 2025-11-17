@@ -1,64 +1,97 @@
 /**
  * Anthropic provider implementation
- * Uses @anthropic-ai/claude-agent-sdk
+ * Uses @anthropic-ai/sdk (official SDK)
  */
 
-import { query } from "npm:@anthropic-ai/claude-agent-sdk@0.1.0";
+import Anthropic from "npm:@anthropic-ai/sdk@0.32.1";
 import type { CompletionOptions, LLMClient } from "../client.ts";
 
-const DEFAULT_MODEL = "claude-3-5-sonnet-20241022";
+const DEFAULT_MODEL = "claude-3-5-haiku-20241022";
 
 export function createAnthropicClient(
   apiKey: string,
   model?: string,
 ): LLMClient {
   const selectedModel = model || DEFAULT_MODEL;
+  const client = new Anthropic({ apiKey });
 
   return {
     provider: "anthropic",
     model: selectedModel,
-    async complete(prompt: string, _options?: CompletionOptions): Promise<string> {
-      // Set API key in environment for Claude Agent SDK
-      const originalApiKey = Deno.env.get("ANTHROPIC_API_KEY");
-      Deno.env.set("ANTHROPIC_API_KEY", apiKey);
-
+    async complete(prompt: string, options?: CompletionOptions): Promise<string> {
       try {
-        // Note: Claude Agent SDK doesn't support maxTokens/temperature in query options
-        // These parameters are ignored for now
-        // Execute query with Claude Agent SDK (no tools needed for completion)
-        const stream = query({
-          prompt,
-          options: {
-            model: selectedModel,
-            maxTurns: 1, // Single completion, no back-and-forth
-          },
-        });
+        // If responseSchema is provided, enhance prompt with strict JSON instructions
+        let enhancedPrompt = prompt;
+        if (options?.responseSchema) {
+          const schemaStr = JSON.stringify(options.responseSchema, null, 2);
+          enhancedPrompt += `
 
-        let result = "";
+<json_schema>
+${schemaStr}
+</json_schema>
 
-        // Process streaming response
-        for await (const item of stream) {
-          if (item.type === "assistant") {
-            for (const piece of item.message.content) {
-              if (piece.type === "text") {
-                result += piece.text;
-              }
-            }
+CRITICAL INSTRUCTIONS FOR JSON OUTPUT:
+1. Your response MUST be valid, parseable JSON
+2. Your response MUST conform EXACTLY to the schema provided above
+3. Do NOT include ANY text before the opening brace {
+4. Do NOT include ANY text after the closing brace }
+5. Do NOT include markdown code fences, explanations, or commentary
+6. Do NOT use ellipsis (...) or placeholders - provide complete data
+7. Ensure all required fields are present
+8. Ensure all field types match the schema (string, number, array, object)
+9. Ensure array items match their schema definitions
+
+Your ENTIRE response should be parseable by JSON.parse() without any modifications.`;
+        }
+
+        const createParams: Anthropic.MessageCreateParams = {
+          model: selectedModel,
+          max_tokens: options?.maxTokens || 4096,
+          temperature: options?.temperature,
+          messages: [
+            {
+              role: "user",
+              content: enhancedPrompt,
+            },
+          ],
+        };
+
+        // Add system prompt if provided
+        if (options?.system) {
+          createParams.system = options.system;
+        }
+
+        const response = await client.messages.create(createParams);
+
+        // Extract text from response
+        const textContent = response.content.find((block) => block.type === "text");
+        if (!textContent || textContent.type !== "text") {
+          throw new Error("No text content in Anthropic response");
+        }
+
+        let text = textContent.text.trim();
+
+        // If schema was provided, attempt to extract JSON from response
+        // (in case Claude wrapped it in markdown or added explanation)
+        if (options?.responseSchema) {
+          // Remove markdown code fences if present
+          text = text.replace(/^```json?\s*/i, "").replace(/\s*```$/i, "");
+
+          // Try to find JSON object boundaries
+          const firstBrace = text.indexOf("{");
+          const lastBrace = text.lastIndexOf("}");
+          if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+            text = text.substring(firstBrace, lastBrace + 1);
           }
         }
 
-        if (!result) {
-          throw new Error("No response from Claude Agent SDK");
+        return text;
+      } catch (error) {
+        console.error("Error in Anthropic provider:", error);
+        if (error instanceof Error) {
+          console.error("Error stack:", error.stack);
         }
-
-        return result;
-      } finally {
-        // Restore original API key
-        if (originalApiKey) {
-          Deno.env.set("ANTHROPIC_API_KEY", originalApiKey);
-        } else {
-          Deno.env.delete("ANTHROPIC_API_KEY");
-        }
+        throw error;
       }
     },
   };
