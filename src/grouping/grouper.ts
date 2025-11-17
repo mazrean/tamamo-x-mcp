@@ -97,6 +97,7 @@ async function requestGroupsFromLLM(
   // Convert LLM response to ToolGroup objects
   const groups: ToolGroup[] = [];
   const toolMap = new Map(tools.map((t) => [`${t.serverName}:${t.name}`, t]));
+  const assignedToolKeys = new Set<string>();
 
   for (const groupData of parsed.groups) {
     if (
@@ -110,9 +111,21 @@ async function requestGroupsFromLLM(
     const groupTools: Tool[] = [];
     for (const toolKey of groupData.toolKeys) {
       const tool = toolMap.get(toolKey);
-      if (tool) {
-        groupTools.push(tool);
+      if (!tool) {
+        throw new Error(
+          `LLM returned invalid or misspelled tool key: "${toolKey}"`,
+        );
       }
+
+      // Check for duplicates
+      if (assignedToolKeys.has(toolKey)) {
+        throw new Error(
+          `LLM assigned tool "${toolKey}" to multiple groups`,
+        );
+      }
+
+      groupTools.push(tool);
+      assignedToolKeys.add(toolKey);
     }
 
     if (groupTools.length === 0) {
@@ -128,6 +141,17 @@ async function requestGroupsFromLLM(
         ? groupData.complementarityScore
         : 0.5,
     });
+  }
+
+  // Verify all tools are assigned exactly once
+  if (assignedToolKeys.size !== tools.length) {
+    const allToolKeys = new Set(tools.map((t) => `${t.serverName}:${t.name}`));
+    const missingKeys = [...allToolKeys].filter((k) => !assignedToolKeys.has(k));
+    throw new Error(
+      `LLM failed to assign all tools. Missing ${missingKeys.length} tools: ${
+        missingKeys.slice(0, 5).join(", ")
+      }${missingKeys.length > 5 ? "..." : ""}`,
+    );
   }
 
   return groups;
