@@ -19,6 +19,10 @@ import type {
 } from "../types/index.ts";
 import { executeAgent } from "../agents/agent.ts";
 import { routeRequest } from "../agents/router.ts";
+import {
+  discoverBedrockCredentials,
+  discoverCredentials,
+} from "../llm/credentials.ts";
 
 /**
  * MCP server interface
@@ -134,7 +138,18 @@ export async function handleToolsCall(
   }
 
   try {
-    const response = await executeAgent(agent, agentRequest);
+    // Discover API key for the agent's LLM provider
+    let apiKey: string | undefined;
+    if (agent.llmProvider.type === "bedrock") {
+      const bedrockCreds = await discoverBedrockCredentials();
+      if (bedrockCreds) {
+        apiKey = bedrockCreds.accessKeyId;
+      }
+    } else {
+      apiKey = await discoverCredentials(agent.llmProvider.type) || undefined;
+    }
+
+    const response = await executeAgent(agent, agentRequest, { apiKey });
 
     if (response.error) {
       return {
@@ -238,7 +253,18 @@ export async function startServer(mcpServer: MCPServer): Promise<boolean> {
       }
 
       try {
-        const response = await executeAgent(agent, agentRequest);
+        // Discover API key for the agent's LLM provider
+        let apiKey: string | undefined;
+        if (agent.llmProvider.type === "bedrock") {
+          const bedrockCreds = await discoverBedrockCredentials();
+          if (bedrockCreds) {
+            apiKey = bedrockCreds.accessKeyId;
+          }
+        } else {
+          apiKey = await discoverCredentials(agent.llmProvider.type) || undefined;
+        }
+
+        const response = await executeAgent(agent, agentRequest, { apiKey });
 
         if (response.error) {
           return {
