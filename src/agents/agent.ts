@@ -2,7 +2,7 @@
  * Agent execution module
  * Wraps MCP tools for agent frameworks:
  * - Anthropic: Uses @anthropic-ai/claude-agent-sdk
- * - Others: Uses Mastra tools
+ * - Others: Uses Vercel AI SDK
  */
 
 import type {
@@ -14,6 +14,7 @@ import type {
   Tool,
   ToolGroup,
 } from "../types/index.ts";
+import type { MCPClientRegistry } from "../mcp/registry.ts";
 
 // Claude Agent SDK imports (for Anthropic provider)
 import {
@@ -24,36 +25,30 @@ import {
 } from "npm:@anthropic-ai/claude-agent-sdk@0.1.42";
 import { z } from "npm:zod@4.1.12";
 
-// Mastra imports (for other providers)
-import { Agent } from "npm:@mastra/core@0.24.3/agent";
-import { createTool } from "npm:@mastra/core@0.24.3/tools";
+// Vercel AI SDK imports (for non-Anthropic providers, replacing Mastra)
+import { generateText, jsonSchema, tool as aiTool } from "npm:ai@5.0.97";
+import { createOpenAI } from "npm:@ai-sdk/openai@2.0.68";
+import { createGoogleGenerativeAI } from "npm:@ai-sdk/google@1.0.11";
+import { createOpenRouter } from "npm:@openrouter/ai-sdk-provider@0.0.5";
 
 /**
  * Default models for each LLM provider
  * Used when model is not specified in LLMProviderConfig
  */
 const DEFAULT_MODELS: Record<string, string> = {
-  anthropic: "claude-4-5-haiku",
-  openai: "gpt-5.1",
-  gemini: "gemini-2.5-pro-latest",
+  anthropic: "claude-3-5-haiku-20241022",
+  openai: "gpt-4o",
+  gemini: "gemini-2.0-flash-exp",
   vercel: "gpt-4o",
-  bedrock: "anthropic.claude-3-sonnet-20240229-v1:0",
-  openrouter: "gpt-5.1",
+  bedrock: "anthropic.claude-3-5-sonnet-20241022",
+  openrouter: "openai/gpt-4o",
 };
 
 /**
- * Get environment variable name for LLM provider API key
+ * Maximum number of steps (tool calls + responses) allowed in agent execution
+ * Prevents infinite loops when LLM repeatedly calls tools without converging
  */
-function getEnvVarNameForProvider(providerType: string): string {
-  const envVarMap: Record<string, string> = {
-    openai: "OPENAI_API_KEY",
-    gemini: "GOOGLE_API_KEY",
-    vercel: "OPENAI_API_KEY", // Vercel AI uses OpenAI SDK
-    bedrock: "AWS_ACCESS_KEY_ID", // Bedrock uses AWS credentials
-    openrouter: "OPENROUTER_API_KEY",
-  };
-  return envVarMap[providerType] || "API_KEY";
-}
+const MAX_AGENT_STEPS = 8;
 
 /**
  * Mastra tool interface (for non-Anthropic providers)
@@ -75,10 +70,22 @@ export interface MastraTool {
 function jsonSchemaToZod(
   schema: JSONSchema,
 ): z.ZodObject<Record<string, z.ZodTypeAny>> {
+  // Sanitize schema to ensure type is "object"
+  // Some MCP tools may have invalid schemas like type: "None"
+  const sanitizedSchema: JSONSchema = {
+    ...schema,
+    type: (schema.type as string) === "None" || !schema.type ? "object" : schema.type,
+  };
+
   const shape: Record<string, z.ZodTypeAny> = {};
 
-  if (schema.properties) {
-    for (const [key, prop] of Object.entries(schema.properties)) {
+  // Ensure schema has type "object"
+  if (sanitizedSchema.type !== "object") {
+    console.warn(`Unexpected schema type: ${sanitizedSchema.type}, treating as object`);
+  }
+
+  if (sanitizedSchema.properties && Object.keys(sanitizedSchema.properties).length > 0) {
+    for (const [key, prop] of Object.entries(sanitizedSchema.properties)) {
       let zodType: z.ZodTypeAny;
 
       // Handle boolean shorthand (true = accept all, false = reject all)
@@ -88,11 +95,15 @@ function jsonSchemaToZod(
         // Type assertion after validation
         const propSchema = prop as { type: string; description?: string };
 
-        switch (propSchema.type) {
+        // Handle type being None, null, or undefined
+        const propType = propSchema.type || "string";
+
+        switch (propType) {
           case "string":
             zodType = z.string();
             break;
           case "number":
+          case "integer":
             zodType = z.number();
             break;
           case "boolean":
@@ -103,6 +114,11 @@ function jsonSchemaToZod(
             break;
           case "array":
             zodType = z.array(z.unknown());
+            break;
+          case "None":
+          case "null":
+            // Treat None/null as optional string
+            zodType = z.string().optional();
             break;
           default:
             zodType = z.unknown();
@@ -117,7 +133,7 @@ function jsonSchemaToZod(
       }
 
       // Make optional if not in required array
-      if (!schema.required?.includes(key)) {
+      if (!sanitizedSchema.required?.includes(key)) {
         zodType = zodType.optional();
       }
 
@@ -125,14 +141,25 @@ function jsonSchemaToZod(
     }
   }
 
+  // Return object schema (even if empty)
   return z.object(shape).passthrough();
 }
 
 /**
  * Wrap an MCP tool as a Claude Agent SDK tool
  */
-export function wrapToolForClaudeAgent(mcpTool: Tool): ReturnType<typeof tool> {
-  const zodSchema = jsonSchemaToZod(mcpTool.inputSchema);
+export function wrapToolForClaudeAgent(
+  mcpTool: Tool,
+  registry?: MCPClientRegistry,
+): ReturnType<typeof tool> {
+  // Sanitize input schema to ensure type is "object"
+  // Some MCP tools may have invalid schemas like type: "None"
+  const sanitizedSchema = {
+    ...mcpTool.inputSchema,
+    type: "object" as const,
+  };
+
+  const zodSchema = jsonSchemaToZod(sanitizedSchema);
 
   // Type assertion needed due to Zod version mismatch between SDK and our dependencies
   return tool(
@@ -140,15 +167,40 @@ export function wrapToolForClaudeAgent(mcpTool: Tool): ReturnType<typeof tool> {
     mcpTool.description,
     // deno-lint-ignore no-explicit-any
     zodSchema.shape as any,
-    // deno-lint-ignore require-await
     async (args: Record<string, unknown>, _extra: unknown) => {
-      // In real implementation, this would call the MCP server
       // For testing: simulate failures for tools named "failing_tool"
       if (mcpTool.name === "failing_tool") {
         throw new Error(`Tool ${mcpTool.name} failed to execute`);
       }
 
-      // For now, return mock result
+      // If registry is provided, call actual MCP tool
+      if (registry) {
+        try {
+          const result = await registry.callTool(
+            mcpTool.serverName,
+            mcpTool.name,
+            args,
+          );
+
+          // Convert MCP response to Claude Agent SDK format
+          return {
+            content: [
+              {
+                type: "text" as const,
+                text: typeof result === "string" ? result : JSON.stringify(result),
+              },
+            ],
+          };
+        } catch (error) {
+          throw new Error(
+            `Tool ${mcpTool.name} failed: ${
+              error instanceof Error ? error.message : String(error)
+            }`,
+          );
+        }
+      }
+
+      // Fallback to mock result for testing
       return {
         content: [
           {
@@ -166,46 +218,149 @@ export function wrapToolForClaudeAgent(mcpTool: Tool): ReturnType<typeof tool> {
 }
 
 /**
- * Wrap an MCP tool as a Mastra tool
+ * Recursively sanitize JSON Schema to fix invalid type values
+ * Converts type: "None" to type: "string" and handles nested objects
  */
-export function wrapToolForMastra(tool: Tool): ReturnType<typeof createTool> {
-  // Convert JSON Schema to Zod schema for input validation
-  const zodSchema = jsonSchemaToZod(tool.inputSchema);
+// deno-lint-ignore no-explicit-any
+function sanitizeJsonSchema(schema: any): any {
+  if (typeof schema !== "object" || schema === null) {
+    return schema;
+  }
 
-  return createTool({
-    id: tool.name,
-    description: tool.description,
-    inputSchema: zodSchema,
-    outputSchema: z.object({
-      output: z.string(),
-    }),
-    // deno-lint-ignore require-await
-    execute: async ({ context }: { context: Record<string, unknown> }) => {
-      // In real implementation, this would call the MCP server tool
+  // Create a shallow copy
+  // deno-lint-ignore no-explicit-any
+  const sanitized: any = Array.isArray(schema) ? [...schema] : { ...schema };
+
+  // Fix type field if it's "None" or missing
+  if ("type" in sanitized) {
+    if (sanitized.type === "None" || sanitized.type === null || sanitized.type === undefined) {
+      sanitized.type = "string";
+    }
+  }
+
+  // Recursively sanitize properties
+  if (sanitized.properties && typeof sanitized.properties === "object") {
+    // deno-lint-ignore no-explicit-any
+    const sanitizedProps: Record<string, any> = {};
+    for (const [key, prop] of Object.entries(sanitized.properties)) {
+      sanitizedProps[key] = sanitizeJsonSchema(prop);
+    }
+    sanitized.properties = sanitizedProps;
+  }
+
+  // Recursively sanitize items (for arrays)
+  if (sanitized.items) {
+    sanitized.items = sanitizeJsonSchema(sanitized.items);
+  }
+
+  // Recursively sanitize additionalProperties
+  if (sanitized.additionalProperties && typeof sanitized.additionalProperties === "object") {
+    sanitized.additionalProperties = sanitizeJsonSchema(sanitized.additionalProperties);
+  }
+
+  // Recursively sanitize patternProperties
+  if (sanitized.patternProperties && typeof sanitized.patternProperties === "object") {
+    // deno-lint-ignore no-explicit-any
+    const sanitizedPatternProps: Record<string, any> = {};
+    for (const [key, prop] of Object.entries(sanitized.patternProperties)) {
+      sanitizedPatternProps[key] = sanitizeJsonSchema(prop);
+    }
+    sanitized.patternProperties = sanitizedPatternProps;
+  }
+
+  // Recursively sanitize anyOf/oneOf/allOf
+  if (Array.isArray(sanitized.anyOf)) {
+    // deno-lint-ignore no-explicit-any
+    sanitized.anyOf = sanitized.anyOf.map((s: any) => sanitizeJsonSchema(s));
+  }
+  if (Array.isArray(sanitized.oneOf)) {
+    // deno-lint-ignore no-explicit-any
+    sanitized.oneOf = sanitized.oneOf.map((s: any) => sanitizeJsonSchema(s));
+  }
+  if (Array.isArray(sanitized.allOf)) {
+    // deno-lint-ignore no-explicit-any
+    sanitized.allOf = sanitized.allOf.map((s: any) => sanitizeJsonSchema(s));
+  }
+
+  return sanitized;
+}
+
+/**
+ * Wrap an MCP tool for Vercel AI SDK (OpenAI format)
+ * Uses Vercel AI SDK's tool() and jsonSchema() helpers for proper schema handling
+ */
+export function wrapToolForVercelAI(
+  mcpTool: Tool,
+  registry?: MCPClientRegistry,
+  // deno-lint-ignore no-explicit-any
+): any {
+  // Deeply sanitize the entire input schema
+  const sanitizedSchema = sanitizeJsonSchema(mcpTool.inputSchema);
+
+  // Use jsonSchema() helper to create a properly typed schema for Vercel AI SDK
+  // This adds the required 'typeName' property that the SDK expects
+  const schemaForJsonSchema = {
+    type: "object" as const,
+    properties: sanitizedSchema.properties || {},
+    required: Array.isArray(sanitizedSchema.required) ? sanitizedSchema.required : [],
+    additionalProperties: false,
+  };
+
+  const parameters = jsonSchema(schemaForJsonSchema);
+
+  // Use Vercel AI SDK's tool() helper to create the tool wrapper
+  // IMPORTANT: Must use 'inputSchema' not 'parameters' for Vercel AI SDK!
+  return aiTool({
+    name: mcpTool.name,
+    description: mcpTool.description || "",
+    inputSchema: parameters,
+    // deno-lint-ignore no-explicit-any
+    execute: async (args: any) => {
       // For testing: simulate failures for tools named "failing_tool"
-      if (tool.name === "failing_tool") {
-        throw new Error(`Tool ${tool.name} failed to execute`);
+      if (mcpTool.name === "failing_tool") {
+        throw new Error(`Tool ${mcpTool.name} failed to execute`);
       }
 
-      // For now, return mock result
-      return {
-        output: `Mock result from ${tool.name} with args: ${
-          JSON.stringify(
-            context,
-          )
-        }`,
-      };
+      // If registry is provided, call actual MCP tool
+      if (registry) {
+        try {
+          const result = await registry.callTool(
+            mcpTool.serverName,
+            mcpTool.name,
+            args,
+          );
+
+          // Convert MCP response to string format
+          return typeof result === "string" ? result : JSON.stringify(result);
+        } catch (error) {
+          throw new Error(
+            `Tool ${mcpTool.name} failed: ${
+              error instanceof Error ? error.message : String(error)
+            }`,
+          );
+        }
+      }
+
+      // Fallback to mock result for testing
+      return `Mock result from ${mcpTool.name} with args: ${JSON.stringify(args)}`;
     },
   });
 }
 
 /**
- * Wrap multiple MCP tools as Mastra tools
+ * Wrap multiple MCP tools for Vercel AI SDK
  */
-export function wrapToolsForMastra(
+export function wrapToolsForVercelAI(
   tools: Tool[],
-): ReturnType<typeof createTool>[] {
-  return tools.map((tool) => wrapToolForMastra(tool));
+  registry?: MCPClientRegistry,
+  // deno-lint-ignore no-explicit-any
+): Record<string, any> {
+  // deno-lint-ignore no-explicit-any
+  const wrappedTools: Record<string, any> = {};
+  for (const tool of tools) {
+    wrappedTools[tool.name] = wrapToolForVercelAI(tool, registry);
+  }
+  return wrappedTools;
 }
 
 /**
@@ -237,15 +392,24 @@ async function executeAgentWithClaudeSDK(
   subAgent: SubAgent,
   request: AgentRequest,
   apiKey: string,
+  registry?: MCPClientRegistry,
 ): Promise<AgentResponse> {
   try {
     // Set API key in environment for Claude Agent SDK
     const originalApiKey = Deno.env.get("ANTHROPIC_API_KEY");
     Deno.env.set("ANTHROPIC_API_KEY", apiKey);
 
+    // Also set for Node.js compatibility layer (process.env)
+    if (typeof globalThis.process !== "undefined" && globalThis.process.env) {
+      globalThis.process.env.ANTHROPIC_API_KEY = apiKey;
+    }
+
     try {
       // Create SDK MCP server with wrapped tools
-      const wrappedTools = subAgent.toolGroup.tools.map(wrapToolForClaudeAgent);
+      const wrappedTools = subAgent.toolGroup.tools.map((tool) =>
+        wrapToolForClaudeAgent(tool, registry)
+      );
+
       const mcpServer = createSdkMcpServer({
         name: "tamamo-x-mcp",
         version: "1.0.0",
@@ -293,8 +457,14 @@ async function executeAgentWithClaudeSDK(
       // Restore original API key
       if (originalApiKey) {
         Deno.env.set("ANTHROPIC_API_KEY", originalApiKey);
+        if (typeof globalThis.process !== "undefined" && globalThis.process.env) {
+          globalThis.process.env.ANTHROPIC_API_KEY = originalApiKey;
+        }
       } else {
         Deno.env.delete("ANTHROPIC_API_KEY");
+        if (typeof globalThis.process !== "undefined" && globalThis.process.env) {
+          delete globalThis.process.env.ANTHROPIC_API_KEY;
+        }
       }
     }
   } catch (error) {
@@ -308,80 +478,123 @@ async function executeAgentWithClaudeSDK(
 }
 
 /**
- * Execute an agent with Mastra (non-Anthropic providers)
+ * Execute an agent with Vercel AI SDK (non-Anthropic providers)
  */
-async function executeAgentWithMastra(
+async function executeAgentWithVercelAI(
   subAgent: SubAgent,
   request: AgentRequest,
   apiKey: string,
+  _registry?: MCPClientRegistry,
 ): Promise<AgentResponse> {
   try {
-    // Set API key in environment for Mastra
-    // Mastra reads credentials from environment variables
-    const envVarName = getEnvVarNameForProvider(subAgent.llmProvider.type);
-    const originalApiKey = Deno.env.get(envVarName);
-    Deno.env.set(envVarName, apiKey);
+    // Get model configuration
+    const modelName = subAgent.llmProvider.model || DEFAULT_MODELS[subAgent.llmProvider.type];
 
-    try {
-      // Wrap MCP tools as Mastra tools
-      const wrappedTools = wrapToolsForMastra(subAgent.toolGroup.tools);
-
-    // Convert tools array to tools object (Mastra expects { [toolId]: tool })
-    const toolsObject: Record<string, ReturnType<typeof createTool>> = {};
-    for (const tool of wrappedTools) {
-      toolsObject[tool.id] = tool;
+    // Create provider-specific model instance
+    // deno-lint-ignore no-explicit-any
+    let model: any;
+    switch (subAgent.llmProvider.type) {
+      case "openai":
+        model = createOpenAI({ apiKey })(modelName);
+        break;
+      case "gemini":
+        model = createGoogleGenerativeAI({ apiKey })(modelName);
+        break;
+      case "openrouter":
+        model = createOpenRouter({ apiKey })(modelName);
+        break;
+      case "vercel":
+        // Vercel AI SDK uses OpenAI by default
+        model = createOpenAI({ apiKey })(modelName);
+        break;
+      default:
+        throw new Error(`Unsupported provider: ${subAgent.llmProvider.type}`);
     }
 
-    // Create Mastra agent with wrapped tools
-    // Model format: "provider/model" (e.g., "openai/gpt-4o")
-    const model = subAgent.llmProvider.model || DEFAULT_MODELS[subAgent.llmProvider.type];
-    const modelString = `${subAgent.llmProvider.type}/${model}`;
+    // Wrap MCP tools for Vercel AI SDK with deep sanitization
+    const tools = wrapToolsForVercelAI(subAgent.toolGroup.tools, _registry);
 
-    const agent = new Agent({
-      name: subAgent.name,
-      instructions: subAgent.systemPrompt,
-      model: modelString,
-      tools: toolsObject,
-    });
+    // Execute agent with generateText
+    const response = await generateText({
+      model,
+      system: subAgent.systemPrompt,
+      prompt: request.prompt,
+      tools,
+      // Allow multi-step execution: tool call → tool result → final response
+      // Stop when:
+      // 1. We get a final text response (finishReason === "stop" with text)
+      // 2. We hit other terminal finish reasons (length, content-filter, error, other)
+      // 3. We exceed max steps to prevent infinite loops
+      stopWhen: ({ steps }) => {
+        const last = steps.at(-1);
 
-    // Execute agent with prompt
-    const response = await agent.generate(request.prompt, {
-      maxSteps: 10, // Allow up to 10 tool calls
-      toolChoice: "auto", // Allow agent to decide when to use tools
-    });
-
-    // Extract text response and tools used
-    let result = "";
-    const toolsUsed: string[] = [];
-
-    if (response.text) {
-      result = response.text;
-    }
-
-    // Track which tools were used from toolCalls
-    if (response.toolCalls && Array.isArray(response.toolCalls)) {
-      for (const toolCall of response.toolCalls) {
-        if (toolCall.payload?.toolName) {
-          toolsUsed.push(toolCall.payload.toolName);
+        // Safety: Hard limit to prevent infinite loops
+        if (steps.length >= MAX_AGENT_STEPS) {
+          return true;
         }
-      }
+
+        // Terminal finish reasons that indicate completion or failure
+        const terminalReasons = ["stop", "length", "content-filter", "error", "other"];
+        if (last?.finishReason && terminalReasons.includes(last.finishReason)) {
+          return true;
+        }
+
+        return false;
+      },
+    });
+
+    // Check if we hit the max steps limit
+    const lastStep = response.steps?.at(-1);
+    if (response.steps && response.steps.length >= MAX_AGENT_STEPS) {
+      return {
+        requestId: request.requestId,
+        agentId: request.agentId,
+        timestamp: new Date(),
+        error:
+          `Agent exceeded maximum steps (${MAX_AGENT_STEPS}) - possible infinite loop or complex task requiring manual intervention`,
+      };
     }
+
+    // Check for non-stop finish reasons and handle them appropriately
+    if (lastStep?.finishReason && lastStep.finishReason !== "stop") {
+      const errorMessages: Record<string, string> = {
+        "length": "Response truncated due to maximum token length",
+        "content-filter": "Response blocked by content filter",
+        "error": "Model encountered an error during generation",
+        "other": "Generation stopped due to unknown reason",
+      };
 
       return {
         requestId: request.requestId,
         agentId: request.agentId,
-        result: result || "No response from agent",
-        toolsUsed,
         timestamp: new Date(),
+        error: errorMessages[lastStep.finishReason] ||
+          `Generation stopped: ${lastStep.finishReason}`,
       };
-    } finally {
-      // Restore original API key
-      if (originalApiKey !== undefined) {
-        Deno.env.set(envVarName, originalApiKey);
-      } else {
-        Deno.env.delete(envVarName);
+    }
+
+    // Extract text response and tools used
+    const result = response.text || "";
+    const toolsUsed: string[] = [];
+
+    // Track which tools were used
+    if (response.steps) {
+      for (const step of response.steps) {
+        if (step.toolCalls) {
+          for (const toolCall of step.toolCalls) {
+            toolsUsed.push(toolCall.toolName);
+          }
+        }
       }
     }
+
+    return {
+      requestId: request.requestId,
+      agentId: request.agentId,
+      result: result || "No response from agent",
+      toolsUsed,
+      timestamp: new Date(),
+    };
   } catch (error) {
     return {
       requestId: request.requestId,
@@ -399,6 +612,7 @@ export async function executeAgent(
   subAgent: SubAgent,
   request: AgentRequest,
   credentials?: { apiKey?: string },
+  registry?: MCPClientRegistry,
 ): Promise<AgentResponse> {
   // Validate agent has tools
   if (subAgent.toolGroup.tools.length === 0) {
@@ -422,11 +636,12 @@ export async function executeAgent(
         subAgent,
         request,
         credentials.apiKey,
+        registry,
       );
     }
 
-    // For other providers, use Mastra
-    return await executeAgentWithMastra(subAgent, request, credentials.apiKey);
+    // For other providers, use Vercel AI SDK
+    return await executeAgentWithVercelAI(subAgent, request, credentials.apiKey, registry);
   } catch (error) {
     return {
       requestId: request.requestId,

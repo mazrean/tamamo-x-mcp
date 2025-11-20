@@ -4,8 +4,8 @@ import type { AgentRequest, LLMProviderConfig, Tool, ToolGroup } from "../../../
 import {
   createSubAgent,
   executeAgent,
-  wrapToolForMastra,
-  wrapToolsForMastra,
+  wrapToolForVercelAI,
+  wrapToolsForVercelAI,
 } from "../../../src/agents/agent.ts";
 import { MOCK_TOOLS } from "../../fixtures/mock_tools.ts";
 
@@ -60,21 +60,22 @@ Important: Always provide a final text response after using tools. Summarize the
       };
     });
 
-    describe("Tool wrapping for Mastra", () => {
-      it("should convert MCP tool to Mastra tool format", () => {
+    describe("Tool wrapping for Vercel AI SDK", () => {
+      it("should convert MCP tool to Vercel AI SDK tool format", () => {
         // Arrange
         const mcpTool: Tool = MOCK_TOOLS[0];
 
         // Act
-        const mastraTool = wrapToolForMastra(mcpTool);
+        const vercelTool = wrapToolForVercelAI(mcpTool);
 
         // Assert
-        assertExists(mastraTool);
-        assertEquals(mastraTool.id, mcpTool.name);
-        assertEquals(mastraTool.description, mcpTool.description);
-        assertExists(mastraTool.inputSchema);
-        assertExists(mastraTool.execute);
-        assertEquals(typeof mastraTool.execute, "function");
+        assertExists(vercelTool);
+        // Vercel AI SDK's tool() helper returns a CoreTool object
+        assertExists(vercelTool.description);
+        assertEquals(vercelTool.description, mcpTool.description);
+        assertExists(vercelTool.inputSchema);
+        assertExists(vercelTool.execute);
+        assertEquals(typeof vercelTool.execute, "function");
       });
 
       it("should preserve tool input schema", () => {
@@ -94,30 +95,15 @@ Important: Always provide a final text response after using tools. Summarize the
         };
 
         // Act
-        const mastraTool = wrapToolForMastra(mcpTool);
+        const vercelTool = wrapToolForVercelAI(mcpTool);
 
         // Assert
-        // inputSchema is now a Zod schema, verify it enforces the required fields
-        assertExists(mastraTool.inputSchema);
-
-        // Test valid input with required field
-        const validResult = mastraTool.inputSchema.safeParse({
-          path: "/test/path",
-          recursive: true,
-        });
-        assert(
-          validResult.success,
-          "Valid input should pass schema validation",
-        );
-
-        // Test invalid input missing required field
-        const invalidResult = mastraTool.inputSchema.safeParse({
-          recursive: true,
-        });
-        assert(
-          !invalidResult.success,
-          "Input missing required 'path' field should fail validation",
-        );
+        assertExists(vercelTool.inputSchema);
+        // The inputSchema is wrapped by jsonSchema() helper, check the nested jsonSchema property
+        assertExists(vercelTool.inputSchema.jsonSchema);
+        assertEquals(vercelTool.inputSchema.jsonSchema.type, "object");
+        assertExists(vercelTool.inputSchema.jsonSchema.properties);
+        assertEquals(vercelTool.inputSchema.jsonSchema.required, ["path"]);
       });
 
       it("should wrap all tools in a group", () => {
@@ -125,13 +111,13 @@ Important: Always provide a final text response after using tools. Summarize the
         const group = mockToolGroup;
 
         // Act
-        const mastraTools = wrapToolsForMastra(group.tools);
+        const vercelTools = wrapToolsForVercelAI(group.tools);
 
         // Assert
-        assertEquals(mastraTools.length, 5);
-        mastraTools.forEach((tool, idx) => {
-          assertEquals(tool.id, group.tools[idx].name);
-          assertExists(tool.execute);
+        const toolNames = Object.keys(vercelTools);
+        assertEquals(toolNames.length, 5);
+        toolNames.forEach((name: string) => {
+          assertExists(vercelTools[name].execute);
         });
       });
     });
@@ -345,7 +331,7 @@ Important: Always provide a final text response after using tools. Summarize the
     });
 
     describe("Tool execution within agent", () => {
-      it("should execute MCP tool call through wrapped Mastra tool", async () => {
+      it("should execute MCP tool call through wrapped Vercel AI SDK tool", async () => {
         // Arrange
         const mcpTool: Tool = {
           name: "test_tool",
@@ -360,23 +346,18 @@ Important: Always provide a final text response after using tools. Summarize the
           serverName: "test-server",
         };
 
-        const mastraTool = wrapToolForMastra(mcpTool);
+        const vercelTool = wrapToolForVercelAI(mcpTool);
         const toolInput = { input: "test value" };
 
         // Act
-        const execute = mastraTool.execute;
+        const execute = vercelTool.execute;
         assertExists(execute);
-        // Stub minimal Mastra runtime context for testing
-        const result = await execute({
-          context: toolInput,
-          // deno-lint-ignore no-explicit-any
-          runtimeContext: {} as any, // Minimal stub for unit test
-        });
+        const result = await execute(toolInput);
 
         // Assert
         assertExists(result);
-        // Verify the mock implementation returns expected structure
-        assert("output" in result, "Result should have output property");
+        // Verify the result is returned (string format for Vercel AI SDK)
+        assertEquals(typeof result, "string");
       });
 
       it("should handle tool execution errors gracefully", async () => {
@@ -391,19 +372,15 @@ Important: Always provide a final text response after using tools. Summarize the
           serverName: "test-server",
         };
 
-        const mastraTool = wrapToolForMastra(mcpTool);
+        const vercelTool = wrapToolForVercelAI(mcpTool);
 
         // Act & Assert
-        const execute = mastraTool.execute;
+        const execute = vercelTool.execute;
         assertExists(execute);
         // The implementation throws for tools named "failing_tool"
         let threwError = false;
         try {
-          await execute({
-            context: { invalid: "input" },
-            // deno-lint-ignore no-explicit-any
-            runtimeContext: {} as any, // Minimal stub for unit test
-          });
+          await execute({ invalid: "input" });
         } catch (_error) {
           threwError = true;
         }
