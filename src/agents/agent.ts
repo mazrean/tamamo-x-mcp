@@ -42,6 +42,20 @@ const DEFAULT_MODELS: Record<string, string> = {
 };
 
 /**
+ * Get environment variable name for LLM provider API key
+ */
+function getEnvVarNameForProvider(providerType: string): string {
+  const envVarMap: Record<string, string> = {
+    openai: "OPENAI_API_KEY",
+    gemini: "GOOGLE_API_KEY",
+    vercel: "OPENAI_API_KEY", // Vercel AI uses OpenAI SDK
+    bedrock: "AWS_ACCESS_KEY_ID", // Bedrock uses AWS credentials
+    openrouter: "OPENROUTER_API_KEY",
+  };
+  return envVarMap[providerType] || "API_KEY";
+}
+
+/**
  * Mastra tool interface (for non-Anthropic providers)
  */
 export interface MastraTool {
@@ -299,10 +313,18 @@ async function executeAgentWithClaudeSDK(
 async function executeAgentWithMastra(
   subAgent: SubAgent,
   request: AgentRequest,
+  apiKey: string,
 ): Promise<AgentResponse> {
   try {
-    // Wrap MCP tools as Mastra tools
-    const wrappedTools = wrapToolsForMastra(subAgent.toolGroup.tools);
+    // Set API key in environment for Mastra
+    // Mastra reads credentials from environment variables
+    const envVarName = getEnvVarNameForProvider(subAgent.llmProvider.type);
+    const originalApiKey = Deno.env.get(envVarName);
+    Deno.env.set(envVarName, apiKey);
+
+    try {
+      // Wrap MCP tools as Mastra tools
+      const wrappedTools = wrapToolsForMastra(subAgent.toolGroup.tools);
 
     // Convert tools array to tools object (Mastra expects { [toolId]: tool })
     const toolsObject: Record<string, ReturnType<typeof createTool>> = {};
@@ -345,13 +367,21 @@ async function executeAgentWithMastra(
       }
     }
 
-    return {
-      requestId: request.requestId,
-      agentId: request.agentId,
-      result: result || "No response from agent",
-      toolsUsed,
-      timestamp: new Date(),
-    };
+      return {
+        requestId: request.requestId,
+        agentId: request.agentId,
+        result: result || "No response from agent",
+        toolsUsed,
+        timestamp: new Date(),
+      };
+    } finally {
+      // Restore original API key
+      if (originalApiKey !== undefined) {
+        Deno.env.set(envVarName, originalApiKey);
+      } else {
+        Deno.env.delete(envVarName);
+      }
+    }
   } catch (error) {
     return {
       requestId: request.requestId,
@@ -381,11 +411,13 @@ export async function executeAgent(
   }
 
   try {
+    // Validate API key is provided
+    if (!credentials?.apiKey) {
+      throw new Error("API key required for LLM provider");
+    }
+
     // Use Claude Agent SDK for Anthropic provider
     if (subAgent.llmProvider.type === "anthropic") {
-      if (!credentials?.apiKey) {
-        throw new Error("API key required for Anthropic provider");
-      }
       return await executeAgentWithClaudeSDK(
         subAgent,
         request,
@@ -394,7 +426,7 @@ export async function executeAgent(
     }
 
     // For other providers, use Mastra
-    return await executeAgentWithMastra(subAgent, request);
+    return await executeAgentWithMastra(subAgent, request, credentials.apiKey);
   } catch (error) {
     return {
       requestId: request.requestId,
