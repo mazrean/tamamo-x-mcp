@@ -39,18 +39,21 @@ describe("Request Routing", () => {
         name: "File Operations",
         description: "Tools for file system operations",
         tools: MOCK_TOOLS.slice(0, 5),
+        systemPrompt: "You are a specialized agent.",
       },
       {
         id: "group-2",
         name: "Network Operations",
         description: "Tools for network operations",
         tools: MOCK_TOOLS.slice(5, 10),
+        systemPrompt: "You are a specialized agent.",
       },
       {
         id: "group-3",
         name: "Database Operations",
         description: "Tools for database operations",
         tools: MOCK_TOOLS.slice(10, 15),
+        systemPrompt: "You are a specialized agent.",
       },
     ];
 

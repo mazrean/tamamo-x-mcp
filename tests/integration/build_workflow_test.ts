@@ -430,6 +430,7 @@ function simulateGrouping(
       name: `${predominantServer.replace("-server", "")}_agent`,
       description: `Agent for ${predominantServer} operations`,
       tools: groupTools,
+      systemPrompt: `You are an agent specialized in ${predominantServer} operations.`,
       complementarityScore: 0.8,
     });
   }

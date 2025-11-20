@@ -345,7 +345,7 @@ Deno.test("Deno binary size is reasonable", async () => {
 
   const stat = await Deno.stat(binaryPath);
   const sizeInMB = stat.size / (1024 * 1024);
-  const maxSizeMB = 150; // 150MB max (reasonable for Deno standalone binary with dependencies)
+  const maxSizeMB = 400; // 400MB max (includes Mastra, MCP SDK, and 6 LLM provider SDKs)
 
   console.log(`Deno binary size: ${sizeInMB.toFixed(2)} MB`);
 

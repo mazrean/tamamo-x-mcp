@@ -31,6 +31,7 @@ describe("Agent Execution", () => {
       name: "Test Group",
       description: "A test tool group",
       tools: MOCK_TOOLS.slice(0, 5),
+      systemPrompt: "You are a helpful assistant for test tools.",
     };
 
     // Use OpenAI for general tests (Mastra path)
@@ -234,6 +235,7 @@ describe("Agent Execution", () => {
         name: "Empty Group",
         description: "Group with no tools",
         tools: [],
+        systemPrompt: "You are a helpful assistant.",
       };
       const subAgent = createSubAgent(emptyGroup, mockLLMConfig);
       const request: AgentRequest = {
