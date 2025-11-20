@@ -29,6 +29,19 @@ import { Agent } from "npm:@mastra/core@0.24.3/agent";
 import { createTool } from "npm:@mastra/core@0.24.3/tools";
 
 /**
+ * Default models for each LLM provider
+ * Used when model is not specified in LLMProviderConfig
+ */
+const DEFAULT_MODELS: Record<string, string> = {
+  anthropic: "claude-4-5-haiku",
+  openai: "gpt-5.1",
+  gemini: "gemini-2.5-pro-latest",
+  vercel: "gpt-4o",
+  bedrock: "anthropic.claude-3-sonnet-20240229-v1:0",
+  openrouter: "gpt-5.1",
+};
+
+/**
  * Mastra tool interface (for non-Anthropic providers)
  */
 export interface MastraTool {
@@ -299,7 +312,8 @@ async function executeAgentWithMastra(
 
     // Create Mastra agent with wrapped tools
     // Model format: "provider/model" (e.g., "openai/gpt-4o")
-    const modelString = `${subAgent.llmProvider.type}/${subAgent.llmProvider.model}`;
+    const model = subAgent.llmProvider.model || DEFAULT_MODELS[subAgent.llmProvider.type];
+    const modelString = `${subAgent.llmProvider.type}/${model}`;
 
     const agent = new Agent({
       name: subAgent.name,
