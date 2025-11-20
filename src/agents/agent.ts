@@ -21,8 +21,12 @@ import {
   type Query,
   query,
   tool,
-} from "npm:@anthropic-ai/claude-agent-sdk@0.1.0";
-import { z } from "npm:zod@3.24.1";
+} from "npm:@anthropic-ai/claude-agent-sdk@0.1.42";
+import { z } from "npm:zod";
+
+// Mastra imports (for other providers)
+import { Agent } from "npm:@mastra/core@0.24.1/agent";
+import { createTool } from "npm:@mastra/core@0.24.1/tools";
 
 /**
  * Mastra tool interface (for non-Anthropic providers)
@@ -41,8 +45,10 @@ export interface MastraTool {
 /**
  * Convert JSON Schema to Zod schema for Claude Agent SDK
  */
-function jsonSchemaToZod(schema: JSONSchema): z.ZodObject<z.ZodRawShape> {
-  const shape: z.ZodRawShape = {};
+function jsonSchemaToZod(
+  schema: JSONSchema
+): z.ZodObject<Record<string, z.ZodTypeAny>> {
+  const shape: Record<string, z.ZodTypeAny> = {};
 
   if (schema.properties) {
     for (const [key, prop] of Object.entries(schema.properties)) {
@@ -66,7 +72,7 @@ function jsonSchemaToZod(schema: JSONSchema): z.ZodObject<z.ZodRawShape> {
             zodType = z.boolean();
             break;
           case "object":
-            zodType = z.record(z.unknown());
+            zodType = z.record(z.string(), z.unknown());
             break;
           case "array":
             zodType = z.array(z.unknown());
@@ -101,16 +107,12 @@ function jsonSchemaToZod(schema: JSONSchema): z.ZodObject<z.ZodRawShape> {
 export function wrapToolForClaudeAgent(mcpTool: Tool): ReturnType<typeof tool> {
   const zodSchema = jsonSchemaToZod(mcpTool.inputSchema);
 
-  // Create a simpler schema object to avoid deep type instantiation
-  const simpleSchema: Record<string, z.ZodTypeAny> = {};
-  for (const [key, value] of Object.entries(zodSchema.shape)) {
-    simpleSchema[key] = value as z.ZodTypeAny;
-  }
-
+  // Type assertion needed due to Zod version mismatch between SDK and our dependencies
   return tool(
     mcpTool.name,
     mcpTool.description,
-    simpleSchema as z.ZodRawShape,
+    // deno-lint-ignore no-explicit-any
+    zodSchema.shape as any,
     // deno-lint-ignore require-await
     async (args: Record<string, unknown>, _extra: unknown) => {
       // In real implementation, this would call the MCP server
@@ -121,79 +123,57 @@ export function wrapToolForClaudeAgent(mcpTool: Tool): ReturnType<typeof tool> {
 
       // For now, return mock result
       return {
-        content: [{
-          type: "text" as const,
-          text: `Mock result from ${mcpTool.name} with args: ${JSON.stringify(args)}`,
-        }],
+        content: [
+          {
+            type: "text" as const,
+            text: `Mock result from ${mcpTool.name} with args: ${JSON.stringify(
+              args
+            )}`,
+          },
+        ],
       };
-    },
+    }
   );
 }
 
 /**
  * Wrap an MCP tool as a Mastra tool
  */
-export function wrapToolForMastra(tool: Tool): MastraTool {
-  // Normalize properties: filter out boolean shorthand
-  // JSON Schema allows true/false as property values, but Mastra expects object schemas
-  const normalizedProperties: Record<string, { type: string; description?: string }> = {};
-  const droppedKeys = new Set<string>();
+export function wrapToolForMastra(tool: Tool): ReturnType<typeof createTool> {
+  // Convert JSON Schema to Zod schema for input validation
+  const zodSchema = jsonSchemaToZod(tool.inputSchema);
 
-  if (tool.inputSchema.properties) {
-    for (const [key, prop] of Object.entries(tool.inputSchema.properties)) {
-      // Skip boolean shorthand properties (true = accept all, false = reject all)
-      // as they don't fit Mastra's expected schema structure
-      if (typeof prop === "boolean") {
-        droppedKeys.add(key);
-        // Note: 'false' means "reject all" which we cannot express in Mastra's schema.
-        // In practice, MCP tools should not use boolean property schemas.
-        continue;
-      }
-      normalizedProperties[key] = prop;
-    }
-  }
-
-  // Filter required array to only include properties we kept
-  const normalizedRequired: string[] = [];
-  if (tool.inputSchema.required) {
-    for (const key of tool.inputSchema.required) {
-      if (!droppedKeys.has(key)) {
-        normalizedRequired.push(key);
-      }
-    }
-  }
-
-  return {
-    name: tool.name,
+  return createTool({
+    id: tool.name,
     description: tool.description,
-    inputSchema: {
-      type: tool.inputSchema.type,
-      properties: normalizedProperties,
-      required: normalizedRequired.length > 0 ? normalizedRequired : undefined,
-    },
+    inputSchema: zodSchema,
+    outputSchema: z.object({
+      output: z.string(),
+    }),
     // deno-lint-ignore require-await
-    execute: async (input: unknown): Promise<unknown> => {
-      // In real implementation, this would call the MCP server
+    execute: async ({ context }: { context: Record<string, unknown> }) => {
+      // In real implementation, this would call the MCP server tool
       // For testing: simulate failures for tools named "failing_tool"
       if (tool.name === "failing_tool") {
         throw new Error(`Tool ${tool.name} failed to execute`);
       }
 
-      // For now, return mock result for other tools
+      // For now, return mock result
       return {
-        success: true,
-        tool: tool.name,
-        input: input,
-        result: `Mock result from ${tool.name}`,
+        output: `Mock result from ${tool.name} with args: ${JSON.stringify(
+          context
+        )}`,
       };
     },
-  };
+  });
 }
 
 /**
  * Wrap multiple MCP tools as Mastra tools
  */
-export function wrapToolsForMastra(tools: Tool[]): MastraTool[] {
+export function wrapToolsForMastra(
+  tools: Tool[]
+): ReturnType<typeof createTool>[] {
   return tools.map((tool) => wrapToolForMastra(tool));
 }
 
@@ -202,29 +182,20 @@ export function wrapToolsForMastra(tools: Tool[]): MastraTool[] {
  */
 export function createSubAgent(
   group: ToolGroup,
-  llmConfig: LLMProviderConfig,
+  llmConfig: LLMProviderConfig
 ): SubAgent {
-  // Generate system prompt with group info and available tools
-  const toolsList = group.tools
-    .map((tool) => `- ${tool.name}: ${tool.description}`)
-    .join("\n");
-
-  const systemPrompt = `You are ${group.name}.
-
-Description: ${group.description}
-
-Available tools:
-${toolsList}
-
-Your role is to help users by using these tools effectively. When given a task, analyze which tools are needed and execute them to provide accurate results.`;
-
+  // Use LLM-generated system prompt from the tool group
+  // This prompt is created during the build phase and includes:
+  // - Agent introduction and responsibilities
+  // - Available tools with descriptions
+  // - Execution instructions emphasizing final text response
   return {
     id: group.id,
     name: group.name,
     description: group.description,
     toolGroup: group,
     llmProvider: llmConfig,
-    systemPrompt,
+    systemPrompt: group.systemPrompt,
   };
 }
 
@@ -234,7 +205,7 @@ Your role is to help users by using these tools effectively. When given a task, 
 async function executeAgentWithClaudeSDK(
   subAgent: SubAgent,
   request: AgentRequest,
-  apiKey: string,
+  apiKey: string
 ): Promise<AgentResponse> {
   try {
     // Set API key in environment for Claude Agent SDK
@@ -306,12 +277,80 @@ async function executeAgentWithClaudeSDK(
 }
 
 /**
+ * Execute an agent with Mastra (non-Anthropic providers)
+ */
+async function executeAgentWithMastra(
+  subAgent: SubAgent,
+  request: AgentRequest
+): Promise<AgentResponse> {
+  try {
+    // Wrap MCP tools as Mastra tools
+    const wrappedTools = wrapToolsForMastra(subAgent.toolGroup.tools);
+
+    // Convert tools array to tools object (Mastra expects { [toolId]: tool })
+    const toolsObject: Record<string, ReturnType<typeof createTool>> = {};
+    for (const tool of wrappedTools) {
+      toolsObject[tool.id] = tool;
+    }
+
+    // Create Mastra agent with wrapped tools
+    // Model format: "provider/model" (e.g., "openai/gpt-4o")
+    const modelString = `${subAgent.llmProvider.type}/${subAgent.llmProvider.model}`;
+
+    const agent = new Agent({
+      name: subAgent.name,
+      instructions: subAgent.systemPrompt,
+      model: modelString,
+      tools: toolsObject,
+    });
+
+    // Execute agent with prompt
+    const response = await agent.generate(request.prompt, {
+      maxSteps: 10, // Allow up to 10 tool calls
+      toolChoice: "auto", // Allow agent to decide when to use tools
+    });
+
+    // Extract text response and tools used
+    let result = "";
+    const toolsUsed: string[] = [];
+
+    if (response.text) {
+      result = response.text;
+    }
+
+    // Track which tools were used from toolCalls
+    if (response.toolCalls && Array.isArray(response.toolCalls)) {
+      for (const toolCall of response.toolCalls) {
+        if (toolCall.payload?.toolName) {
+          toolsUsed.push(toolCall.payload.toolName);
+        }
+      }
+    }
+
+    return {
+      requestId: request.requestId,
+      agentId: request.agentId,
+      result: result || "No response from agent",
+      toolsUsed,
+      timestamp: new Date(),
+    };
+  } catch (error) {
+    return {
+      requestId: request.requestId,
+      agentId: request.agentId,
+      timestamp: new Date(),
+      error: error instanceof Error ? error.message : "Unknown error",
+    };
+  }
+}
+
+/**
  * Execute an agent with a request
  */
 export async function executeAgent(
   subAgent: SubAgent,
   request: AgentRequest,
-  credentials?: { apiKey?: string },
+  credentials?: { apiKey?: string }
 ): Promise<AgentResponse> {
   // Validate agent has tools
   if (subAgent.toolGroup.tools.length === 0) {
@@ -329,25 +368,15 @@ export async function executeAgent(
       if (!credentials?.apiKey) {
         throw new Error("API key required for Anthropic provider");
       }
-      return await executeAgentWithClaudeSDK(subAgent, request, credentials.apiKey);
+      return await executeAgentWithClaudeSDK(
+        subAgent,
+        request,
+        credentials.apiKey
+      );
     }
 
-    // For other providers, use Mastra (placeholder implementation)
-    // In real implementation, this would:
-    // 1. Create Mastra agent with wrapped tools
-    // 2. Execute agent with LLM
-    // 3. Track which tools were used
-    const result =
-      `Mock execution result for agent ${subAgent.name} with prompt: ${request.prompt}`;
-    const toolsUsed: string[] = [];
-
-    return {
-      requestId: request.requestId,
-      agentId: request.agentId,
-      result,
-      toolsUsed,
-      timestamp: new Date(),
-    };
+    // For other providers, use Mastra
+    return await executeAgentWithMastra(subAgent, request);
   } catch (error) {
     return {
       requestId: request.requestId,
