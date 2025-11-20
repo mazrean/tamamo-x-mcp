@@ -38,5 +38,8 @@
     "noUnusedParameters": true,
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true
+  },
+  "imports": {
+    "zod": "npm:zod@3.25.76"
   }
 }
