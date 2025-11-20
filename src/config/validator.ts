@@ -36,14 +36,18 @@ export function validateConfig(config: unknown): ValidationResult {
  * Maps Zod's error format to our custom ValidationError format
  */
 function zodErrorToValidationErrors(zodError: ZodError): ValidationError[] {
-  return zodError.errors.map((err) => {
+  return zodError.issues.map((err) => {
     // Convert path to field string with array bracket notation
-    const field: string = err.path.reduce<string>((acc, part, index) => {
-      if (typeof part === "number") {
-        return `${acc}[${part}]`;
-      }
-      return index === 0 ? String(part) : `${acc}.${part}`;
-    }, "");
+    // In Zod v4, path is PropertyKey[] (string | number | symbol)
+    const field: string = err.path.reduce<string>(
+      (acc: string, part: PropertyKey, index: number) => {
+        if (typeof part === "number") {
+          return `${acc}[${part}]`;
+        }
+        return index === 0 ? String(part) : `${acc}.${String(part)}`;
+      },
+      "",
+    );
     const message = err.message;
 
     // Map Zod error codes to our custom error codes

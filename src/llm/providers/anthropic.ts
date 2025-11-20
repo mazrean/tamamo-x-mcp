@@ -3,10 +3,10 @@
  * Uses @anthropic-ai/sdk (official SDK)
  */
 
-import Anthropic from "npm:@anthropic-ai/sdk@0.32.1";
+import Anthropic from "npm:@anthropic-ai/sdk@0.69.0";
 import type { CompletionOptions, LLMClient } from "../client.ts";
 
-const DEFAULT_MODEL = "claude-3-5-haiku-20241022";
+const DEFAULT_MODEL = "claude-4-5-haiku";
 
 export function createAnthropicClient(
   apiKey: string,
@@ -18,7 +18,10 @@ export function createAnthropicClient(
   return {
     provider: "anthropic",
     model: selectedModel,
-    async complete(prompt: string, options?: CompletionOptions): Promise<string> {
+    async complete(
+      prompt: string,
+      options?: CompletionOptions,
+    ): Promise<string> {
       try {
         // Prepare messages array
         let messages: Array<{ role: "user" | "assistant"; content: string }>;
@@ -79,7 +82,9 @@ Your ENTIRE response should be parseable by JSON.parse() without any modificatio
 
         // Extract system message from messages array if present, otherwise use options.system
         if (options?.messages) {
-          const systemMessage = options.messages.find((m) => m.role === "system");
+          const systemMessage = options.messages.find(
+            (m) => m.role === "system",
+          );
           if (systemMessage) {
             createParams.system = systemMessage.content;
           }
@@ -90,7 +95,9 @@ Your ENTIRE response should be parseable by JSON.parse() without any modificatio
         const response = await client.messages.create(createParams);
 
         // Extract text from response
-        const textContent = response.content.find((block) => block.type === "text");
+        const textContent = response.content.find(
+          (block) => block.type === "text",
+        );
         if (!textContent || textContent.type !== "text") {
           throw new Error("No text content in Anthropic response");
         }

@@ -1,9 +1,9 @@
 /**
  * Gemini provider implementation
- * Uses @google/generative-ai SDK
+ * Uses @google/genai SDK (GA version for Gemini 2.0+)
  */
 
-import { GoogleGenerativeAI } from "npm:@google/generative-ai@0.21.0";
+import { GoogleGenAI } from "npm:@google/genai@1.30.0";
 import type { CompletionOptions, LLMClient } from "../client.ts";
 import type { JSONSchema } from "../../types/index.ts";
 
@@ -50,58 +50,52 @@ export function createGeminiClient(
   apiKey: string,
   model?: string,
 ): LLMClient {
-  const genAI = new GoogleGenerativeAI(apiKey);
+  const genAI = new GoogleGenAI({ apiKey });
   const selectedModel = model || DEFAULT_MODEL;
 
   return {
     provider: "gemini",
     model: selectedModel,
     async complete(prompt: string, options?: CompletionOptions): Promise<string> {
-      // Configure generation with options
-      const generationConfig: Record<string, unknown> = {};
+      // Build config object for new API
+      const config: Record<string, unknown> = {};
+
       if (options?.temperature !== undefined) {
-        generationConfig.temperature = options.temperature;
+        config.temperature = options.temperature;
       }
       if (options?.maxTokens !== undefined) {
-        generationConfig.maxOutputTokens = options.maxTokens;
+        config.maxOutputTokens = options.maxTokens;
       }
       if (options?.topP !== undefined) {
-        generationConfig.topP = options.topP;
+        config.topP = options.topP;
       }
       if (options?.stopSequences !== undefined) {
-        generationConfig.stopSequences = options.stopSequences;
+        config.stopSequences = options.stopSequences;
+      }
+
+      // Extract system instruction from messages if provided
+      if (options?.messages) {
+        const systemMessage = options.messages.find((m) => m.role === "system");
+        if (systemMessage) {
+          config.systemInstruction = systemMessage.content;
+        }
+      } else if (options?.system) {
+        config.systemInstruction = options.system;
       }
 
       // If responseSchema is provided, enforce JSON mode
       // Note: Gemini only supports a subset of JSON Schema (OpenAPI Schema)
       // We need to strip unsupported properties like minimum, maximum, additionalProperties
       if (options?.responseSchema) {
-        generationConfig.responseMimeType = "application/json";
-        generationConfig.responseSchema = stripUnsupportedSchemaProperties(
+        config.responseMimeType = "application/json";
+        config.responseSchema = stripUnsupportedSchemaProperties(
           options.responseSchema,
         );
       }
 
-      // Extract system instruction from messages if provided
-      let systemInstruction: string | undefined;
-      if (options?.messages) {
-        const systemMessage = options.messages.find((m) => m.role === "system");
-        if (systemMessage) {
-          systemInstruction = systemMessage.content;
-        }
-      } else if (options?.system) {
-        systemInstruction = options.system;
-      }
-
-      const geminiModel = genAI.getGenerativeModel({
-        model: selectedModel,
-        generationConfig,
-        systemInstruction,
-      });
-
       // Use conversation history if provided
       if (options?.messages && options.messages.length > 0) {
-        // Filter out system messages (handled separately) and convert to Gemini format
+        // Filter out system messages (handled in config) and convert to Gemini format
         const history = options.messages
           .filter((m) => m.role !== "system")
           .map((m) => ({
@@ -109,16 +103,19 @@ export function createGeminiClient(
             parts: [{ text: m.content }],
           }));
 
-        // Start a chat with history
-        const chat = geminiModel.startChat({
-          history,
+        // Add the current prompt as the last user message
+        const contents = [
+          ...history,
+          { role: "user", parts: [{ text: prompt }] },
+        ];
+
+        const response = await genAI.models.generateContent({
+          model: selectedModel,
+          contents,
+          config,
         });
 
-        // Send the current prompt
-        const result = await chat.sendMessage(prompt);
-        const response = result.response;
-        const text = response.text();
-
+        const text = response.text;
         if (!text) {
           throw new Error("No text content in Gemini API response");
         }
@@ -126,10 +123,13 @@ export function createGeminiClient(
         return text;
       } else {
         // No conversation history, use simple generateContent
-        const result = await geminiModel.generateContent(prompt);
-        const response = result.response;
-        const text = response.text();
+        const response = await genAI.models.generateContent({
+          model: selectedModel,
+          contents: prompt,
+          config,
+        });
 
+        const text = response.text;
         if (!text) {
           throw new Error("No text content in Gemini API response");
         }

@@ -57,13 +57,13 @@ export function createSubAgentsFromGroups(
  */
 export async function mcpCommand(): Promise<void> {
   try {
-    // Load configuration
-    console.log("Loading configuration...");
+    // Load configuration (log to stderr to keep stdout clean for MCP protocol)
+    console.error("Loading configuration...");
     const configPath = join(Deno.cwd(), "tamamo-x.config.json");
     const config = await loadConfig(configPath);
 
     // Load tool groups and instructions
-    console.log("Loading tool groups...");
+    console.error("Loading tool groups...");
     const { groups, instructions } = await loadGroups();
 
     if (groups.length === 0) {
@@ -74,11 +74,11 @@ export async function mcpCommand(): Promise<void> {
     }
 
     // Create sub-agents
-    console.log(`Creating ${groups.length} sub-agents...`);
+    console.error(`Creating ${groups.length} sub-agents...`);
     const subAgents = createSubAgentsFromGroups(groups, config.llmProvider);
 
     // Create MCP server
-    console.log("Starting tamamo-x MCP server...");
+    console.error("Starting tamamo-x MCP server...");
     const server = createMCPServer(subAgents, instructions);
 
     // Start server
@@ -89,17 +89,17 @@ export async function mcpCommand(): Promise<void> {
       Deno.exit(1);
     }
 
-    console.log(`✓ Loaded ${subAgents.length} sub-agents`);
-    console.log("✓ Server ready on stdio");
-    console.log("");
-    console.log("Available agents:");
+    console.error(`✓ Loaded ${subAgents.length} sub-agents`);
+    console.error("✓ Server ready on stdio");
+    console.error("");
+    console.error("Available agents:");
     subAgents.forEach((agent) => {
-      console.log(`  - ${agent.id} (${agent.toolGroup.tools.length} tools)`);
+      console.error(`  - ${agent.id} (${agent.toolGroup.tools.length} tools)`);
     });
-    console.log("");
-    console.log("Waiting for connections...");
+    console.error("");
+    console.error("Waiting for connections...");
 
-    // Keep process running
+    // Keep process running - the stdio transport will keep it alive
     await new Promise(() => {}); // Run forever
   } catch (error) {
     console.error(

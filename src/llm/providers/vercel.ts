@@ -3,8 +3,8 @@
  * Uses ai SDK and @ai-sdk/openai
  */
 
-import { generateText } from "npm:ai@4.1.12";
-import { createOpenAI } from "npm:@ai-sdk/openai@1.0.11";
+import { generateText } from "npm:ai@5.0.94";
+import { createOpenAI } from "npm:@ai-sdk/openai@2.0.68";
 import type { CompletionOptions, LLMClient } from "../client.ts";
 
 export function createVercelClient(
@@ -23,13 +23,13 @@ export function createVercelClient(
         model: ReturnType<typeof openai>;
         prompt: string;
         temperature?: number;
-        maxTokens?: number;
+        maxOutputTokens?: number;
         experimental_telemetry?: { isEnabled: boolean };
       } = {
         model: openai(selectedModel),
         prompt,
         temperature: options?.temperature,
-        maxTokens: options?.maxTokens,
+        maxOutputTokens: options?.maxTokens,
         experimental_telemetry: { isEnabled: false },
       };
 

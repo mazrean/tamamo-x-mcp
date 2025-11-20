@@ -3,7 +3,7 @@
  * Uses openai SDK (also compatible with OpenRouter)
  */
 
-import OpenAI from "npm:openai@4.77.3";
+import OpenAI from "npm:openai@6.9.1";
 import type { CompletionOptions, LLMClient } from "../client.ts";
 
 const DEFAULT_MODEL = "gpt-5.1";
