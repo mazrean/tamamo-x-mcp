@@ -1,19 +1,6 @@
-import {
-  assert,
-  assertEquals,
-  assertExists,
-} from "https://deno.land/std@0.224.0/assert/mod.ts";
-import {
-  beforeEach,
-  describe,
-  it,
-} from "https://deno.land/std@0.224.0/testing/bdd.ts";
-import type {
-  AgentRequest,
-  LLMProviderConfig,
-  Tool,
-  ToolGroup,
-} from "../../../src/types/index.ts";
+import { assert, assertEquals, assertExists } from "https://deno.land/std@0.224.0/assert/mod.ts";
+import { beforeEach, describe, it } from "https://deno.land/std@0.224.0/testing/bdd.ts";
+import type { AgentRequest, LLMProviderConfig, Tool, ToolGroup } from "../../../src/types/index.ts";
 import {
   createSubAgent,
   executeAgent,
@@ -120,7 +107,7 @@ Important: Always provide a final text response after using tools. Summarize the
         });
         assert(
           validResult.success,
-          "Valid input should pass schema validation"
+          "Valid input should pass schema validation",
         );
 
         // Test invalid input missing required field
@@ -129,7 +116,7 @@ Important: Always provide a final text response after using tools. Summarize the
         });
         assert(
           !invalidResult.success,
-          "Input missing required 'path' field should fail validation"
+          "Input missing required 'path' field should fail validation",
         );
       });
 
@@ -179,15 +166,15 @@ Important: Always provide a final text response after using tools. Summarize the
         // Assert
         assert(
           subAgent.systemPrompt.includes(group.name),
-          "System prompt should mention group name"
+          "System prompt should mention group name",
         );
         assert(
           subAgent.systemPrompt.includes(group.description),
-          "System prompt should mention group description"
+          "System prompt should mention group description",
         );
         assert(
           subAgent.systemPrompt.length > 0,
-          "System prompt should not be empty"
+          "System prompt should not be empty",
         );
       });
 
@@ -203,7 +190,7 @@ Important: Always provide a final text response after using tools. Summarize the
         group.tools.forEach((tool) => {
           assert(
             subAgent.systemPrompt.includes(tool.name),
-            `System prompt should mention tool ${tool.name}`
+            `System prompt should mention tool ${tool.name}`,
           );
         });
       });
@@ -231,7 +218,7 @@ Important: Always provide a final text response after using tools. Summarize the
         // Must have either result or error, but not both
         assert(
           (response.result !== undefined) !== (response.error !== undefined),
-          "Response must have exactly one of result or error"
+          "Response must have exactly one of result or error",
         );
       });
 
@@ -257,12 +244,12 @@ Important: Always provide a final text response after using tools. Summarize the
         // Should have error (don't check message content to avoid coupling to upstream error text)
         assertExists(
           response.error,
-          "Should return error when API key is missing"
+          "Should return error when API key is missing",
         );
         assertEquals(
           response.result,
           undefined,
-          "Should not have result when error occurs"
+          "Should not have result when error occurs",
         );
       });
 
@@ -288,14 +275,14 @@ Important: Always provide a final text response after using tools. Summarize the
         assertEquals(
           response.result,
           undefined,
-          "Should not have result when error occurs"
+          "Should not have result when error occurs",
         );
         // toolsUsed should be undefined or empty when execution fails
         assert(
           response.toolsUsed === undefined ||
             (Array.isArray(response.toolsUsed) &&
               response.toolsUsed.length === 0),
-          "toolsUsed should be undefined or empty on error"
+          "toolsUsed should be undefined or empty on error",
         );
       });
 
@@ -325,7 +312,7 @@ Important: Always provide a final text response after using tools. Summarize the
         assertEquals(
           response.result,
           undefined,
-          "Should not have result when error occurs"
+          "Should not have result when error occurs",
         );
       });
 
@@ -352,7 +339,7 @@ Important: Always provide a final text response after using tools. Summarize the
         // Verify basic response structure (cannot verify context propagation without mocking)
         assert(
           (response.result !== undefined) !== (response.error !== undefined),
-          "Response must have exactly one of result or error"
+          "Response must have exactly one of result or error",
         );
       });
     });
@@ -433,7 +420,7 @@ Important: Always provide a final text response after using tools. Summarize the
         assertEquals(subAgent.toolGroup.id, mockToolGroup.id);
         assertEquals(
           subAgent.toolGroup.tools.length,
-          mockToolGroup.tools.length
+          mockToolGroup.tools.length,
         );
       });
 
@@ -465,7 +452,7 @@ Important: Always provide a final text response after using tools. Summarize the
         assertExists(response.error);
         assert(
           response.error.includes("API key required"),
-          "Should require API key for Anthropic provider"
+          "Should require API key for Anthropic provider",
         );
       });
 
@@ -492,5 +479,5 @@ Important: Always provide a final text response after using tools. Summarize the
         // For now, mock implementation returns error due to invalid key
       });
     });
-  }
+  },
 );

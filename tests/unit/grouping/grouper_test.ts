@@ -542,6 +542,37 @@ describe("Grouping Algorithm", () => {
 // Helper functions
 
 // Mock LLM client for testing
+/**
+ * Generate a descriptive group name based on the tools in the group
+ */
+function generateGroupName(toolKeys: string[], groupIndex: number): string {
+  // Extract tool names and find common patterns
+  const toolNames = toolKeys.map((key) => key.split(":")[1] || key).map((name) =>
+    name.toLowerCase()
+  );
+
+  // Check for common categories and append index for uniqueness
+  if (
+    toolNames.some((n) =>
+      n.includes("file") || n.includes("read") || n.includes("write") || n.includes("directory")
+    )
+  ) {
+    return `filesystem_operations_${groupIndex}_agent`;
+  }
+  if (toolNames.some((n) => n.includes("git") || n.includes("commit") || n.includes("branch"))) {
+    return `git_version_control_${groupIndex}_agent`;
+  }
+  if (toolNames.some((n) => n.includes("network") || n.includes("http") || n.includes("fetch"))) {
+    return `network_operations_${groupIndex}_agent`;
+  }
+  if (toolNames.some((n) => n.includes("data") || n.includes("database") || n.includes("query"))) {
+    return `data_management_${groupIndex}_agent`;
+  }
+
+  // Default to generic name if no pattern matches
+  return `general_tools_group_${groupIndex}_agent`;
+}
+
 function createMockLLMClient(): LLMClient {
   return {
     provider: "anthropic",
@@ -642,10 +673,13 @@ function createMockLLMClient(): LLMClient {
         const tools = remaining.slice(0, groupSize);
         remaining = remaining.slice(groupSize);
 
+        // Generate descriptive group name based on tool content
+        const groupName = generateGroupName(tools, groupIndex);
         groups.push({
-          name: `group_${groupIndex++}`,
+          name: groupName,
           tools,
         });
+        groupIndex++;
       }
 
       // Adjust for minGroups and maxGroups constraints
@@ -655,16 +689,32 @@ function createMockLLMClient(): LLMClient {
         groups.sort((a, b) => b.tools.length - a.tools.length);
         const largest = groups[0];
 
-        // Check if we can split into 2 valid groups
-        const canSplitEvenly = largest.tools.length >= minToolsPerGroup * 2;
+        // Calculate how many groups we still need to create
+        const groupsNeeded = minGroups - groups.length + 1; // +1 because we're splitting this group
 
-        if (canSplitEvenly) {
+        // Check if we can split while satisfying minToolsPerGroup for all resulting groups
+        const canSplit = largest.tools.length >= minToolsPerGroup * 2 ||
+          (largest.tools.length / groupsNeeded >= minToolsPerGroup);
+
+        if (canSplit) {
           groups.shift(); // Remove largest
-          // Split ensuring both groups have at least minToolsPerGroup
-          const firstGroupSize = Math.max(
-            minToolsPerGroup,
-            Math.ceil(largest.tools.length / 2),
-          );
+
+          // Calculate optimal split size considering future splits
+          // We want to ensure remaining tools can be further split if needed
+          const idealSizePerGroup = largest.tools.length / groupsNeeded;
+          let firstGroupSize = Math.ceil(idealSizePerGroup);
+
+          // Ensure first group meets minimum
+          if (firstGroupSize < minToolsPerGroup) {
+            firstGroupSize = minToolsPerGroup;
+          }
+
+          // Ensure we don't take too many tools (leave enough for second group)
+          const maxFirstGroupSize = largest.tools.length - minToolsPerGroup;
+          if (firstGroupSize > maxFirstGroupSize) {
+            firstGroupSize = maxFirstGroupSize;
+          }
+
           const secondGroupSize = largest.tools.length - firstGroupSize;
 
           // Only split if second group also meets minimum

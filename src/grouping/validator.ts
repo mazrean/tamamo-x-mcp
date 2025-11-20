@@ -49,12 +49,12 @@ export function validateGroups(
   // Validate group count against constraints
   if (groups.length < validatedConstraints.minGroups) {
     errors.push(
-      `Too few groups: ${groups.length} (minimum: ${validatedConstraints.minGroups})`,
+      `Too few groups: ${groups.length} (minimum constraint: ${validatedConstraints.minGroups})`,
     );
   }
   if (groups.length > validatedConstraints.maxGroups) {
     errors.push(
-      `Too many groups: ${groups.length} (maximum: ${validatedConstraints.maxGroups})`,
+      `Too many groups: ${groups.length} (maximum constraint: ${validatedConstraints.maxGroups})`,
     );
   }
 
@@ -62,12 +62,12 @@ export function validateGroups(
   groups.forEach((group) => {
     if (group.tools.length < validatedConstraints.minToolsPerGroup) {
       errors.push(
-        `Group "${group.name}" has too few tools: ${group.tools.length} (minimum: ${validatedConstraints.minToolsPerGroup})`,
+        `Group "${group.name}" has too few tools: ${group.tools.length} (minimum constraint: ${validatedConstraints.minToolsPerGroup})`,
       );
     }
     if (group.tools.length > validatedConstraints.maxToolsPerGroup) {
       errors.push(
-        `Group "${group.name}" has too many tools: ${group.tools.length} (maximum: ${validatedConstraints.maxToolsPerGroup})`,
+        `Group "${group.name}" has too many tools: ${group.tools.length} (maximum constraint: ${validatedConstraints.maxToolsPerGroup})`,
       );
     }
   });

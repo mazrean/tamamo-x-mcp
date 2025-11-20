@@ -14,9 +14,15 @@ import { loadConfig } from "../../src/config/loader.ts";
  * 2. Import MCP server configurations from .mcp.json if present
  * 3. Discover tools from configured MCP servers
  * 4. Reference project-specific files (Agent.md, CLAUDE.md) if present
+ *
+ * Note: sanitizeResources is disabled because this test uses discoverAllTools
+ * which has the same MCP SDK timer leak issue as the discovery tests.
  */
 
-describe("Init Workflow Integration", () => {
+describe("Init Workflow Integration", {
+  sanitizeResources: false,
+  sanitizeOps: false,
+}, () => {
   let tempDir: string;
 
   beforeEach(async () => {

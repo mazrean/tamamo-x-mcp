@@ -104,6 +104,13 @@ export class MCPClient {
 
       this.connected = true;
     } catch (error) {
+      // Clean up any resources created during failed connection attempt
+      try {
+        await this.client.close();
+      } catch {
+        // Ignore close errors during cleanup
+      }
+
       throw new Error(
         `Failed to connect to ${this.config.name}: ${
           error instanceof Error ? error.message : String(error)
@@ -260,19 +267,23 @@ export class MCPClient {
    * Disconnect from MCP server
    */
   async disconnect(): Promise<void> {
-    if (!this.connected) {
-      return;
-    }
-
+    // Always try to close the client, even if we think we're not connected
+    // This ensures cleanup of any resources (like timers) that may have been created
     try {
       await this.client.close();
     } catch (error) {
-      throw new Error(
-        `Failed to disconnect: ${error instanceof Error ? error.message : String(error)}`,
-        {
-          cause: error,
-        },
-      );
+      // Only throw if we were actually connected
+      // If we weren't connected, silently ignore close errors
+      if (this.connected) {
+        throw new Error(
+          `Failed to disconnect: ${error instanceof Error ? error.message : String(error)}`,
+          {
+            cause: error,
+          },
+        );
+      }
+      // Otherwise, just log and continue
+      // This handles cases where connect() failed but created resources
     } finally {
       // Always reset connected flag, even if close() fails
       this.connected = false;

@@ -3,21 +3,21 @@
  * Uses ai SDK and @ai-sdk/openai
  */
 
-import { generateText } from "npm:ai@5.0.94";
+import { generateText } from "npm:ai@5.0.97";
 import { createOpenAI } from "npm:@ai-sdk/openai@2.0.68";
 import type { CompletionOptions, LLMClient } from "../client.ts";
 
-export function createVercelClient(
-  apiKey: string,
-  model?: string,
-): LLMClient {
+export function createVercelClient(apiKey: string, model?: string): LLMClient {
   const openai = createOpenAI({ apiKey });
   const selectedModel = model || "gpt-4o";
 
   return {
     provider: "vercel",
     model: selectedModel,
-    async complete(prompt: string, options?: CompletionOptions): Promise<string> {
+    async complete(
+      prompt: string,
+      options?: CompletionOptions,
+    ): Promise<string> {
       // Build generation parameters
       const params: {
         model: ReturnType<typeof openai>;

@@ -22,11 +22,11 @@ import {
   query,
   tool,
 } from "npm:@anthropic-ai/claude-agent-sdk@0.1.42";
-import { z } from "npm:zod";
+import { z } from "npm:zod@4.1.12";
 
 // Mastra imports (for other providers)
-import { Agent } from "npm:@mastra/core@0.24.1/agent";
-import { createTool } from "npm:@mastra/core@0.24.1/tools";
+import { Agent } from "npm:@mastra/core@0.24.3/agent";
+import { createTool } from "npm:@mastra/core@0.24.3/tools";
 
 /**
  * Mastra tool interface (for non-Anthropic providers)
@@ -46,7 +46,7 @@ export interface MastraTool {
  * Convert JSON Schema to Zod schema for Claude Agent SDK
  */
 function jsonSchemaToZod(
-  schema: JSONSchema
+  schema: JSONSchema,
 ): z.ZodObject<Record<string, z.ZodTypeAny>> {
   const shape: Record<string, z.ZodTypeAny> = {};
 
@@ -126,13 +126,15 @@ export function wrapToolForClaudeAgent(mcpTool: Tool): ReturnType<typeof tool> {
         content: [
           {
             type: "text" as const,
-            text: `Mock result from ${mcpTool.name} with args: ${JSON.stringify(
-              args
-            )}`,
+            text: `Mock result from ${mcpTool.name} with args: ${
+              JSON.stringify(
+                args,
+              )
+            }`,
           },
         ],
       };
-    }
+    },
   );
 }
 
@@ -160,9 +162,11 @@ export function wrapToolForMastra(tool: Tool): ReturnType<typeof createTool> {
 
       // For now, return mock result
       return {
-        output: `Mock result from ${tool.name} with args: ${JSON.stringify(
-          context
-        )}`,
+        output: `Mock result from ${tool.name} with args: ${
+          JSON.stringify(
+            context,
+          )
+        }`,
       };
     },
   });
@@ -172,7 +176,7 @@ export function wrapToolForMastra(tool: Tool): ReturnType<typeof createTool> {
  * Wrap multiple MCP tools as Mastra tools
  */
 export function wrapToolsForMastra(
-  tools: Tool[]
+  tools: Tool[],
 ): ReturnType<typeof createTool>[] {
   return tools.map((tool) => wrapToolForMastra(tool));
 }
@@ -182,7 +186,7 @@ export function wrapToolsForMastra(
  */
 export function createSubAgent(
   group: ToolGroup,
-  llmConfig: LLMProviderConfig
+  llmConfig: LLMProviderConfig,
 ): SubAgent {
   // Use LLM-generated system prompt from the tool group
   // This prompt is created during the build phase and includes:
@@ -205,7 +209,7 @@ export function createSubAgent(
 async function executeAgentWithClaudeSDK(
   subAgent: SubAgent,
   request: AgentRequest,
-  apiKey: string
+  apiKey: string,
 ): Promise<AgentResponse> {
   try {
     // Set API key in environment for Claude Agent SDK
@@ -281,7 +285,7 @@ async function executeAgentWithClaudeSDK(
  */
 async function executeAgentWithMastra(
   subAgent: SubAgent,
-  request: AgentRequest
+  request: AgentRequest,
 ): Promise<AgentResponse> {
   try {
     // Wrap MCP tools as Mastra tools
@@ -350,7 +354,7 @@ async function executeAgentWithMastra(
 export async function executeAgent(
   subAgent: SubAgent,
   request: AgentRequest,
-  credentials?: { apiKey?: string }
+  credentials?: { apiKey?: string },
 ): Promise<AgentResponse> {
   // Validate agent has tools
   if (subAgent.toolGroup.tools.length === 0) {
@@ -371,7 +375,7 @@ export async function executeAgent(
       return await executeAgentWithClaudeSDK(
         subAgent,
         request,
-        credentials.apiKey
+        credentials.apiKey,
       );
     }
 

@@ -3,7 +3,7 @@
  * Uses @anthropic-ai/sdk (official SDK)
  */
 
-import Anthropic from "npm:@anthropic-ai/sdk@0.69.0";
+import Anthropic from "npm:@anthropic-ai/sdk@0.70.0";
 import type { CompletionOptions, LLMClient } from "../client.ts";
 
 const DEFAULT_MODEL = "claude-4-5-haiku";
