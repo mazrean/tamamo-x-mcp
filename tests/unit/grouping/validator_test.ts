@@ -9,9 +9,7 @@ import { validateGroups } from "../../../src/grouping/validator.ts";
  *
  * The validator is responsible for:
  * 1. Enforcing GroupingConstraints (minToolsPerGroup, maxToolsPerGroup, minGroups, maxGroups)
- * 2. Checking for tool duplicates across groups
- * 3. Ensuring all tools are assigned to exactly one group
- * 4. Validating group metadata (unique IDs, non-empty names)
+ * 2. Validating group metadata (unique IDs, non-empty names)
  */
 
 describe("Grouping Validator", () => {
@@ -160,73 +158,6 @@ describe("Grouping Validator", () => {
       // Assert
       assertEquals(result.valid, false, "Should fail validation");
       assert(result.errors.length >= 2, "Should report errors for both violating groups");
-    });
-  });
-
-  describe("Tool uniqueness validation", () => {
-    it("should pass validation when no tools are duplicated", () => {
-      // Arrange
-      const groups = createMockGroups(3, 10);
-      const constraints: GroupingConstraints = {
-        minToolsPerGroup: 5,
-        maxToolsPerGroup: 20,
-        minGroups: 3,
-        maxGroups: 10,
-      };
-
-      // Act
-      const result = validateGroups(groups, constraints);
-
-      // Assert
-      assertEquals(result.valid, true, "Should pass validation when tools are unique");
-    });
-
-    it("should fail validation when a tool appears in multiple groups", () => {
-      // Arrange
-      const groups = createMockGroups(3, 10);
-      const duplicateTool = groups[0].tools[0];
-      groups[2].tools.push(duplicateTool); // Add duplicate to third group
-      const constraints: GroupingConstraints = {
-        minToolsPerGroup: 5,
-        maxToolsPerGroup: 20,
-        minGroups: 3,
-        maxGroups: 10,
-      };
-
-      // Act
-      const result = validateGroups(groups, constraints);
-
-      // Assert
-      assertEquals(result.valid, false, "Should fail validation for duplicate tools");
-      assert(
-        result.errors.some((e) => e.includes("duplicate") || e.includes("multiple")),
-        "Error should mention duplicate tools",
-      );
-    });
-
-    it("should detect all duplicate tools", () => {
-      // Arrange
-      const groups = createMockGroups(3, 10);
-      const duplicate1 = groups[0].tools[0];
-      const duplicate2 = groups[1].tools[1];
-      groups[2].tools.push(duplicate1, duplicate2);
-      const constraints: GroupingConstraints = {
-        minToolsPerGroup: 5,
-        maxToolsPerGroup: 20,
-        minGroups: 3,
-        maxGroups: 10,
-      };
-
-      // Act
-      const result = validateGroups(groups, constraints);
-
-      // Assert
-      assertEquals(result.valid, false, "Should fail validation");
-      // Should report both duplicates
-      const duplicateErrors = result.errors.filter((e) =>
-        e.includes("duplicate") || e.includes("multiple")
-      );
-      assert(duplicateErrors.length >= 1, "Should report duplicate tool errors");
     });
   });
 
@@ -519,6 +450,7 @@ function createMockGroups(count: number, toolsPerGroup: number): ToolGroup[] {
       name: `group_${i + 1}_agent`,
       description: `Agent for group ${i + 1} operations`,
       tools,
+      systemPrompt: `You are an agent for group ${i + 1} operations.`,
       complementarityScore: 0.8,
     });
   }

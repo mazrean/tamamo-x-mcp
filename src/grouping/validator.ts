@@ -24,7 +24,7 @@ export function validateGroups(
   groups.forEach((group, index) => {
     const result = ToolGroupSchema.safeParse(group);
     if (!result.success) {
-      result.error.errors.forEach((err) => {
+      result.error.issues.forEach((err) => {
         errors.push(`Group[${index}].${err.path.join(".")}: ${err.message}`);
       });
     }
@@ -33,7 +33,7 @@ export function validateGroups(
   // Validate constraints using Zod schema
   const constraintsResult = GroupingConstraintsRequiredSchema.safeParse(constraints);
   if (!constraintsResult.success) {
-    constraintsResult.error.errors.forEach((err) => {
+    constraintsResult.error.issues.forEach((err) => {
       errors.push(`Constraints.${err.path.join(".")}: ${err.message}`);
     });
     // If constraints are invalid, we can't proceed with further validation
@@ -86,53 +86,8 @@ export function validateGroups(
     errors.push("Group names are not unique");
   }
 
-  // Validate tool uniqueness across groups
-  const allTools = groups.flatMap((g) => g.tools);
-  const toolKeys = allTools.map((t) => `${t.serverName}:${t.name}`);
-  const uniqueToolKeys = new Set(toolKeys);
-  if (uniqueToolKeys.size !== toolKeys.length) {
-    errors.push("Some tools appear in multiple groups");
-  }
-
   return {
     valid: errors.length === 0,
     errors,
   };
-}
-
-/**
- * Check if constraints are satisfiable with given tool count
- */
-export function checkConstraintsSatisfiable(
-  toolCount: number,
-  constraints: GroupingConstraints,
-): boolean {
-  // Validate constraints first using Zod
-  const result = GroupingConstraintsRequiredSchema.safeParse(constraints);
-  if (!result.success) {
-    return false;
-  }
-
-  // Use validated constraints
-  const validatedConstraints = result.data;
-
-  // Minimum tools required: minGroups * minToolsPerGroup
-  const minToolsRequired = validatedConstraints.minGroups *
-    validatedConstraints.minToolsPerGroup;
-
-  if (toolCount < minToolsRequired) {
-    return false;
-  }
-
-  // Maximum tools allowed: maxGroups * maxToolsPerGroup
-  const maxToolsAllowed = validatedConstraints.maxGroups *
-    validatedConstraints.maxToolsPerGroup;
-
-  if (toolCount > maxToolsAllowed) {
-    // This is a warning, not a hard failure - we can still group the tools
-    // but we might need to relax some constraints
-    return true;
-  }
-
-  return true;
 }

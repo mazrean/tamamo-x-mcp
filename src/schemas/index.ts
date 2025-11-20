@@ -295,6 +295,7 @@ export const ToolGroupSchema = z.object({
   name: z.string().min(1, "Group name is required and must be non-empty"),
   description: z.string().min(1, "Group description is required and must be non-empty"),
   tools: z.array(ToolSchema).min(1, "Tool group must contain at least one tool"),
+  systemPrompt: z.string().min(1, "System prompt is required and must be non-empty"),
   complementarityScore: z
     .number()
     .min(0, "Complementarity score must be between 0 and 1")
@@ -469,6 +470,7 @@ export interface ToolGroup {
   name: string;
   description: string;
   tools: Tool[];
+  systemPrompt: string;
   complementarityScore?: number;
   metadata?: Record<string, unknown>;
 }

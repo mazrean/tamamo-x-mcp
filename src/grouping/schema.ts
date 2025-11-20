@@ -38,6 +38,11 @@ export const TOOL_GROUPING_RESPONSE_SCHEMA: JSONSchema = {
             },
             description: 'Array of tool keys in format "serverName:toolName"',
           },
+          systemPrompt: {
+            type: "string",
+            description:
+              "System prompt for the agent that will use this tool group. Should instruct the agent to: 1) use tools to gather information, 2) always provide a final text response after using tools, 3) summarize findings to answer user's question",
+          },
           complementarityScore: {
             type: "number",
             description: "Score from 0.0 to 1.0 indicating how well tools complement each other",
@@ -45,7 +50,7 @@ export const TOOL_GROUPING_RESPONSE_SCHEMA: JSONSchema = {
             maximum: 1,
           },
         },
-        required: ["id", "name", "description", "toolKeys", "complementarityScore"],
+        required: ["id", "name", "description", "toolKeys", "systemPrompt", "complementarityScore"],
         additionalProperties: false,
       },
     },
@@ -89,12 +94,17 @@ export const TOOL_GROUPING_RESPONSE_SCHEMA_GEMINI: JSONSchema = {
             },
             description: 'Array of tool keys in format "serverName:toolName"',
           },
+          systemPrompt: {
+            type: "string",
+            description:
+              "System prompt for the agent that will use this tool group. Should instruct the agent to: 1) use tools to gather information, 2) always provide a final text response after using tools, 3) summarize findings to answer user's question",
+          },
           complementarityScore: {
             type: "number",
             description: "Score from 0.0 to 1.0 indicating how well tools complement each other",
           },
         },
-        required: ["id", "name", "description", "toolKeys", "complementarityScore"],
+        required: ["id", "name", "description", "toolKeys", "systemPrompt", "complementarityScore"],
       },
     },
   },
@@ -110,6 +120,7 @@ export interface ToolGroupingResponse {
     name: string;
     description: string;
     toolKeys: string[];
+    systemPrompt: string;
     complementarityScore?: number;
   }>;
 }

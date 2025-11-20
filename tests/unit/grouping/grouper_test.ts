@@ -17,39 +17,11 @@ import { groupTools } from "../../../src/grouping/grouper.ts";
  * 1. Parsing LLM analysis results
  * 2. Assigning tools to groups based on complementarity
  * 3. Using ProjectContext for domain-aware grouping
- * 4. Ensuring all tools are assigned to exactly one group
- * 5. Respecting grouping constraints (min/max tools per group, min/max groups)
+ * 4. Respecting grouping constraints (min/max tools per group, min/max groups)
  */
 
 describe("Grouping Algorithm", () => {
   describe("Tool-to-group assignment", () => {
-    it("should assign each tool to exactly one group", async () => {
-      // Arrange
-      const tools = getToolSubset(30);
-      const constraints: GroupingConstraints = {
-        minToolsPerGroup: 5,
-        maxToolsPerGroup: 20,
-        minGroups: 3,
-        maxGroups: 10,
-      };
-
-      // Act
-      const groups = await groupTools(tools, createMockLLMClient(), constraints);
-
-      // Assert
-      const assignedTools = groups.flatMap((g) => g.tools);
-      assertEquals(assignedTools.length, tools.length, "All tools should be assigned");
-
-      // Check for duplicates
-      const toolIds = assignedTools.map((t) => `${t.serverName}:${t.name}`);
-      const uniqueIds = new Set(toolIds);
-      assertEquals(
-        uniqueIds.size,
-        toolIds.length,
-        "No tool should be assigned to multiple groups",
-      );
-    });
-
     it("should group related tools together", async () => {
       // Arrange
       const filesystemTools = getToolsByCategory("filesystem");
@@ -532,9 +504,10 @@ describe("Grouping Algorithm", () => {
         assert(group.tools.length <= 20, "Should satisfy max tools per group");
       });
 
-      // Verify all tools are assigned
+      // Verify all tools are assigned at least once
       const allTools = groups.flatMap((g) => g.tools);
-      assertEquals(allTools.length, 60, "All tools should be assigned (no tool loss)");
+      const uniqueTools = new Set(allTools.map((t) => `${t.serverName}:${t.name}`));
+      assertEquals(uniqueTools.size, 60, "All 60 unique tools should be assigned at least once");
     });
 
     it("should handle rebalance scenario (10 tools, 3 groups, minToolsPerGroup=3)", async () => {
@@ -558,13 +531,10 @@ describe("Grouping Algorithm", () => {
         assert(group.tools.length <= 10, "Should satisfy max tools per group");
       });
 
-      // Verify all tools are assigned (no tool loss during rebalance)
+      // Verify all tools are assigned at least once
       const allTools = groups.flatMap((g) => g.tools);
-      assertEquals(allTools.length, 10, "All 10 tools should be assigned");
-
-      // Check unique tools (no duplicates)
       const uniqueTools = new Set(allTools.map((t) => `${t.serverName}:${t.name}`));
-      assertEquals(uniqueTools.size, 10, "All tools should be unique");
+      assertEquals(uniqueTools.size, 10, "All 10 unique tools should be assigned at least once");
     });
   });
 });
@@ -576,19 +546,63 @@ function createMockLLMClient(): LLMClient {
   return {
     provider: "anthropic",
     model: "claude-3-5-sonnet-20241022",
-    complete(prompt: string, _options?): Promise<string> {
-      // Parse constraints from prompt
-      const minGroupsMatch = prompt.match(/between (\d+) and (\d+) groups/);
-      const minGroups = minGroupsMatch ? parseInt(minGroupsMatch[1]) : 3;
-      const maxGroups = minGroupsMatch ? parseInt(minGroupsMatch[2]) : 10;
+    complete(prompt: string, options?): Promise<string> {
+      // Determine which step we're in by checking the messages
+      const messages = options?.messages || [];
+      const systemMessage = messages.find((m) => m.role === "system");
+      const lastUserMessage = messages.filter((m) => m.role === "user").pop();
+      const userContent = lastUserMessage?.content || prompt;
+      const systemContent = systemMessage?.content || "";
 
-      const toolsPerGroupMatch = prompt.match(/between (\d+) and (\d+) tools/);
-      const minToolsPerGroup = toolsPerGroupMatch ? parseInt(toolsPerGroupMatch[1]) : 5;
-      const maxToolsPerGroup = toolsPerGroupMatch ? parseInt(toolsPerGroupMatch[2]) : 20;
+      // Step 3: Check for final grouping step first (has specific system prompt)
+      const isStep3 = systemContent.includes("tool grouping specialist") ||
+        systemContent.includes("OUTPUT FORMAT (JSON only") ||
+        userContent.includes("Generate the corrected JSON output now");
 
-      // Parse tool keys from prompt (format: [serverName:toolName])
-      const toolKeyMatches = prompt.matchAll(/\d+\.\s+\[([^\]]+)\]/g);
-      const toolKeys = Array.from(toolKeyMatches).map((match) => match[1]);
+      if (!isStep3) {
+        // Step 1: Project analysis - return simple text response
+        if (
+          userContent.includes("analyze the project context") ||
+          userContent.includes("domain or problem space")
+        ) {
+          return Promise.resolve(
+            "This project appears to involve filesystem operations and git version control. The tools are organized around these two main domains.",
+          );
+        }
+
+        // Step 2: Grouping strategy - return simple text response
+        if (
+          userContent.includes("grouping strategy") || userContent.includes("how you will create")
+        ) {
+          return Promise.resolve(
+            "I will create separate groups for filesystem operations and git operations, ensuring each group meets the minimum tool count requirements.",
+          );
+        }
+      }
+
+      // Step 3: Final grouping - return JSON
+      // Parse constraints and tools from system message or user messages
+      const allContent = messages.map((m) => m.content).join("\n") + "\n" + prompt;
+      // Match both old and new prompt formats
+      const minGroupsMatch = allContent.match(
+        /(?:between (\d+) and (\d+) groups|Group count: MUST be (\d+)-(\d+) groups)/,
+      );
+      const minGroups = minGroupsMatch ? parseInt(minGroupsMatch[1] || minGroupsMatch[3]) : 3;
+      const maxGroups = minGroupsMatch ? parseInt(minGroupsMatch[2] || minGroupsMatch[4]) : 10;
+
+      const toolsPerGroupMatch = allContent.match(
+        /(?:between (\d+) and (\d+) tools|Tools per group: EACH group MUST have (\d+)-(\d+) tools)/,
+      );
+      const minToolsPerGroup = toolsPerGroupMatch
+        ? parseInt(toolsPerGroupMatch[1] || toolsPerGroupMatch[3])
+        : 5;
+      const maxToolsPerGroup = toolsPerGroupMatch
+        ? parseInt(toolsPerGroupMatch[2] || toolsPerGroupMatch[4])
+        : 20;
+
+      // Parse tool keys from all messages (format: "serverName:toolName")
+      const toolKeyMatches = allContent.matchAll(/\d+\.\s+"([^"]+)"/g);
+      const toolKeys = Array.from(new Set(Array.from(toolKeyMatches).map((match) => match[1])));
 
       if (toolKeys.length === 0) {
         return Promise.resolve(JSON.stringify({ groups: [] }));
@@ -601,137 +615,108 @@ function createMockLLMClient(): LLMClient {
         toolMap.set(key, name);
       });
 
-      // Group tools by their naming patterns
-      const categoryGroups: Map<string, string[]> = new Map();
-
-      toolKeys.forEach((key) => {
-        const name = toolMap.get(key)!;
-
-        // Determine category
-        let category = "misc";
-        if (name.includes("file") || name.includes("directory")) {
-          category = "filesystem";
-        } else if (name.startsWith("git_")) {
-          category = "git";
-        } else if (name.startsWith("db_")) {
-          category = "database";
-        } else if (name.includes("http") || name.includes("url")) {
-          category = "http";
-        } else if (name.includes("parse") || name.includes("transform")) {
-          category = "data";
-        } else if (name.includes("monitor") || name.includes("process")) {
-          category = "system";
-        }
-
-        if (!categoryGroups.has(category)) {
-          categoryGroups.set(category, []);
-        }
-        categoryGroups.get(category)!.push(key);
-      });
-
-      // Create initial groups from categories
-      const initialGroups: Array<{ name: string; tools: string[] }> = [];
-      for (const [category, tools] of categoryGroups.entries()) {
-        initialGroups.push({ name: category, tools });
-      }
-
-      // Adjust groups to satisfy constraints
+      // Simple approach: Split tools into groups of maxToolsPerGroup size
       const groups: Array<{ name: string; tools: string[] }> = [];
-      let remainingTools: string[] = [];
+      let groupIndex = 0;
+      let remaining = [...toolKeys];
 
-      // Step 1: Split or merge groups to satisfy minToolsPerGroup and maxToolsPerGroup
-      for (const group of initialGroups) {
-        if (group.tools.length >= minToolsPerGroup && group.tools.length <= maxToolsPerGroup) {
-          // Group satisfies constraints
-          groups.push(group);
-        } else if (group.tools.length > maxToolsPerGroup) {
-          // Split large groups
-          const numGroups = Math.ceil(group.tools.length / maxToolsPerGroup);
-          const toolsPerGroup = Math.ceil(group.tools.length / numGroups);
+      while (remaining.length > 0) {
+        // Determine size for this group
+        let groupSize;
 
-          for (let i = 0; i < numGroups; i++) {
-            const start = i * toolsPerGroup;
-            const end = Math.min(start + toolsPerGroup, group.tools.length);
-            const subTools = group.tools.slice(start, end);
-
-            if (subTools.length >= minToolsPerGroup || i === numGroups - 1) {
-              groups.push({
-                name: `${group.name}_${i + 1}`,
-                tools: subTools,
-              });
-            } else {
-              remainingTools.push(...subTools);
-            }
-          }
+        if (remaining.length <= maxToolsPerGroup) {
+          // Take all remaining (it fits in one group)
+          groupSize = remaining.length;
         } else {
-          // Too few tools - add to remaining
-          remainingTools.push(...group.tools);
+          // Take maxToolsPerGroup, but check if this would leave too few for next group
+          const leftAfter = remaining.length - maxToolsPerGroup;
+          if (leftAfter < minToolsPerGroup && leftAfter > 0) {
+            // Would leave too few - distribute evenly
+            groupSize = Math.ceil(remaining.length / 2);
+          } else {
+            // Safe to take maxToolsPerGroup
+            groupSize = maxToolsPerGroup;
+          }
         }
-      }
 
-      // Step 2: Distribute remaining tools
-      if (remainingTools.length >= minToolsPerGroup) {
+        const tools = remaining.slice(0, groupSize);
+        remaining = remaining.slice(groupSize);
+
         groups.push({
-          name: "misc",
-          tools: remainingTools,
+          name: `group_${groupIndex++}`,
+          tools,
         });
-        remainingTools = [];
-      } else if (remainingTools.length > 0 && groups.length > 0) {
-        // Add to smallest group
-        groups.sort((a, b) => a.tools.length - b.tools.length);
-        groups[0].tools.push(...remainingTools);
-        remainingTools = [];
       }
 
-      // Step 3: Ensure minGroups constraint
-      while (groups.length < minGroups && groups.length > 0) {
-        // Split largest group
+      // Adjust for minGroups and maxGroups constraints
+      // Ensure minGroups
+      while (groups.length < minGroups) {
+        // Find largest group that can be split
         groups.sort((a, b) => b.tools.length - a.tools.length);
-        const largest: { name: string; tools: string[] } = groups[0];
+        const largest = groups[0];
 
-        // Try to split if possible (even if it creates small groups)
-        const canSplit = largest.tools.length >= 2;
+        // Check if we can split into 2 valid groups
+        const canSplitEvenly = largest.tools.length >= minToolsPerGroup * 2;
 
-        if (canSplit) {
+        if (canSplitEvenly) {
           groups.shift(); // Remove largest
-          const targetSize = Math.ceil(largest.tools.length / 2);
-          const part1 = largest.tools.slice(0, targetSize);
-          const part2 = largest.tools.slice(targetSize);
+          // Split ensuring both groups have at least minToolsPerGroup
+          const firstGroupSize = Math.max(
+            minToolsPerGroup,
+            Math.ceil(largest.tools.length / 2),
+          );
+          const secondGroupSize = largest.tools.length - firstGroupSize;
 
-          // Only split if both parts meet minimum requirement OR we're desperate for more groups
-          if (
-            (part1.length >= minToolsPerGroup && part2.length >= minToolsPerGroup) ||
-            groups.length + 2 <= minGroups
-          ) {
+          // Only split if second group also meets minimum
+          if (secondGroupSize >= minToolsPerGroup) {
             groups.push({
-              name: `${largest.name}_1`,
-              tools: part1,
+              name: `${largest.name}_a`,
+              tools: largest.tools.slice(0, firstGroupSize),
             });
             groups.push({
-              name: `${largest.name}_2`,
-              tools: part2,
+              name: `${largest.name}_b`,
+              tools: largest.tools.slice(firstGroupSize),
             });
           } else {
-            // Can't split properly - put it back
-            groups.push(largest);
+            // Can't split - put the group back
+            groups.unshift(largest);
             break;
           }
         } else {
-          break; // Can't split further
+          // Can't split any further while maintaining constraints
+          break;
         }
       }
 
-      // Step 4: Ensure maxGroups constraint
+      // Ensure maxGroups
       while (groups.length > maxGroups) {
-        // Merge two smallest groups
+        // Find two smallest groups that can be merged without exceeding maxToolsPerGroup
         groups.sort((a, b) => a.tools.length - b.tools.length);
-        const group1: { name: string; tools: string[] } = groups.shift()!;
-        const group2: { name: string; tools: string[] } = groups.shift()!;
 
-        groups.push({
-          name: `${group1.name}_${group2.name}`,
-          tools: [...group1.tools, ...group2.tools],
-        });
+        let merged = false;
+        for (let i = 0; i < groups.length - 1 && !merged; i++) {
+          for (let j = i + 1; j < groups.length && !merged; j++) {
+            const combined = Array.from(new Set([...groups[i].tools, ...groups[j].tools]));
+            if (combined.length <= maxToolsPerGroup) {
+              // Can merge these two
+              const name1 = groups[i].name;
+              const name2 = groups[j].name;
+              groups.splice(j, 1); // Remove j first (higher index)
+              groups.splice(i, 1); // Then remove i
+              groups.push({
+                name: `${name1}_${name2}`,
+                tools: combined,
+              });
+              merged = true;
+            }
+          }
+        }
+
+        if (!merged) {
+          // Can't merge any groups without exceeding maxToolsPerGroup
+          // This shouldn't happen if constraints are feasible, but break to avoid infinite loop
+          break;
+        }
       }
 
       // Convert to response format
@@ -759,6 +744,8 @@ function createMockLLMClient(): LLMClient {
             name: `${g.name}_agent`,
             description: `Agent for ${g.name} operations`,
             toolKeys: g.tools,
+            systemPrompt:
+              `You are a specialized agent for ${g.name} operations. Use the available tools to gather information, then provide a final text response to answer the user's question.`,
             complementarityScore,
           };
         }),

@@ -30,13 +30,9 @@ export async function groupTools(
     throw new Error("Cannot create groups from empty tool list");
   }
 
-  // Check if constraints are satisfiable
-  const minToolsRequired = constraints.minGroups * constraints.minToolsPerGroup;
-  if (tools.length < minToolsRequired) {
-    throw new Error(
-      `insufficient tools: need at least ${minToolsRequired} tools for ${constraints.minGroups} groups with minimum ${constraints.minToolsPerGroup} tools each (constraints cannot be satisfied)`,
-    );
-  }
+  // Note: We don't check if tools.length >= minGroups * minToolsPerGroup
+  // because tools CAN appear in multiple groups, so we can satisfy constraints
+  // even with fewer tools than the mathematical minimum for unique assignment.
 
   // Try up to MAX_RETRIES times to get valid groups from LLM
   let lastError: Error | null = null;
@@ -176,10 +172,10 @@ async function requestGroupsFromLLM(
 ${lastStep3Error.message}
 
 Please fix the issue and generate a corrected grouping that satisfies ALL constraints. Remember:
-- EVERY tool must be assigned to EXACTLY ONE group
-- No tool should appear in multiple groups
 - Group count must be within the valid range
 - Each group must have the correct number of tools
+- EVERY tool MUST appear in AT LEAST ONE group (no tools left unassigned)
+- Tools CAN appear in multiple groups if it makes sense for the grouping
 - Tool keys must be EXACT matches (case-sensitive)
 
 Generate the corrected JSON output now.`;
@@ -231,6 +227,7 @@ Generate the corrected JSON output now.`;
 
         // Map tool keys back to Tool objects
         const groupTools: Tool[] = [];
+        const groupToolKeys = new Set<string>();
         for (const toolKey of groupData.toolKeys) {
           const tool = toolMap.get(toolKey);
           if (!tool) {
@@ -239,14 +236,15 @@ Generate the corrected JSON output now.`;
             );
           }
 
-          // Check for duplicates
-          if (assignedToolKeys.has(toolKey)) {
+          // Check for duplicates within the same group
+          if (groupToolKeys.has(toolKey)) {
             throw new Error(
-              `LLM assigned tool "${toolKey}" to multiple groups`,
+              `Tool "${toolKey}" appears multiple times in group "${groupData.name}"`,
             );
           }
 
           groupTools.push(tool);
+          groupToolKeys.add(toolKey);
           assignedToolKeys.add(toolKey);
         }
 
@@ -254,21 +252,27 @@ Generate the corrected JSON output now.`;
           throw new Error(`Group "${groupData.name}" has no valid tools`);
         }
 
+        // Validate systemPrompt from LLM
+        if (!groupData.systemPrompt || groupData.systemPrompt.trim().length === 0) {
+          throw new Error(`Group "${groupData.name}" is missing system prompt from LLM response`);
+        }
+
         groups.push({
           id: sanitizeId(groupData.id),
           name: groupData.name,
           description: groupData.description,
           tools: groupTools,
+          systemPrompt: groupData.systemPrompt,
           complementarityScore: typeof groupData.complementarityScore === "number"
             ? groupData.complementarityScore
             : 0.5,
         });
       }
 
-      // Verify all tools are assigned exactly once
-      if (assignedToolKeys.size !== tools.length) {
-        const allToolKeys = new Set(tools.map((t) => `${t.serverName}:${t.name}`));
-        const missingKeys = [...allToolKeys].filter((k) => !assignedToolKeys.has(k));
+      // Verify all tools are assigned at least once
+      const allToolKeys = new Set(tools.map((t) => `${t.serverName}:${t.name}`));
+      const missingKeys = [...allToolKeys].filter((k) => !assignedToolKeys.has(k));
+      if (missingKeys.length > 0) {
         throw new Error(
           `LLM failed to assign all tools. Missing ${missingKeys.length} tools: ${
             missingKeys.slice(0, 5).join(", ")
@@ -376,12 +380,10 @@ function constructGroupingStrategyPrompt(
   constraints: GroupingConstraints,
   projectAnalysis: string,
 ): { systemPrompt: string; userPrompt: string } {
-  const maxPossibleGroups = Math.floor(tools.length / constraints.minToolsPerGroup);
-  const effectiveMaxGroups = Math.min(constraints.maxGroups, maxPossibleGroups);
-  const effectiveMinGroups = Math.max(
-    constraints.minGroups,
-    Math.ceil(tools.length / constraints.maxToolsPerGroup),
-  );
+  // With duplicates allowed, we use the constraints directly without calculating
+  // based on tool count, since tools can appear in multiple groups
+  const effectiveMaxGroups = constraints.maxGroups;
+  const effectiveMinGroups = constraints.minGroups;
 
   const systemPrompt =
     `You are an expert in software architecture and tool organization, specializing in creating specialized agent groups.
@@ -444,29 +446,19 @@ function constructFinalGroupingPrompt(
   groupingStrategy: string,
   attemptNumber: number,
 ): { systemPrompt: string; userPrompt: string } {
-  // Calculate valid group count range
-  const maxPossibleGroups = Math.floor(
-    tools.length / constraints.minToolsPerGroup,
-  );
-  const effectiveMaxGroups = Math.min(
-    constraints.maxGroups,
-    maxPossibleGroups,
-  );
-  const effectiveMinGroups = Math.max(
-    constraints.minGroups,
-    Math.ceil(tools.length / constraints.maxToolsPerGroup),
-  );
+  // With duplicates allowed, use the constraints directly
+  const effectiveMaxGroups = constraints.maxGroups;
+  const effectiveMinGroups = constraints.minGroups;
 
   // Construct SYSTEM prompt (role, constraints, output format)
   const systemPrompt =
     `You are a tool grouping specialist. Your role is to organize tools into specialized agent groups that follow STRICT mathematical constraints.
 
 ABSOLUTE REQUIREMENTS:
-1. Group count: MUST be ${effectiveMinGroups}-${effectiveMaxGroups} groups (calculated from ${tools.length} tools ÷ ${constraints.minToolsPerGroup}-${constraints.maxToolsPerGroup} tools/group)
+1. Group count: MUST be ${effectiveMinGroups}-${effectiveMaxGroups} groups
 2. Tools per group: EACH group MUST have ${constraints.minToolsPerGroup}-${constraints.maxToolsPerGroup} tools (NO EXCEPTIONS)
-3. Complete coverage: EVERY tool assigned to EXACTLY ONE group
-4. No duplicates: Each tool appears ONCE across all groups
-5. Proper distribution: Sum of all group sizes = ${tools.length}
+3. Coverage: EVERY tool MUST appear in AT LEAST ONE group (no tools left unassigned)
+4. Duplicates allowed: Tools CAN appear in multiple groups if they serve multiple purposes
 
 OUTPUT FORMAT (JSON only, no explanations):
 {
@@ -494,6 +486,33 @@ EXAMPLE DESCRIPTIONS:
 • "This agent provides comprehensive codebase navigation through symbolic analysis. Use it when you need to understand code structure without reading entire files. Start with get_symbols_overview for high-level understanding, then use find_symbol for targeted reads. The editing tools (replace/insert) should only be used after thorough analysis with find_symbol and find_referencing_symbols."
 • "Manages persistent project knowledge and external reasoning. Use write_memory to store important project insights for future sessions. Read memories at conversation start when their names suggest relevance. Invoke codex tool for complex reasoning tasks that benefit from external AI sessions with specialized capabilities."
 
+SYSTEM PROMPT GUIDELINES:
+Generate a system prompt that will be used by the agent when executing tasks. The system prompt MUST:
+
+1. **Introduce the agent**: Start with "You are [Group Name]." followed by the group description
+2. **List available tools**: Include a formatted list of all tools with their descriptions
+3. **Provide execution instructions**: Tell the agent to:
+   - Analyze which tools are needed to answer the user's question
+   - Execute those tools to gather necessary information
+   - **ALWAYS provide a final text response** after using tools
+   - Summarize findings and directly answer the user's question
+
+EXAMPLE SYSTEM PROMPT STRUCTURE:
+"You are [Group Name].
+
+Description: [Group Description]
+
+Available tools:
+- tool1: description1
+- tool2: description2
+
+Your role is to help users by using these tools effectively. When given a task:
+1. Analyze which tools are needed to answer the user's question
+2. Execute those tools to gather the necessary information
+3. After gathering all needed information, provide a clear and concise response to the user
+
+Important: Always provide a final text response after using tools. Summarize the findings and directly answer the user's question."
+
 CRITICAL: Your response MUST be ONLY the JSON object above. No text before or after.`;
 
   // Construct USER prompt (specific task, tools, context)
@@ -501,24 +520,6 @@ CRITICAL: Your response MUST be ONLY the JSON object above. No text before or af
     const toolKey = `${tool.serverName}:${tool.name}`;
     return `${idx + 1}. "${toolKey}": ${tool.description}`;
   }).join("\n");
-
-  // Calculate valid distributions as examples
-  const validDistributions = [];
-  for (
-    let numGroups = effectiveMinGroups;
-    numGroups <= effectiveMaxGroups;
-    numGroups++
-  ) {
-    const dist = Array.from(
-      { length: numGroups },
-      (_, i) =>
-        Math.floor(tools.length / numGroups) +
-        (i < tools.length % numGroups ? 1 : 0),
-    );
-    validDistributions.push(
-      `${numGroups} groups = [${dist.join(" + ")}] tools`,
-    );
-  }
 
   let userPrompt = `Now create the final tool groups based on your analysis and strategy.
 
@@ -535,18 +536,16 @@ ${groupingStrategy}
 
 EXECUTION REQUIREMENTS:
 
-VALID DISTRIBUTIONS (choose one):
-${validDistributions.map((d) => `• ${d}`).join("\n")}
-
 TOOLS TO ORGANIZE (${tools.length} total):
 ${toolList}
 
 CRITICAL INSTRUCTIONS:
 1. Follow the grouping strategy you developed
-2. Ensure EVERY tool is assigned to EXACTLY ONE group
-3. Respect the distribution constraints (${effectiveMinGroups}-${effectiveMaxGroups} groups, ${constraints.minToolsPerGroup}-${constraints.maxToolsPerGroup} tools each)
-4. Create descriptions that reflect the project-specific insights from your analysis
-5. Use exact tool keys from the list above (case-sensitive)
+2. Respect the distribution constraints (${effectiveMinGroups}-${effectiveMaxGroups} groups, ${constraints.minToolsPerGroup}-${constraints.maxToolsPerGroup} tools each)
+3. EVERY tool MUST appear in AT LEAST ONE group (no tools left unassigned)
+4. Tools CAN appear in multiple groups if they serve multiple purposes
+5. Create descriptions that reflect the project-specific insights from your analysis
+6. Use exact tool keys from the list above (case-sensitive)
 
 Generate the final JSON output now.`;
 
@@ -555,8 +554,8 @@ Generate the final JSON output now.`;
       `\n\n⚠️ RETRY #${attemptNumber}: Previous attempts failed validation. Double-check:
 • Group count is ${effectiveMinGroups}-${effectiveMaxGroups}
 • Each group has ${constraints.minToolsPerGroup}-${constraints.maxToolsPerGroup} tools
-• All ${tools.length} tools assigned exactly once
-• No duplicate tool assignments
+• EVERY tool appears in AT LEAST ONE group (no tools missing)
+• Tools CAN appear in multiple groups if appropriate
 • Tool keys are EXACT matches (case-sensitive)`;
   }
 
