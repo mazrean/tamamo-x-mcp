@@ -53,12 +53,14 @@ describe("MCP Server Workflow Integration", () => {
           name: "File Operations",
           description: "Tools for file system operations",
           tools: MOCK_TOOLS.slice(0, 10),
+          systemPrompt: "You are a file operations agent.",
         },
         {
           id: "group-2",
           name: "Network Operations",
           description: "Tools for network operations",
           tools: MOCK_TOOLS.slice(10, 20),
+          systemPrompt: "You are a network operations agent.",
         },
       ];
 
@@ -112,18 +114,21 @@ describe("MCP Server Workflow Integration", () => {
           name: "File Operations",
           description: "Tools for file system operations",
           tools: MOCK_TOOLS.slice(0, 5),
+          systemPrompt: "You are a file operations agent.",
         },
         {
           id: "group-2",
           name: "Network Operations",
           description: "Tools for network operations",
           tools: MOCK_TOOLS.slice(5, 10),
+          systemPrompt: "You are a network operations agent.",
         },
         {
           id: "group-3",
           name: "Database Operations",
           description: "Tools for database operations",
           tools: MOCK_TOOLS.slice(10, 15),
+          systemPrompt: "You are a database operations agent.",
         },
       ];
 
@@ -147,13 +152,14 @@ describe("MCP Server Workflow Integration", () => {
       );
     });
 
-    it("should include agentId and prompt in tool schema", () => {
+    it("should include prompt in tool schema", () => {
       // Arrange
       const mockGroup: ToolGroup = {
         id: "group-1",
         name: "File Operations",
         description: "Tools for file system operations",
         tools: MOCK_TOOLS.slice(0, 5),
+        systemPrompt: "You are a file operations agent.",
       };
 
       // Act
@@ -163,9 +169,8 @@ describe("MCP Server Workflow Integration", () => {
       assertExists(tool.inputSchema);
       assertEquals(tool.inputSchema.type, "object");
       assertExists(tool.inputSchema.properties);
-      assertExists(tool.inputSchema.properties.agentId);
       assertExists(tool.inputSchema.properties.prompt);
-      assertEquals(tool.inputSchema.required, ["agentId", "prompt"]);
+      assertEquals(tool.inputSchema.required, ["prompt"]);
     });
   });
 
@@ -178,12 +183,14 @@ describe("MCP Server Workflow Integration", () => {
           name: "File Operations",
           description: "Tools for file system operations",
           tools: MOCK_TOOLS.slice(0, 5),
+          systemPrompt: "You are a specialized agent.",
         },
         {
           id: "group-2",
           name: "Network Operations",
           description: "Tools for network operations",
           tools: MOCK_TOOLS.slice(5, 10),
+          systemPrompt: "You are a specialized agent.",
         },
       ];
 
@@ -211,6 +218,7 @@ describe("MCP Server Workflow Integration", () => {
           name: "File Operations",
           description: "Tools for file system operations",
           tools: MOCK_TOOLS.slice(0, 5),
+          systemPrompt: "You are a specialized agent.",
         },
       ];
 
@@ -237,6 +245,7 @@ describe("MCP Server Workflow Integration", () => {
         name: "File Operations",
         description: "Tools for file system operations",
         tools: MOCK_TOOLS.slice(0, 5),
+        systemPrompt: "You are a specialized agent.",
       };
 
       const request: AgentRequest = {
@@ -264,6 +273,7 @@ describe("MCP Server Workflow Integration", () => {
         name: "File Operations",
         description: "Tools for file system operations",
         tools: MOCK_TOOLS.slice(0, 5),
+        systemPrompt: "You are a specialized agent.",
       };
 
       const request: AgentRequest = {
@@ -292,6 +302,7 @@ describe("MCP Server Workflow Integration", () => {
         name: "File Operations",
         description: "Tools for file system operations",
         tools: [],
+        systemPrompt: "You are a specialized agent.",
       };
 
       const request: AgentRequest = {
@@ -319,6 +330,7 @@ describe("MCP Server Workflow Integration", () => {
           name: "File Operations",
           description: "Tools for file system operations",
           tools: MOCK_TOOLS.slice(0, 5),
+          systemPrompt: "You are a specialized agent.",
         },
       ];
 
@@ -341,13 +353,13 @@ describe("MCP Server Workflow Integration", () => {
           name: "File Operations",
           description: "Tools for file system operations",
           tools: MOCK_TOOLS.slice(0, 5),
+          systemPrompt: "You are a specialized agent.",
         },
       ];
 
       const callRequest = {
         name: "agent_group-1",
         arguments: {
-          agentId: "group-1",
           prompt: "List files",
         },
       };
@@ -370,13 +382,13 @@ describe("MCP Server Workflow Integration", () => {
           name: "File Operations",
           description: "Tools for file system operations",
           tools: MOCK_TOOLS.slice(0, 5),
+          systemPrompt: "You are a specialized agent.",
         },
       ];
 
       const callRequest = {
         name: "unknown_agent",
         arguments: {
-          agentId: "unknown",
           prompt: "Do something",
         },
       };
@@ -423,16 +435,16 @@ function createAgentTool(group: ToolGroup) {
     inputSchema: {
       type: "object",
       properties: {
-        agentId: {
-          type: "string",
-          description: "The ID of the sub-agent to invoke",
-        },
         prompt: {
           type: "string",
           description: "The task prompt for the agent",
         },
+        context: {
+          type: "object",
+          description: "Optional context for the agent",
+        },
       },
-      required: ["agentId", "prompt"],
+      required: ["prompt"],
     },
   };
 }
@@ -470,6 +482,7 @@ function handleToolsList(groups: ToolGroup[]) {
   // This will be implemented in src/mcp/server.ts
   return {
     tools: exposeGroupsAsTools(groups),
+    systemPrompt: "You are a specialized agent.",
   };
 }
 
@@ -478,7 +491,8 @@ function handleToolsCall(
   groups: ToolGroup[],
 ) {
   // This will be implemented in src/mcp/server.ts
-  const agentId = callRequest.arguments.agentId as string;
+  // Extract agent ID from tool name (format: agent_${agentId})
+  const agentId = callRequest.name.replace(/^agent_/, "");
   const group = groups.find((g) => `agent_${g.id}` === callRequest.name);
 
   if (!group) {

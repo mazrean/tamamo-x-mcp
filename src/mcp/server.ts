@@ -3,6 +3,13 @@
  * Exposes sub-agents as MCP tools
  */
 
+import { Server } from "npm:@modelcontextprotocol/sdk@1.22.0/server/index.js";
+import { StdioServerTransport } from "npm:@modelcontextprotocol/sdk@1.22.0/server/stdio.js";
+import {
+  type CallToolRequest,
+  CallToolRequestSchema,
+  ListToolsRequestSchema,
+} from "npm:@modelcontextprotocol/sdk@1.22.0/types.js";
 import type {
   AgentRequest,
   MCPToolCallRequest,
@@ -59,10 +66,6 @@ export function createAgentTool(subAgent: SubAgent): MCPAgentTool {
     inputSchema: {
       type: "object",
       properties: {
-        agentId: {
-          type: "string",
-          description: "The ID of the sub-agent to invoke",
-        },
         prompt: {
           type: "string",
           description: "The task prompt for the agent",
@@ -72,7 +75,7 @@ export function createAgentTool(subAgent: SubAgent): MCPAgentTool {
           description: "Optional context for the agent",
         },
       },
-      required: ["agentId", "prompt"],
+      required: ["prompt"],
     },
   };
 }
@@ -94,20 +97,20 @@ export async function handleToolsCall(
   request: MCPToolCallRequest,
 ): Promise<MCPToolCallResponse> {
   // Validate arguments
-  if (!request.arguments.agentId || !request.arguments.prompt) {
+  if (!request.arguments.prompt) {
     return {
       content: [
         {
           type: "text",
-          text: "Missing required arguments: agentId and prompt are required",
+          text: "Missing required argument: prompt is required",
         },
       ],
       isError: true,
     };
   }
 
-  // Find sub-agent by tool name
-  const agentId = (request.arguments.agentId as string).replace(/^agent_/, "");
+  // Extract agent ID from tool name (format: agent_${agentId})
+  const agentId = request.name.replace(/^agent_/, "");
   const agentRequest: AgentRequest = {
     requestId: crypto.randomUUID(),
     agentId,
@@ -170,14 +173,121 @@ export async function handleToolsCall(
 /**
  * Start the MCP server
  */
-// deno-lint-ignore require-await
-export async function startServer(_server: MCPServer): Promise<boolean> {
-  // In real implementation, this would:
-  // 1. Initialize MCP server with stdio/http transport
-  // 2. Register handlers for tools/list and tools/call
-  // 3. Start listening for connections
-  // For now, return true for testing
-  return true;
+export async function startServer(mcpServer: MCPServer): Promise<boolean> {
+  try {
+    // Create MCP SDK Server instance
+    const server = new Server(
+      {
+        name: "tamamo-x-mcp",
+        version: "1.0.0",
+      },
+      {
+        capabilities: {
+          tools: {},
+        },
+      },
+    );
+
+    // Register tools/list handler
+    // deno-lint-ignore require-await
+    server.setRequestHandler(ListToolsRequestSchema, async () => {
+      return {
+        tools: mcpServer.getTools(),
+      };
+    });
+
+    // Register tools/call handler
+    server.setRequestHandler(CallToolRequestSchema, async (request: CallToolRequest) => {
+      const params = request.params;
+
+      // Validate arguments
+      if (!params.arguments?.prompt) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: "Missing required argument: prompt is required",
+            },
+          ],
+          isError: true,
+        };
+      }
+
+      // Extract agent ID from tool name (format: agent_${agentId})
+      const agentId = params.name.replace(/^agent_/, "");
+      const agentRequest: AgentRequest = {
+        requestId: crypto.randomUUID(),
+        agentId,
+        prompt: params.arguments.prompt as string,
+        context: params.arguments.context as Record<string, unknown> | undefined,
+        timestamp: new Date(),
+      };
+
+      const agent = routeRequest(agentRequest, mcpServer.subAgents);
+
+      if (!agent) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Agent ${params.name} not found`,
+            },
+          ],
+          isError: true,
+        };
+      }
+
+      try {
+        const response = await executeAgent(agent, agentRequest);
+
+        if (response.error) {
+          return {
+            content: [
+              {
+                type: "text",
+                text: response.error,
+              },
+            ],
+            isError: true,
+          };
+        }
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: response.result || "No result",
+            },
+          ],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: error instanceof Error ? error.message : "Unknown error",
+            },
+          ],
+          isError: true,
+        };
+      }
+    });
+
+    // Create stdio transport
+    const transport = new StdioServerTransport();
+
+    // Connect server to transport
+    await server.connect(transport);
+
+    // Server is now running and will handle requests via stdio
+    // The transport will keep the process alive
+    return true;
+  } catch (error) {
+    console.error(
+      `Failed to start MCP server: ${error instanceof Error ? error.message : String(error)}`,
+    );
+    return false;
+  }
 }
 
 /**

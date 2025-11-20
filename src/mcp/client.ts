@@ -154,11 +154,22 @@ export class MCPClient {
 
       // Add timeout for HTTP connection (30 seconds)
       const connectPromise = this.client.connect(transport);
+      let timeoutId: number | undefined;
       const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error("Connection timeout after 30 seconds")), 30000);
+        timeoutId = setTimeout(
+          () => reject(new Error("Connection timeout after 30 seconds")),
+          30000,
+        );
       });
 
-      await Promise.race([connectPromise, timeoutPromise]);
+      try {
+        await Promise.race([connectPromise, timeoutPromise]);
+      } finally {
+        // Clear timeout to prevent memory leak
+        if (timeoutId !== undefined) {
+          clearTimeout(timeoutId);
+        }
+      }
       console.log(`[MCP Client] Successfully connected to ${this.config.name} via Streamable HTTP`);
     } catch (error) {
       // Enhanced error message with more details

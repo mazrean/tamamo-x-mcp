@@ -40,18 +40,21 @@ describe("MCP Server", () => {
         name: "File Operations",
         description: "Tools for file system operations",
         tools: MOCK_TOOLS.slice(0, 10),
+        systemPrompt: "You are a specialized agent.",
       },
       {
         id: "group-2",
         name: "Network Operations",
         description: "Tools for network operations",
         tools: MOCK_TOOLS.slice(10, 20),
+        systemPrompt: "You are a specialized agent.",
       },
       {
         id: "group-3",
         name: "Database Operations",
         description: "Tools for database operations",
         tools: MOCK_TOOLS.slice(20, 30),
+        systemPrompt: "You are a specialized agent.",
       },
     ];
 
@@ -121,7 +124,7 @@ describe("MCP Server", () => {
       );
     });
 
-    it("should include agentId and prompt in tool schema", () => {
+    it("should include prompt in tool schema", () => {
       // Arrange
       const subAgent = mockSubAgents[0];
 
@@ -132,13 +135,11 @@ describe("MCP Server", () => {
       assertExists(tool.inputSchema);
       assertEquals(tool.inputSchema.type, "object");
       assertExists(tool.inputSchema.properties);
-      assertExists(tool.inputSchema.properties.agentId);
       assertExists(tool.inputSchema.properties.prompt);
-      assertEquals(tool.inputSchema.properties.agentId.type, "string");
       assertEquals(tool.inputSchema.properties.prompt.type, "string");
     });
 
-    it("should mark agentId and prompt as required", () => {
+    it("should mark prompt as required", () => {
       // Arrange
       const subAgent = mockSubAgents[0];
 
@@ -147,8 +148,8 @@ describe("MCP Server", () => {
 
       // Assert
       assertExists(tool.inputSchema.required);
-      assert(tool.inputSchema.required.includes("agentId"));
       assert(tool.inputSchema.required.includes("prompt"));
+      assertEquals(tool.inputSchema.required.length, 1);
     });
 
     it("should include context as optional parameter", () => {
