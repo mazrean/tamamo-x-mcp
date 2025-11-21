@@ -96,7 +96,15 @@ Starts MCP server exposing grouped sub-agents via stdio transport.
 
 ## Documentation
 
+### For Users
+
+- **[Getting Started](docs/getting-started.md)**: Step-by-step tutorial for first-time users
 - **[Usage Guide](docs/usage.md)**: Detailed configuration and CLI command reference
+- **[Use Cases](docs/use-cases.md)**: Real-world examples for different project types
+- **[Troubleshooting](docs/troubleshooting.md)**: Solutions to common problems
+
+### For Developers
+
 - **[Development Guide](DEVELOPMENT.md)**: Contributing and development setup
 - **[Feature Specification](specs/001-tool-grouping/spec.md)**: Complete feature documentation
 

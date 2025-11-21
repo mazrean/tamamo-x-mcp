@@ -2,6 +2,13 @@
 
 This guide provides instructions for contributing to tamamo-x-mcp development.
 
+**User Documentation**:
+
+- **[Getting Started](docs/getting-started.md)**: Tutorial for new users
+- **[Usage Guide](docs/usage.md)**: Configuration reference
+- **[Use Cases](docs/use-cases.md)**: Example configurations
+- **[Troubleshooting](docs/troubleshooting.md)**: Common issues and solutions
+
 ## Table of Contents
 
 - [Prerequisites](#prerequisites)

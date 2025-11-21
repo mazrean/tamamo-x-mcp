@@ -2,6 +2,12 @@
 
 This guide provides detailed instructions for using tamamo-x-mcp.
 
+**Quick Links**:
+
+- **[Getting Started](getting-started.md)**: New to tamamo-x-mcp? Start here!
+- **[Use Cases](use-cases.md)**: See examples for your project type
+- **[Troubleshooting](troubleshooting.md)**: Having issues? Check here first
+
 ## Table of Contents
 
 - [Configuration](#configuration)
