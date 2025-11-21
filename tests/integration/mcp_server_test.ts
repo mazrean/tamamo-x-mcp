@@ -29,10 +29,10 @@ describe("MCP Server Workflow Integration", () => {
   beforeEach(async () => {
     // Create temporary directory for each test
     tempDir = await Deno.makeTempDir({ prefix: "tamamo_x_mcp_test_" });
-    groupsPath = join(tempDir, ".tamamo-x", "groups.json");
+    groupsPath = join(tempDir, ".tamamo-x");
 
     // Create .tamamo-x directory
-    await Deno.mkdir(join(tempDir, ".tamamo-x"), { recursive: true });
+    await Deno.mkdir(groupsPath, { recursive: true });
   });
 
   afterEach(async () => {
@@ -45,8 +45,8 @@ describe("MCP Server Workflow Integration", () => {
   });
 
   describe("Server startup and initialization", () => {
-    it("should load groups from .tamamo-x/groups.json", async () => {
-      // Arrange: Create mock groups file
+    it("should load groups from .tamamo-x/ directory structure", async () => {
+      // Arrange: Create mock groups in new format
       const mockGroups: ToolGroup[] = [
         {
           id: "group-1",
@@ -64,7 +64,47 @@ describe("MCP Server Workflow Integration", () => {
         },
       ];
 
-      await Deno.writeTextFile(groupsPath, JSON.stringify(mockGroups, null, 2));
+      // Create directory structure
+      const groupsDir = join(groupsPath, "groups");
+      await Deno.mkdir(groupsDir, { recursive: true });
+
+      // Save instructions.md
+      await Deno.writeTextFile(
+        join(groupsPath, "instructions.md"),
+        "Test instructions for sub-agents",
+      );
+
+      // Save each group
+      for (const group of mockGroups) {
+        const groupDir = join(groupsDir, group.id);
+        await Deno.mkdir(groupDir, { recursive: true });
+
+        // Save group.json
+        await Deno.writeTextFile(
+          join(groupDir, "group.json"),
+          JSON.stringify(
+            {
+              id: group.id,
+              name: group.name,
+              tools: group.tools,
+            },
+            null,
+            2,
+          ),
+        );
+
+        // Save description.md
+        await Deno.writeTextFile(
+          join(groupDir, "description.md"),
+          group.description,
+        );
+
+        // Save prompt.md
+        await Deno.writeTextFile(
+          join(groupDir, "prompt.md"),
+          group.systemPrompt,
+        );
+      }
 
       // Act: Simulate loading groups
       const loadedGroups = await loadGroups(groupsPath);
@@ -80,27 +120,28 @@ describe("MCP Server Workflow Integration", () => {
       );
     });
 
-    it("should fail if groups.json does not exist", async () => {
-      // Arrange: No groups file created
-      const nonExistentPath = join(tempDir, ".tamamo-x", "groups.json");
+    it("should fail if .tamamo-x directory does not exist", async () => {
+      // Arrange: No .tamamo-x directory created
+      const nonExistentPath = join(tempDir, "nonexistent", ".tamamo-x");
 
       // Act & Assert
       await assertRejects(
         async () => await loadGroups(nonExistentPath),
         Error,
-        "groups.json not found",
+        ".tamamo-x directory not found",
       );
     });
 
-    it("should fail if groups.json is malformed", async () => {
-      // Arrange: Create malformed groups file
-      await Deno.writeTextFile(groupsPath, "{ invalid json");
+    it("should fail if groups directory is empty", async () => {
+      // Arrange: Create .tamamo-x but no groups
+      const groupsDir = join(groupsPath, "groups");
+      await Deno.mkdir(groupsDir, { recursive: true });
 
       // Act & Assert
       await assertRejects(
         async () => await loadGroups(groupsPath),
         Error,
-        "Failed to parse groups.json",
+        "No groups found",
       );
     });
   });
@@ -409,16 +450,57 @@ describe("MCP Server Workflow Integration", () => {
 
 // Helper functions (to be implemented in actual code)
 
-async function loadGroups(path: string): Promise<ToolGroup[]> {
+async function loadGroups(baseDir: string): Promise<ToolGroup[]> {
   // This will be implemented in src/cli/commands/mcp.ts
   try {
-    const content = await Deno.readTextFile(path);
-    return JSON.parse(content);
+    const groupsDir = join(baseDir, "groups");
+    const groups: ToolGroup[] = [];
+
+    // Read all group directories
+    for await (const entry of Deno.readDir(groupsDir)) {
+      if (!entry.isDirectory) continue;
+
+      const groupId = entry.name;
+      const groupDir = join(groupsDir, groupId);
+
+      // Load group.json
+      const groupJsonPath = join(groupDir, "group.json");
+      const groupJson = JSON.parse(await Deno.readTextFile(groupJsonPath));
+
+      // Load description.md
+      const descriptionPath = join(groupDir, "description.md");
+      const description = (await Deno.readTextFile(descriptionPath)).trim();
+
+      // Load prompt.md
+      const promptPath = join(groupDir, "prompt.md");
+      const systemPrompt = (await Deno.readTextFile(promptPath)).trim();
+
+      // Assemble ToolGroup
+      const group: ToolGroup = {
+        id: groupJson.id,
+        name: groupJson.name,
+        description,
+        tools: groupJson.tools,
+        systemPrompt,
+        ...(groupJson.complementarityScore !== undefined && {
+          complementarityScore: groupJson.complementarityScore,
+        }),
+        ...(groupJson.metadata && { metadata: groupJson.metadata }),
+      };
+
+      groups.push(group);
+    }
+
+    if (groups.length === 0) {
+      throw new Error("No groups found");
+    }
+
+    return groups;
   } catch (error) {
     if (error instanceof Deno.errors.NotFound) {
-      throw new Error("groups.json not found");
+      throw new Error(".tamamo-x directory not found");
     }
-    throw new Error("Failed to parse groups.json");
+    throw error;
   }
 }
 

@@ -23,7 +23,6 @@ import type { Configuration, ProjectContext, ToolGroup } from "../../types/index
 
 const CONFIG_FILE = "tamamo-x.config.json";
 const GROUPS_OUTPUT_DIR = ".tamamo-x";
-const GROUPS_OUTPUT_FILE = "groups.json";
 
 /**
  * Read project context from configuration and/or Agent.md/CLAUDE.md files
@@ -177,30 +176,71 @@ The instructions should be comprehensive but concise (aim for 300-500 words).`;
 }
 
 /**
- * Save tool groups and instructions to .tamamo-x/groups.json
+ * Save tool groups and instructions to .tamamo-x/ directory structure
+ * - instructions.md: Top-level usage instructions
+ * - groups/<group-id>/group.json: Group metadata (id, name, tools, etc.)
+ * - groups/<group-id>/description.md: Group description
+ * - groups/<group-id>/prompt.md: Group system prompt
+ *
+ * Exported for testing purposes
  */
-async function saveGroups(
+export async function saveGroups(
   groups: ToolGroup[],
   instructions: string,
+  outputDir: string = GROUPS_OUTPUT_DIR,
 ): Promise<void> {
-  const outputDir = GROUPS_OUTPUT_DIR;
-  const outputPath = join(outputDir, GROUPS_OUTPUT_FILE);
-
-  // Ensure output directory exists
+  // Ensure base output directory exists
   await ensureDir(outputDir);
 
-  // Write groups with instructions
-  const content = JSON.stringify(
-    {
-      instructions,
-      groups,
-    },
-    null,
-    2,
-  );
-  await Deno.writeTextFile(outputPath, content + "\n");
+  // Save top-level instructions.md
+  const instructionsPath = join(outputDir, "instructions.md");
+  await Deno.writeTextFile(instructionsPath, instructions + "\n");
 
-  console.log(`✓ Saved ${groups.length} agent groups to ${outputPath}`);
+  // Remove old groups directory to avoid stale groups
+  const groupsDir = join(outputDir, "groups");
+  try {
+    await Deno.remove(groupsDir, { recursive: true });
+  } catch (error) {
+    if (!(error instanceof Deno.errors.NotFound)) {
+      throw error;
+    }
+  }
+
+  // Create fresh groups directory
+  await ensureDir(groupsDir);
+
+  for (const group of groups) {
+    const groupDir = join(groupsDir, group.id);
+    await ensureDir(groupDir);
+
+    // Save group.json (metadata without description/systemPrompt)
+    const groupJson = {
+      id: group.id,
+      name: group.name,
+      tools: group.tools,
+      ...(group.complementarityScore !== undefined && {
+        complementarityScore: group.complementarityScore,
+      }),
+      ...(group.metadata && { metadata: group.metadata }),
+    };
+    const groupJsonPath = join(groupDir, "group.json");
+    await Deno.writeTextFile(
+      groupJsonPath,
+      JSON.stringify(groupJson, null, 2) + "\n",
+    );
+
+    // Save description.md
+    const descriptionPath = join(groupDir, "description.md");
+    await Deno.writeTextFile(descriptionPath, group.description + "\n");
+
+    // Save prompt.md
+    const promptPath = join(groupDir, "prompt.md");
+    await Deno.writeTextFile(promptPath, group.systemPrompt + "\n");
+  }
+
+  console.log(`✓ Saved ${groups.length} agent groups to ${outputDir}/`);
+  console.log(`  - instructions.md`);
+  console.log(`  - groups/ (${groups.length} group directories)`);
 }
 
 /**
@@ -212,7 +252,7 @@ async function saveGroups(
  * 4. Read project context (if available)
  * 5. Create LLM client with discovered credentials
  * 6. Analyze and group tools using LLM
- * 7. Save groups to .tamamo-x/groups.json
+ * 7. Save groups to .tamamo-x/ directory structure
  */
 export async function build(): Promise<void> {
   console.log("Building sub-agent groups...\n");

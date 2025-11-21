@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, it } from "https://deno.land/std@0.224
 import { join } from "https://deno.land/std@0.224.0/path/mod.ts";
 import { getToolSubset, MOCK_TOOLS } from "../fixtures/mock_tools.ts";
 import type { GroupingConstraints, ToolGroup } from "../../src/types/index.ts";
+import { saveGroups } from "../../src/cli/commands/build.ts";
 
 /**
  * Integration tests for build workflow (User Story 2)
@@ -13,7 +14,7 @@ import type { GroupingConstraints, ToolGroup } from "../../src/types/index.ts";
  * 2. Use LLM to analyze tools in batches (10 tools per request)
  * 3. Create 3-10 agent groups with 5-20 tools each
  * 4. Validate constraints (min/max tools per group, min/max groups)
- * 5. Save groups to .tamamo-x/groups.json
+ * 5. Save groups to .tamamo-x/ directory structure
  */
 
 describe("Build Workflow Integration", () => {
@@ -279,7 +280,7 @@ describe("Build Workflow Integration", () => {
   });
 
   describe("Build output persistence", () => {
-    it("should save groups to .tamamo-x/groups.json", async () => {
+    it("should save groups to .tamamo-x/ directory structure", async () => {
       // Arrange
       const tools = getToolSubset(30);
       const constraints: GroupingConstraints = {
@@ -290,19 +291,75 @@ describe("Build Workflow Integration", () => {
       };
       const groups = await simulateGrouping(tools, constraints);
       const outputDir = join(tempDir, ".tamamo-x");
-      const outputPath = join(outputDir, "groups.json");
 
-      // Act
+      // Act: Save groups in new format
       await Deno.mkdir(outputDir, { recursive: true });
-      await Deno.writeTextFile(outputPath, JSON.stringify(groups, null, 2));
+
+      // Save instructions.md
+      const instructionsPath = join(outputDir, "instructions.md");
+      await Deno.writeTextFile(instructionsPath, "Test instructions");
+
+      // Save groups
+      const groupsDir = join(outputDir, "groups");
+      await Deno.mkdir(groupsDir, { recursive: true });
+
+      for (const group of groups) {
+        const groupDir = join(groupsDir, group.id);
+        await Deno.mkdir(groupDir, { recursive: true });
+
+        // Save group.json
+        await Deno.writeTextFile(
+          join(groupDir, "group.json"),
+          JSON.stringify(
+            {
+              id: group.id,
+              name: group.name,
+              tools: group.tools,
+            },
+            null,
+            2,
+          ),
+        );
+
+        // Save description.md
+        await Deno.writeTextFile(
+          join(groupDir, "description.md"),
+          group.description,
+        );
+
+        // Save prompt.md
+        await Deno.writeTextFile(
+          join(groupDir, "prompt.md"),
+          group.systemPrompt,
+        );
+      }
 
       // Assert
-      const exists = await Deno.stat(outputPath).then(() => true).catch(() => false);
-      assertEquals(exists, true, "groups.json should be created");
+      const instructionsExists = await Deno.stat(instructionsPath).then(() => true).catch(() =>
+        false
+      );
+      assertEquals(instructionsExists, true, "instructions.md should be created");
 
-      const content = await Deno.readTextFile(outputPath);
-      const savedGroups = JSON.parse(content);
-      assertEquals(savedGroups.length, groups.length, "All groups should be saved");
+      const groupsDirExists = await Deno.stat(groupsDir).then(() => true).catch(() => false);
+      assertEquals(groupsDirExists, true, "groups directory should be created");
+
+      // Verify each group directory
+      for (const group of groups) {
+        const groupDir = join(groupsDir, group.id);
+        const groupJsonPath = join(groupDir, "group.json");
+        const descriptionPath = join(groupDir, "description.md");
+        const promptPath = join(groupDir, "prompt.md");
+
+        const groupJsonExists = await Deno.stat(groupJsonPath).then(() => true).catch(() => false);
+        const descriptionExists = await Deno.stat(descriptionPath).then(() => true).catch(() =>
+          false
+        );
+        const promptExists = await Deno.stat(promptPath).then(() => true).catch(() => false);
+
+        assertEquals(groupJsonExists, true, `group.json should exist for ${group.id}`);
+        assertEquals(descriptionExists, true, `description.md should exist for ${group.id}`);
+        assertEquals(promptExists, true, `prompt.md should exist for ${group.id}`);
+      }
     });
 
     it("should create .tamamo-x directory if it doesn't exist", async () => {
@@ -315,6 +372,88 @@ describe("Build Workflow Integration", () => {
       // Assert
       const exists = await Deno.stat(outputDir).then(() => true).catch(() => false);
       assertEquals(exists, true, ".tamamo-x directory should be created");
+    });
+
+    it("should remove stale groups from previous builds", async () => {
+      // Arrange: Create initial groups using real saveGroups
+      const tools = getToolSubset(30);
+      const constraints: GroupingConstraints = {
+        minToolsPerGroup: 5,
+        maxToolsPerGroup: 20,
+        minGroups: 3,
+        maxGroups: 10,
+      };
+      const firstGroups = await simulateGrouping(tools, constraints);
+      const outputDir = join(tempDir, ".tamamo-x");
+      const groupsDir = join(outputDir, "groups");
+
+      // Save first set of groups using real saveGroups function
+      await saveGroups(firstGroups, "First build instructions", outputDir);
+
+      // Manually add a stale group that won't be in the second build
+      const staleGroupDir = join(groupsDir, "stale-group");
+      await Deno.mkdir(staleGroupDir, { recursive: true });
+      await Deno.writeTextFile(
+        join(staleGroupDir, "group.json"),
+        JSON.stringify(
+          { id: "stale-group", name: "Stale", tools: [] },
+          null,
+          2,
+        ),
+      );
+      await Deno.writeTextFile(
+        join(staleGroupDir, "description.md"),
+        "Stale group description",
+      );
+      await Deno.writeTextFile(
+        join(staleGroupDir, "prompt.md"),
+        "Stale group prompt",
+      );
+
+      // Verify stale group exists before rebuild
+      const staleGroupExistsBefore = await Deno.stat(staleGroupDir)
+        .then(() => true)
+        .catch(() => false);
+      assertEquals(
+        staleGroupExistsBefore,
+        true,
+        "Stale group should exist before rebuild",
+      );
+
+      // Act: Save second set of groups (fewer groups this time) using real saveGroups
+      const secondGroups = firstGroups.slice(0, 2);
+      await saveGroups(secondGroups, "Second build instructions", outputDir);
+
+      // Assert: Verify stale group is removed
+      const staleGroupExistsAfter = await Deno.stat(staleGroupDir)
+        .then(() => true)
+        .catch(() => false);
+      assertEquals(
+        staleGroupExistsAfter,
+        false,
+        "Stale group should be removed after rebuild",
+      );
+
+      // Verify only new groups exist
+      const entries = [];
+      for await (const entry of Deno.readDir(groupsDir)) {
+        if (entry.isDirectory) {
+          entries.push(entry.name);
+        }
+      }
+
+      assertEquals(
+        entries.length,
+        secondGroups.length,
+        "Only new groups should exist",
+      );
+      for (const group of secondGroups) {
+        assertEquals(
+          entries.includes(group.id),
+          true,
+          `New group ${group.id} should exist`,
+        );
+      }
     });
   });
 

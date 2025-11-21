@@ -68,7 +68,7 @@ Analyzes tools and creates specialized agent groups:
 - Discovers all available tools
 - Uses LLM to analyze and group tools
 - Creates 3-10 specialized agent groups
-- Saves groups to `.tamamo-x/groups.json`
+- Saves groups to `.tamamo-x/` directory structure (instructions.md + groups/)
 
 #### 3. Start MCP Server
 
@@ -148,14 +148,14 @@ Analyze tools and create sub-agent groups using LLM.
 - Reads configuration from `./tamamo-x.config.json`
 - Connects to configured MCP servers
 - Groups tools using LLM analysis
-- Saves groups to `./.tamamo-x/groups.json`
+- Saves groups to `./.tamamo-x/` directory structure
 
 ### `tamamo-x-mcp mcp`
 
 Start MCP server exposing grouped sub-agents.
 
 - Reads configuration from `./tamamo-x.config.json`
-- Loads groups from `./.tamamo-x/groups.json`
+- Loads groups from `./.tamamo-x/` directory structure
 - Starts stdio-based MCP server
 
 ### Global Options

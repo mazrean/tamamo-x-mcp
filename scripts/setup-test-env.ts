@@ -4,7 +4,7 @@
  *
  * This script creates:
  * - tamamo-x.config.json (test configuration)
- * - .tamamo-x/groups.json (mock tool groups)
+ * - .tamamo-x/ directory structure (mock tool groups)
  *
  * Usage:
  *   deno run --allow-read --allow-write scripts/setup-test-env.ts
@@ -318,7 +318,6 @@ async function setupTestEnvironment() {
   const cwd = Deno.cwd();
   const configPath = join(cwd, "tamamo-x.config.json");
   const tamamoDir = join(cwd, ".tamamo-x");
-  const groupsPath = join(tamamoDir, "groups.json");
 
   console.log("Setting up test environment...\n");
 
@@ -340,16 +339,47 @@ async function setupTestEnvironment() {
   );
   console.log(`✓ Created ${configPath}`);
 
-  // Write groups file (new format with instructions)
-  const groupsData = {
-    instructions: TEST_INSTRUCTIONS,
-    groups: TEST_GROUPS,
-  };
-  await Deno.writeTextFile(
-    groupsPath,
-    JSON.stringify(groupsData, null, 2),
-  );
-  console.log(`✓ Created ${groupsPath}`);
+  // Write instructions.md
+  const instructionsPath = join(tamamoDir, "instructions.md");
+  await Deno.writeTextFile(instructionsPath, TEST_INSTRUCTIONS);
+  console.log(`✓ Created ${instructionsPath}`);
+
+  // Write groups in new format
+  const groupsDir = join(tamamoDir, "groups");
+  await Deno.mkdir(groupsDir, { recursive: true });
+
+  for (const group of TEST_GROUPS) {
+    const groupDir = join(groupsDir, group.id);
+    await Deno.mkdir(groupDir, { recursive: true });
+
+    // Save group.json
+    await Deno.writeTextFile(
+      join(groupDir, "group.json"),
+      JSON.stringify(
+        {
+          id: group.id,
+          name: group.name,
+          tools: group.tools,
+        },
+        null,
+        2,
+      ),
+    );
+
+    // Save description.md
+    await Deno.writeTextFile(
+      join(groupDir, "description.md"),
+      group.description,
+    );
+
+    // Save prompt.md
+    await Deno.writeTextFile(
+      join(groupDir, "prompt.md"),
+      group.systemPrompt,
+    );
+  }
+
+  console.log(`✓ Created ${TEST_GROUPS.length} groups in ${groupsDir}`);
 
   console.log("\nTest environment ready!");
   console.log("\nNext steps:");
