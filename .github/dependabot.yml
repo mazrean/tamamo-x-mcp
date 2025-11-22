@@ -1,0 +1,51 @@
+version: 2
+updates:
+  # GitHub Actions dependencies
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: "chore"
+      prefix-development: "chore"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "github-actions"
+    reviewers:
+      - "mazrean"
+    assignees:
+      - "mazrean"
+
+  # npm dependencies (for npm package build)
+  - package-ecosystem: "npm"
+    directory: "/npm"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: "chore"
+      prefix-development: "chore"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "npm"
+    reviewers:
+      - "mazrean"
+    assignees:
+      - "mazrean"
+    ignore:
+      # Ignore major version updates for now (manual review preferred)
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
+  # Deno dependencies (deno.json)
+  # Note: Dependabot doesn't natively support Deno yet, but will check deno.lock if present
+  # For now, manual updates via `deno task update-deps` recommended

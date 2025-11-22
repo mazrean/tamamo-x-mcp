@@ -10,6 +10,7 @@ description: Software Development Project planner for managing tasks and milesto
 ## 出力内容
 
 ### 1. 技術設計
+
 - **ディレクトリ構造**: フォルダ構成と各ディレクトリの役割
 - **API設計**: 主要エンドポイントと説明
 - **データベース設計**: テーブル定義、ER図（Mermaid）
@@ -19,6 +20,7 @@ description: Software Development Project planner for managing tasks and milesto
 - **コード例**: 複雑な処理の実装例
 
 ### 2. 実装計画（PMBOKのWBS）
+
 - **階層的タスク分解**: 成果物ベースで1〜3日単位まで分解
 - **各タスク情報**: ID、名前、内容、完了条件、依存関係
 - **並行作業**: 同時実行可能なタスクを明示
@@ -31,9 +33,11 @@ description: Software Development Project planner for managing tasks and milesto
 # プロジェクト技術設計・実装計画
 
 ## 1. 概要
+
 - 目的、前提条件、制約条件
 
 ## 2. 技術設計
+
 - ディレクトリ構造
 - データベース設計（ER図、テーブル定義）
 - インフラ設計（構成図、技術スタック）
@@ -41,17 +45,20 @@ description: Software Development Project planner for managing tasks and milesto
 - 重要なコード例
 
 ## 3. 実装計画（WBS）
+
 - タスク分解（階層構造、ID、名前、内容、完了条件、工数、依存関係）
 - タスクフロー図（Mermaid）
 - 並行作業計画
 - クリティカルパス
 
 ## 4. 補足
+
 - リスクと対策
 - 実装ガイドライン
 ```
 
 ## 品質基準
+
 - **前提の明示**: 技術選定の理由を説明
 - **必要十分**: 実装に必要な情報のみ
 - **再現性**: ジュニアエンジニアが同等の実装をできる詳細さ

@@ -1,0 +1,35 @@
+{
+  "$schema": "../contracts/config-schema.json",
+  "version": "1.0.0",
+  "mcpServers": [
+    {
+      "name": "filesystem",
+      "transport": "stdio",
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/path/to/workspace"]
+    },
+    {
+      "name": "brave-search",
+      "transport": "stdio",
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-brave-search"]
+    }
+  ],
+  "llmProvider": {
+    "type": "acp",
+    "agentCommand": "gemini",
+    "agentArgs": ["--model", "gemini-2.0-flash-exp"],
+    "model": "gemini-2.0-flash-exp"
+  },
+  "projectContext": {
+    "agentFilePath": "Agent.md",
+    "claudeFilePath": "CLAUDE.md",
+    "domain": "web development"
+  },
+  "groupingConstraints": {
+    "minToolsPerGroup": 5,
+    "maxToolsPerGroup": 20,
+    "minGroups": 3,
+    "maxGroups": 10
+  }
+}

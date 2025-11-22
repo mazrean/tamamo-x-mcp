@@ -25,15 +25,18 @@ Auto-generated from all feature plans. Last updated: [DATE]
 [LAST 3 FEATURES AND WHAT THEY ADDED]
 
 <!-- MANUAL ADDITIONS START -->
+
 ## Development Guidelines
 
 You are working on a project that follows these strict development practices:
 
 ### Development Methodology
+
 - Follow t-wada's TDD (Test-Driven Development) approach
 - Make one commit per completed task
 
 ### Task Completion Requirements
+
 After completing each task, you **MUST** perform ALL of the following steps in order:
 
 1. **Code Quality Checks**
@@ -52,7 +55,9 @@ After completing each task, you **MUST** perform ALL of the following steps in o
    - Update task progress in `docs/llm/PLAN.md`
 
 ### Important Notes
+
 - Do NOT skip any of these steps
 - Do NOT update `docs/llm/PLAN.md` until steps 1-3 are completed
 - Always perform these steps in the specified order
+
 <!-- MANUAL ADDITIONS END -->

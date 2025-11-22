@@ -1,0 +1,49 @@
+{
+  "name": "@tamamo-x/mcp",
+  "version": "0.1.0",
+  "exports": "./src/cli/main.ts",
+  "exclude": ["npm/", "dist/", "cov_profile/"],
+  "nodeModulesDir": "auto",
+  "tasks": {
+    "compile": "deno compile --allow-all --output dist/tamamo-x src/cli/main.ts",
+    "npm:build": "deno run -A scripts/build_npm.ts",
+    "lint": "deno lint",
+    "fmt": "deno fmt",
+    "test": "deno test --allow-all"
+  },
+  "lint": {
+    "exclude": ["npm/", "dist/", "cov_profile/"],
+    "rules": {
+      "tags": ["recommended"]
+    }
+  },
+  "fmt": {
+    "useTabs": false,
+    "lineWidth": 100,
+    "indentWidth": 2,
+    "semiColons": true,
+    "singleQuote": false,
+    "proseWrap": "preserve"
+  },
+  "compilerOptions": {
+    "strict": true,
+    "checkJs": false,
+    "lib": ["deno.window", "deno.ns"],
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "strictBindCallApply": true,
+    "strictPropertyInitialization": true,
+    "noImplicitThis": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true
+  },
+  "imports": {
+    "zod": "npm:zod@4.1.12",
+    "npm:zod": "npm:zod@4.1.12",
+    "zod@3.24.1": "npm:zod@4.1.12",
+    "npm:zod@3.24.1": "npm:zod@4.1.12"
+  }
+}

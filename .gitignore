@@ -1,3 +1,41 @@
 .serena
 .vscode
 .worktrees
+
+# Node.js / Deno dependencies
+node_modules/
+npm/
+
+# Build outputs
+dist/
+build/
+coverage/
+.tamamo-x/
+
+# Logs
+*.log
+*.log.*
+
+# Environment variables and secrets
+.env
+.env.*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor files
+*.swp
+*.tmp
+*.swo
+*~
+
+# Coverage reports
+cov_profile/
+cov_tmp/
+cov_profile.lcov
+coverage_output.txt
+
+# act (local GitHub Actions testing)
+.secrets
+.env.secrets

@@ -1,0 +1,248 @@
+name: Distribution Validation
+
+# Nightly deep parity testing to ensure Deno binary and npm package remain identical
+on:
+  schedule:
+    # Run daily at 2 AM UTC
+    - cron: "0 2 * * *"
+  workflow_dispatch: # Allow manual trigger
+  push:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "tests/distribution/**"
+      - "deno.json"
+      - "scripts/build_npm.ts"
+
+permissions:
+  contents: read
+  issues: write # For automated issue creation on failures
+
+jobs:
+  distribution-parity:
+    name: Feature Parity Validation
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Cache Deno dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.deno
+            ~/.cache/deno
+          key: ${{ runner.os }}-deno-${{ hashFiles('deno.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-deno-
+
+      - name: Build Deno binary
+        run: deno task compile
+
+      - name: Build npm package
+        run: deno task npm:build
+
+      - name: Run distribution parity tests
+        run: deno test --allow-all tests/distribution/
+
+      - name: Archive distributions on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: failed-distributions-${{ matrix.os }}
+          path: |
+            dist/
+            npm/
+          retention-days: 7
+
+      - name: Create issue on parity violation
+        if: failure() && github.event_name == 'schedule'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const os = '${{ matrix.os }}';
+            const runUrl = `${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}`;
+
+            const title = `🚨 Distribution Parity Violation Detected (${os})`;
+            const body = `## Distribution Parity Test Failed
+
+            **Platform**: ${os}
+            **Workflow Run**: ${runUrl}
+            **Date**: ${new Date().toISOString()}
+
+            ### Description
+            The nightly distribution validation detected a behavior difference between the Deno binary and npm package distributions.
+
+            ### Impact
+            - Feature parity requirement (FR-015) is violated
+            - Users may experience inconsistent behavior between distribution formats
+
+            ### Action Required
+            1. Review the failed test output in the workflow run
+            2. Identify the source of the divergence
+            3. Fix the implementation to restore parity
+            4. Verify fix with \`deno test tests/distribution/\`
+
+            ### Artifacts
+            Failed distributions are archived in the workflow run artifacts for analysis.
+
+            ---
+            *This issue was automatically created by the Distribution Validation workflow*`;
+
+            // Check if similar issue already exists
+            const issues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'distribution-parity,automated'
+            });
+
+            const existingIssue = issues.data.find(issue =>
+              issue.title.includes(`Distribution Parity Violation`) &&
+              issue.title.includes(os)
+            );
+
+            if (!existingIssue) {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: title,
+                body: body,
+                labels: ['bug', 'distribution-parity', 'automated', 'priority-high']
+              });
+            } else {
+              // Add comment to existing issue
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: existingIssue.number,
+                body: `### Additional Failure Detected\n\n**Date**: ${new Date().toISOString()}\n**Run**: ${runUrl}\n\nThe parity violation persists.`
+              });
+            }
+
+  deep-validation:
+    name: Deep Parity Validation
+    runs-on: ubuntu-latest
+    needs: distribution-parity
+    if: success()
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Build both distributions
+        run: |
+          deno task compile
+          deno task npm:build
+
+      - name: Compare CLI help output
+        shell: bash
+        run: |
+          echo "Testing help output parity..."
+          ./dist/tamamo-x --help > deno-help.txt
+          node npm/dist/main.js --help > npm-help.txt
+
+          if ! diff -u deno-help.txt npm-help.txt; then
+            echo "❌ Help output differs between distributions"
+            exit 1
+          fi
+          echo "✅ Help output is identical"
+
+      - name: Compare version output
+        shell: bash
+        run: |
+          echo "Testing version output parity..."
+          ./dist/tamamo-x --version > deno-version.txt
+          node npm/dist/main.js --version > npm-version.txt
+
+          if ! diff -u deno-version.txt npm-version.txt; then
+            echo "❌ Version output differs between distributions"
+            exit 1
+          fi
+          echo "✅ Version output is identical"
+
+      - name: Verify binary size constraints
+        shell: bash
+        run: |
+          DENO_SIZE=$(stat -f%z dist/tamamo-x 2>/dev/null || stat -c%s dist/tamamo-x)
+          MAX_SIZE=$((50 * 1024 * 1024))  # 50MB max
+
+          if [ "$DENO_SIZE" -gt "$MAX_SIZE" ]; then
+            echo "❌ Deno binary size ($DENO_SIZE bytes) exceeds maximum ($MAX_SIZE bytes)"
+            exit 1
+          fi
+
+          echo "✅ Deno binary size ($DENO_SIZE bytes) is within limits"
+
+      - name: Summary
+        run: |
+          echo "## Distribution Validation Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ All parity tests passed" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Deno binary and npm package are functionally identical" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Binary size constraints satisfied" >> $GITHUB_STEP_SUMMARY
+
+  validate-npm-package:
+    name: Validate npm Package Installation
+    runs-on: ubuntu-latest
+    needs: distribution-parity
+    if: success()
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Build npm package
+        run: deno task npm:build
+
+      - name: Test npm pack
+        working-directory: npm
+        run: npm pack
+
+      - name: Test npx execution
+        working-directory: npm
+        run: |
+          echo "Testing npx execution..."
+          node dist/main.js --version
+
+      - name: Verify package.json validity
+        working-directory: npm
+        run: |
+          echo "Validating package.json..."
+          node -e "require('./package.json')"
+          echo "✅ package.json is valid"

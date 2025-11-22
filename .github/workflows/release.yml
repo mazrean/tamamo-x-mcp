@@ -1,0 +1,174 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: read # Default to read-only
+  actions: read # Default to read-only
+
+jobs:
+  build-binaries:
+    name: Build ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+      actions: write # Required for upload-artifact
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Linux x86_64
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            binary-name: tamamo-x-mcp-linux-x64
+            artifact-name: tamamo-x-mcp-linux-x64
+          # Linux ARM64
+          - os: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+            binary-name: tamamo-x-mcp-linux-arm64
+            artifact-name: tamamo-x-mcp-linux-arm64
+          # macOS x86_64 (Intel)
+          - os: macos-13
+            target: x86_64-apple-darwin
+            binary-name: tamamo-x-mcp-darwin-x64
+            artifact-name: tamamo-x-mcp-darwin-x64
+          # macOS ARM64 (Apple Silicon)
+          - os: macos-14
+            target: aarch64-apple-darwin
+            binary-name: tamamo-x-mcp-darwin-arm64
+            artifact-name: tamamo-x-mcp-darwin-arm64
+          # Windows x86_64
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            binary-name: tamamo-x-mcp-windows-x64.exe
+            artifact-name: tamamo-x-mcp-windows-x64.exe
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Create dist directory
+        shell: bash
+        run: mkdir -p dist
+
+      - name: Build binary
+        shell: bash
+        run: |
+          deno compile \
+            --allow-all \
+            --target ${{ matrix.target }} \
+            --output dist/${{ matrix.binary-name }} \
+            src/cli/main.ts
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact-name }}
+          path: dist/${{ matrix.binary-name }}
+          retention-days: 1
+
+  build-npm:
+    name: Build npm package
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: write # Required for upload-artifact
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Build npm package
+        run: deno task npm:build
+
+      - name: Upload npm package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: npm-package
+          path: npm/
+          retention-days: 1
+
+  create-release:
+    name: Create GitHub Release
+    needs: [build-binaries, build-npm]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Required to create GitHub releases
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create checksums
+        run: |
+          cd artifacts
+          for dir in tamamo-x-mcp-*; do
+            if [ -d "$dir" ]; then
+              cd "$dir"
+              for file in *; do
+                sha256sum "$file" > "$file.sha256"
+              done
+              cd ..
+            fi
+          done
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          files: |
+            artifacts/tamamo-x-mcp-linux-x64/*
+            artifacts/tamamo-x-mcp-linux-arm64/*
+            artifacts/tamamo-x-mcp-darwin-x64/*
+            artifacts/tamamo-x-mcp-darwin-arm64/*
+            artifacts/tamamo-x-mcp-windows-x64.exe/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  publish-npm:
+    name: Publish to npm
+    needs: [build-npm, create-release]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Download npm package artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: npm-package
+          path: npm
+
+      - name: Publish to npm with provenance
+        run: cd npm && npm publish --provenance --access public
+        env:
+          # Only use NPM_TOKEN if provided (for first-time publish)
+          # Otherwise, OIDC authentication will be used automatically
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN || '' }}
