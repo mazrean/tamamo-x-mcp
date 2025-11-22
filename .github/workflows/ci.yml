@@ -100,6 +100,12 @@ jobs:
         with:
           node-version: "20"
 
+      - name: Build Deno binary
+        run: deno task compile
+
+      - name: Build npm package
+        run: deno task npm:build
+
       - name: Run distribution tests
         run: deno test --allow-all tests/distribution/
 
@@ -124,6 +130,12 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "20"
+
+      - name: Build Deno binary
+        run: deno task compile
+
+      - name: Build npm package
+        run: deno task npm:build
 
       - name: Run CI tests
         run: deno test --allow-all tests/ci/
