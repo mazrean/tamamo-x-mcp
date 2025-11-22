@@ -84,13 +84,57 @@ tamamo-x build
 
 Analyzes tools and creates specialized agent groups using LLM intelligence.
 
-#### 3. Start MCP Server
+#### 3. Configure Your Coding Agent
 
-```bash
-tamamo-x mcp
+Add tamamo-x-mcp to your coding agent's MCP configuration:
+
+**Claude Code** (`.claude/mcp.json`):
+```json
+{
+  "mcpServers": {
+    "tamamo-x": {
+      "command": "tamamo-x",
+      "args": ["mcp"]
+    }
+  }
+}
 ```
 
-Starts MCP server exposing grouped sub-agents via stdio transport.
+**Cursor/Windsurf** (Settings → MCP):
+```json
+{
+  "tamamo-x": {
+    "command": "tamamo-x",
+    "args": ["mcp"]
+  }
+}
+```
+
+**Codex** (`.codex/mcp.json`):
+```json
+{
+  "mcpServers": {
+    "tamamo-x": {
+      "command": "tamamo-x",
+      "args": ["mcp"]
+    }
+  }
+}
+```
+
+> **Note**: Restart your coding agent after adding the configuration.
+
+**API Key Requirement**: tamamo-x-mcp requires LLM API credentials to analyze and group tools. By default, it auto-discovers credentials from:
+- **Anthropic Claude**: Claude Code CLI (`~/.config/claude/config.json`)
+- **OpenAI**: `OPENAI_API_KEY` environment variable
+- **Gemini**: Gemini CLI (`~/.config/gemini/credentials.json`)
+
+Alternatively, set the API key directly:
+```bash
+export ANTHROPIC_API_KEY=your-api-key-here
+export OPENAI_API_KEY=your-api-key-here
+export GOOGLE_API_KEY=your-api-key-here
+```
 
 ## Example Configuration
 

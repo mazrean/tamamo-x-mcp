@@ -138,30 +138,119 @@ Build complete! Groups saved to .tamamo-x/groups.json
 
 ---
 
-### Step 3: Start MCP Server
+### Step 3: Configure Your Coding Agent
+
+Add tamamo-x-mcp to your coding agent's MCP configuration:
+
+#### Claude Code
+
+Edit `.claude/mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "tamamo-x": {
+      "command": "tamamo-x",
+      "args": ["mcp"]
+    }
+  }
+}
+```
+
+#### Cursor / Windsurf
+
+Go to Settings → MCP and add:
+
+```json
+{
+  "tamamo-x": {
+    "command": "tamamo-x",
+    "args": ["mcp"]
+  }
+}
+```
+
+#### Codex
+
+Edit `.codex/mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "tamamo-x": {
+      "command": "tamamo-x",
+      "args": ["mcp"]
+    }
+  }
+}
+```
+
+#### Using npx (No Installation)
+
+If you prefer not to install globally, use npx:
+
+```json
+{
+  "mcpServers": {
+    "tamamo-x": {
+      "command": "npx",
+      "args": ["tamamo-x-mcp", "mcp"]
+    }
+  }
+}
+```
+
+> **Important**: Restart your coding agent after adding the configuration.
+
+---
+
+### API Key Configuration
+
+tamamo-x-mcp requires LLM API credentials to analyze and group tools during the `build` step.
+
+#### Auto-Discovery (Recommended)
+
+By default, tamamo-x-mcp automatically discovers credentials from:
+
+| Provider | Source | Location |
+|----------|--------|----------|
+| **Anthropic Claude** | Claude Code CLI | `~/.config/claude/config.json` |
+| **OpenAI** | Environment variable | `OPENAI_API_KEY` |
+| **Gemini** | Gemini CLI | `~/.config/gemini/credentials.json` |
+
+No additional configuration needed if you already use these tools.
+
+#### Manual Configuration
+
+Set API keys via environment variables:
 
 ```bash
-# Start MCP server exposing sub-agents
-tamamo-x mcp
+# Anthropic Claude
+export ANTHROPIC_API_KEY=sk-ant-xxxxx
 
-# Server starts and listens for connections
-# Sub-agents are exposed as MCP tools
+# OpenAI
+export OPENAI_API_KEY=sk-xxxxx
+
+# Google Gemini
+export GOOGLE_API_KEY=AIzaxxxxx
 ```
 
-**Output**:
+Or set them in your shell profile (`~/.bashrc`, `~/.zshrc`):
+
+```bash
+echo 'export ANTHROPIC_API_KEY=sk-ant-xxxxx' >> ~/.zshrc
+source ~/.zshrc
+```
+
+#### Verifying Credentials
+
+Run `tamamo-x build` to verify credentials are detected:
 
 ```
-Starting tamamo-x MCP server...
-✓ Loaded 4 sub-agents
-✓ Server ready on stdio
+Initializing LLM client...
+✓ Using Anthropic Claude (credentials from Claude Code CLI)
 
-Available agents:
-  - file_operations_agent
-  - search_agent
-  - monitoring_agent
-  - system_agent
-
-Waiting for connections...
+Analyzing tools with Claude...
 ```
 
 ---
