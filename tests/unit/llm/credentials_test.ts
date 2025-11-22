@@ -319,6 +319,12 @@ describe("Credential Discovery", () => {
 
   describe("Error handling", () => {
     it("should handle permission errors reading credential files", async () => {
+      // Skip on Windows and macOS where chmod doesn't reliably work
+      if (Deno.build.os === "windows" || Deno.build.os === "darwin") {
+        console.log("  Skipping permission test on", Deno.build.os);
+        return;
+      }
+
       // Arrange
       const claudeConfigDir = join(tempHomeDir, ".config", "claude");
       await Deno.mkdir(claudeConfigDir, { recursive: true });
