@@ -184,6 +184,7 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         uses: codecov/codecov-action@v4
         with:
+          token: ${{ secrets.CODECOV_TOKEN }}
           files: ./cov_profile.lcov
           flags: ci-tests
           fail_ci_if_error: false
