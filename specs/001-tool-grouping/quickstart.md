@@ -17,22 +17,55 @@ This quickstart guide walks through using tamamo-x-mcp to organize MCP server to
 
 ### Option 1: Deno Binary (Recommended)
 
+Download the pre-built standalone binary (zero dependencies):
+
+**Linux/macOS:**
+
 ```bash
-# Download standalone binary
-curl -fsSL https://tamamo-x.dev/install.sh | sh
+# Download and install
+curl -fsSL https://github.com/<owner>/tamamo-x-mcp/releases/latest/download/tamamo-x-$(uname -s)-$(uname -m) -o tamamo-x
+chmod +x tamamo-x
+sudo mv tamamo-x /usr/local/bin/
 
 # Verify installation
 tamamo-x --version
 ```
 
+**Windows:**
+
+Download `tamamo-x-Windows-x86_64.exe` from the [releases page](https://github.com/<owner>/tamamo-x-mcp/releases), rename to `tamamo-x.exe`, and add to your PATH.
+
 ### Option 2: npm Package
 
+Install via npm registry:
+
 ```bash
-# Install via npm
+# Install globally
 npm install -g tamamo-x-mcp
 
-# Or use via npx (no installation)
+# Verify installation
+tamamo-x --version
+
+# Or use via npx (no installation required)
 npx tamamo-x-mcp --version
+```
+
+### Option 3: Build from Source
+
+For development or if pre-built binaries are unavailable:
+
+```bash
+# Clone repository
+git clone <repository-url>
+cd tamamo-x-mcp
+
+# Build Deno binary
+deno task compile
+./dist/tamamo-x --version
+
+# Or build npm package
+deno task npm:build
+cd npm && npm pack
 ```
 
 ## Quick Start (3 Steps)
@@ -41,7 +74,7 @@ npx tamamo-x-mcp --version
 
 ```bash
 # Run init command
-tamamo-x-mcp init
+tamamo-x init
 
 # Follow interactive prompts:
 # - Select MCP servers to connect
@@ -77,7 +110,7 @@ tamamo-x-mcp init
 
 ```bash
 # Analyze tools and create groups
-tamamo-x-mcp build
+tamamo-x build
 
 # The command will:
 # 1. Connect to configured MCP servers
@@ -109,7 +142,7 @@ Build complete! Groups saved to .tamamo-x/groups.json
 
 ```bash
 # Start MCP server exposing sub-agents
-tamamo-x-mcp mcp
+tamamo-x mcp
 
 # Server starts and listens for connections
 # Sub-agents are exposed as MCP tools
@@ -143,8 +176,21 @@ Add tamamo-x-mcp to Claude Code's MCP configuration:
 {
   "mcpServers": {
     "tamamo-x": {
-      "command": "tamamo-x-mcp",
+      "command": "tamamo-x",
       "args": ["mcp"]
+    }
+  }
+}
+```
+
+If installed via npx:
+
+```json
+{
+  "mcpServers": {
+    "tamamo-x": {
+      "command": "npx",
+      "args": ["tamamo-x-mcp", "mcp"]
     }
   }
 }
@@ -177,7 +223,7 @@ const client = new Client({
 });
 
 const transport = new StdioClientTransport({
-  command: "tamamo-x-mcp",
+  command: "tamamo-x",
   args: ["mcp"],
 });
 
@@ -188,6 +234,16 @@ const tools = await client.listTools();
 const result = await client.callTool("search_agent", {
   task: "Find all TODO comments in the codebase",
 });
+```
+
+If using npx:
+
+```typescript
+const transport = new StdioClientTransport({
+  command: "npx",
+  args: ["tamamo-x-mcp", "mcp"],
+});
+// ... rest is the same
 ```
 
 ---
@@ -321,10 +377,10 @@ vim tamamo-x.config.json
 # Add new server to mcpServers array
 
 # Rebuild groups
-tamamo-x-mcp build
+tamamo-x build
 
 # Restart server
-tamamo-x-mcp mcp
+tamamo-x mcp
 ```
 
 ---
@@ -338,7 +394,7 @@ vim tamamo-x.config.json
 # Update llmProvider section
 
 # Rebuild with new provider
-tamamo-x-mcp build
+tamamo-x build
 ```
 
 ---
@@ -350,7 +406,7 @@ tamamo-x-mcp build
 vim .tamamo-x/groups.json
 
 # Restart server (no rebuild needed)
-tamamo-x-mcp mcp
+tamamo-x mcp
 ```
 
 ---
@@ -389,13 +445,13 @@ tamamo-x-mcp mcp
 
 ```bash
 # Override LLM provider at runtime
-TAMAMO_LLM_PROVIDER=openai tamamo-x-mcp build
+TAMAMO_LLM_PROVIDER=openai tamamo-x build
 
 # Set API key directly
-ANTHROPIC_API_KEY=sk-... tamamo-x-mcp build
+ANTHROPIC_API_KEY=sk-... tamamo-x build
 
 # Enable debug logging
-TAMAMO_LOG_LEVEL=debug tamamo-x-mcp mcp
+TAMAMO_LOG_LEVEL=debug tamamo-x mcp
 ```
 
 ---
@@ -404,16 +460,19 @@ TAMAMO_LOG_LEVEL=debug tamamo-x-mcp mcp
 
 ```yaml
 # GitHub Actions example
+- name: Install tamamo-x-mcp
+  run: npm install -g tamamo-x-mcp
+
 - name: Build sub-agents
   run: |
-    tamamo-x-mcp init --non-interactive
-    tamamo-x-mcp build
+    tamamo-x init --non-interactive
+    tamamo-x build
   env:
     ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
 
 - name: Test MCP server
   run: |
-    tamamo-x-mcp mcp --test-mode &
+    tamamo-x mcp --test-mode &
     sleep 5
     # Run integration tests
 ```

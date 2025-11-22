@@ -24,19 +24,19 @@ When working with multiple MCP servers, managing dozens of tools becomes overwhe
 
 **Option 1: Deno Binary (Recommended)**
 
-Build from source:
+Download the pre-built binary from GitHub Releases:
 
 ```bash
-# Clone repository
-git clone <repository-url>
-cd tamamo-x-mcp
+# Linux/macOS
+curl -fsSL https://github.com/<owner>/tamamo-x-mcp/releases/latest/download/tamamo-x-$(uname -s)-$(uname -m) -o tamamo-x
+chmod +x tamamo-x
+sudo mv tamamo-x /usr/local/bin/
 
-# Build standalone binary
-deno task compile
-
-# Binary will be at: dist/tamamo-x
-./dist/tamamo-x --version
+# Verify installation
+tamamo-x --version
 ```
+
+For Windows, download `tamamo-x-Windows-x86_64.exe` from the [releases page](https://github.com/<owner>/tamamo-x-mcp/releases).
 
 **Option 2: npm Package**
 
@@ -44,8 +44,26 @@ deno task compile
 # Install globally
 npm install -g tamamo-x-mcp
 
-# Or use via npx (no installation)
+# Or use via npx (no installation required)
 npx tamamo-x-mcp --version
+```
+
+**Option 3: Build from Source**
+
+For development or if pre-built binaries are not available:
+
+```bash
+# Clone repository
+git clone <repository-url>
+cd tamamo-x-mcp
+
+# Build Deno binary
+deno task compile
+./dist/tamamo-x --version
+
+# Or build npm package
+deno task npm:build
+cd npm && npm pack
 ```
 
 ### Usage (3 Simple Steps)
@@ -53,7 +71,7 @@ npx tamamo-x-mcp --version
 #### 1. Initialize Configuration
 
 ```bash
-./dist/tamamo-x init
+tamamo-x init
 ```
 
 Creates `tamamo-x.config.json` with auto-detected MCP servers and LLM settings.
@@ -61,7 +79,7 @@ Creates `tamamo-x.config.json` with auto-detected MCP servers and LLM settings.
 #### 2. Build Sub-Agents
 
 ```bash
-./dist/tamamo-x build
+tamamo-x build
 ```
 
 Analyzes tools and creates specialized agent groups using LLM intelligence.
@@ -69,7 +87,7 @@ Analyzes tools and creates specialized agent groups using LLM intelligence.
 #### 3. Start MCP Server
 
 ```bash
-./dist/tamamo-x mcp
+tamamo-x mcp
 ```
 
 Starts MCP server exposing grouped sub-agents via stdio transport.
