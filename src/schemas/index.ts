@@ -22,6 +22,7 @@ export const LLMProviderTypeSchema = z.enum([
   "vercel",
   "bedrock",
   "openrouter",
+  "acp",
 ]);
 
 export const CredentialSourceSchema = z.enum(["cli-tool", "env-var", "prompt"]);
@@ -36,14 +37,33 @@ export const MCPTransportSchema = z.enum(["stdio", "http", "websocket"]);
 // § 3: LLMProviderConfig
 // ============================================================================
 
+// Standard API-based LLM providers (Anthropic, OpenAI, Gemini, Vercel, Bedrock, OpenRouter)
+const StandardLLMProviderConfigSchema = z.object({
+  type: z.enum(["anthropic", "openai", "gemini", "vercel", "bedrock", "openrouter"]),
+  model: z.string().optional(),
+  credentialSource: CredentialSourceSchema,
+  endpointOverride: z.string().url().optional(),
+}).strict();
+
+// Agent Client Protocol (ACP) provider - uses external coding agents
+const ACPLLMProviderConfigSchema = z.object({
+  type: z.literal("acp"),
+  agentCommand: z.string().min(1, "Agent command is required for ACP provider"),
+  agentArgs: z.array(z.string()).optional(),
+  model: z.string().optional(),
+}).strict();
+
+// Discriminated union for all LLM provider types
 export const LLMProviderConfigSchema = z
-  .object({
-    type: LLMProviderTypeSchema,
-    model: z.string().optional(),
-    credentialSource: CredentialSourceSchema,
-    endpointOverride: z.string().url().optional(),
-  })
-  .strict()
+  .discriminatedUnion("type", [
+    StandardLLMProviderConfigSchema.extend({ type: z.literal("anthropic") }),
+    StandardLLMProviderConfigSchema.extend({ type: z.literal("openai") }),
+    StandardLLMProviderConfigSchema.extend({ type: z.literal("gemini") }),
+    StandardLLMProviderConfigSchema.extend({ type: z.literal("vercel") }),
+    StandardLLMProviderConfigSchema.extend({ type: z.literal("bedrock") }),
+    StandardLLMProviderConfigSchema.extend({ type: z.literal("openrouter") }),
+    ACPLLMProviderConfigSchema,
+  ])
   .refine(
     (data) => {
       // Forbidden credential fields - security check
@@ -380,18 +400,26 @@ export type LLMProviderType =
   | "gemini"
   | "vercel"
   | "bedrock"
-  | "openrouter";
+  | "openrouter"
+  | "acp";
 
 export type CredentialSource = "cli-tool" | "env-var" | "prompt";
 
 export type MCPTransport = "stdio" | "http" | "websocket";
 
-export interface LLMProviderConfig {
-  type: LLMProviderType;
-  model?: string;
-  credentialSource: CredentialSource;
-  endpointOverride?: string;
-}
+export type LLMProviderConfig =
+  | {
+    type: "anthropic" | "openai" | "gemini" | "vercel" | "bedrock" | "openrouter";
+    model?: string;
+    credentialSource: CredentialSource;
+    endpointOverride?: string;
+  }
+  | {
+    type: "acp";
+    agentCommand: string;
+    agentArgs?: string[];
+    model?: string;
+  };
 
 export interface ProjectContext {
   agentFilePath?: string;

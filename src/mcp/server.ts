@@ -19,10 +19,8 @@ import type {
 } from "../types/index.ts";
 import { executeAgent } from "../agents/agent.ts";
 import { routeRequest } from "../agents/router.ts";
-import {
-  discoverBedrockCredentials,
-  discoverCredentials,
-} from "../llm/credentials.ts";
+import { discoverBedrockCredentials, discoverCredentials } from "../llm/credentials.ts";
+import type { MCPClientRegistry } from "./registry.ts";
 
 /**
  * MCP server interface
@@ -30,6 +28,7 @@ import {
 export interface MCPServer {
   subAgents: SubAgent[];
   instructions?: string;
+  registry?: MCPClientRegistry;
   getTools: () => MCPAgentTool[];
 }
 
@@ -52,10 +51,12 @@ export interface MCPAgentTool {
 export function createMCPServer(
   subAgents: SubAgent[],
   instructions?: string,
+  registry?: MCPClientRegistry,
 ): MCPServer {
   return {
     subAgents,
     instructions,
+    registry,
     getTools: () => subAgents.map((agent) => createAgentTool(agent)),
   };
 }
@@ -149,7 +150,7 @@ export async function handleToolsCall(
       apiKey = await discoverCredentials(agent.llmProvider.type) || undefined;
     }
 
-    const response = await executeAgent(agent, agentRequest, { apiKey });
+    const response = await executeAgent(agent, agentRequest, { apiKey }, server.registry);
 
     if (response.error) {
       return {
@@ -264,7 +265,7 @@ export async function startServer(mcpServer: MCPServer): Promise<boolean> {
           apiKey = await discoverCredentials(agent.llmProvider.type) || undefined;
         }
 
-        const response = await executeAgent(agent, agentRequest, { apiKey });
+        const response = await executeAgent(agent, agentRequest, { apiKey }, mcpServer.registry);
 
         if (response.error) {
           return {

@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "exports": "./src/cli/main.ts",
   "exclude": ["npm/", "dist/", "cov_profile/"],
+  "nodeModulesDir": "auto",
   "tasks": {
     "compile": "deno compile --allow-all --output dist/tamamo-x src/cli/main.ts",
     "npm:build": "deno run -A scripts/build_npm.ts",

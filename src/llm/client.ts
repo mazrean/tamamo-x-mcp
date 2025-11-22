@@ -14,6 +14,7 @@ import { createOpenAIClient } from "./providers/openai.ts";
 import { createGeminiClient } from "./providers/gemini.ts";
 import { createVercelClient } from "./providers/vercel.ts";
 import { createBedrockClient } from "./providers/bedrock.ts";
+import { createACPClient } from "./providers/acp.ts";
 import type { BedrockCredentials } from "./credentials.ts";
 
 // Re-export types for convenience
@@ -44,7 +45,8 @@ export function createLLMClient(
   config: LLMProviderConfig,
   credentials: string | BedrockCredentials | null,
 ): LLMClient {
-  if (!credentials) {
+  // Validate credentials for non-ACP providers
+  if (config.type !== "acp" && !credentials) {
     throw new Error(`API key credentials required for ${config.type} provider`);
   }
 
@@ -55,6 +57,7 @@ export function createLLMClient(
     "vercel",
     "bedrock",
     "openrouter",
+    "acp",
   ];
 
   if (!validProviders.includes(config.type)) {
@@ -88,7 +91,7 @@ export function createLLMClient(
       return createVercelClient(credentials, config.model);
 
     case "bedrock":
-      if (!isBedrockCredentials(credentials)) {
+      if (!credentials || !isBedrockCredentials(credentials)) {
         throw new Error(
           "Bedrock provider requires credentials object with accessKeyId, secretAccessKey, and region",
         );
@@ -105,7 +108,18 @@ export function createLLMClient(
         config.endpointOverride || "https://openrouter.ai/api/v1",
       );
 
-    default:
-      throw new Error(`Unsupported provider: ${config.type}`);
+    case "acp":
+      // ACP provider uses external agent subprocess (no API credentials needed)
+      return createACPClient(
+        config.agentCommand,
+        config.agentArgs,
+        config.model,
+      );
+
+    default: {
+      // Exhaustiveness check - should never reach here
+      const _exhaustiveCheck: never = config;
+      throw new Error(`Unsupported provider: ${(_exhaustiveCheck as LLMProviderConfig).type}`);
+    }
   }
 }

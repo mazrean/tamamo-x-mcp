@@ -1,14 +1,12 @@
 /**
  * Agent execution module
- * Wraps MCP tools for agent frameworks:
- * - Anthropic: Uses @anthropic-ai/claude-agent-sdk
- * - Others: Uses Vercel AI SDK
+ * Wraps MCP tools for agent frameworks using Vercel AI SDK
+ * Supports: Anthropic, OpenAI, Gemini, OpenRouter, Vercel
  */
 
 import type {
   AgentRequest,
   AgentResponse,
-  JSONSchema,
   LLMProviderConfig,
   SubAgent,
   Tool,
@@ -16,17 +14,9 @@ import type {
 } from "../types/index.ts";
 import type { MCPClientRegistry } from "../mcp/registry.ts";
 
-// Claude Agent SDK imports (for Anthropic provider)
-import {
-  createSdkMcpServer,
-  type Query,
-  query,
-  tool,
-} from "npm:@anthropic-ai/claude-agent-sdk@0.1.42";
-import { z } from "npm:zod@4.1.12";
-
-// Vercel AI SDK imports (for non-Anthropic providers, replacing Mastra)
+// Vercel AI SDK imports (for all providers)
 import { generateText, jsonSchema, tool as aiTool } from "npm:ai@5.0.97";
+import { createAnthropic } from "npm:@ai-sdk/anthropic@1.0.9";
 import { createOpenAI } from "npm:@ai-sdk/openai@2.0.68";
 import { createGoogleGenerativeAI } from "npm:@ai-sdk/google@1.0.11";
 import { createOpenRouter } from "npm:@openrouter/ai-sdk-provider@0.0.5";
@@ -49,173 +39,6 @@ const DEFAULT_MODELS: Record<string, string> = {
  * Prevents infinite loops when LLM repeatedly calls tools without converging
  */
 const MAX_AGENT_STEPS = 8;
-
-/**
- * Mastra tool interface (for non-Anthropic providers)
- */
-export interface MastraTool {
-  name: string;
-  description: string;
-  inputSchema: {
-    type: string;
-    properties?: Record<string, { type: string; description?: string }>;
-    required?: string[];
-  };
-  execute: (input: unknown) => Promise<unknown>;
-}
-
-/**
- * Convert JSON Schema to Zod schema for Claude Agent SDK
- */
-function jsonSchemaToZod(
-  schema: JSONSchema,
-): z.ZodObject<Record<string, z.ZodTypeAny>> {
-  // Sanitize schema to ensure type is "object"
-  // Some MCP tools may have invalid schemas like type: "None"
-  const sanitizedSchema: JSONSchema = {
-    ...schema,
-    type: (schema.type as string) === "None" || !schema.type ? "object" : schema.type,
-  };
-
-  const shape: Record<string, z.ZodTypeAny> = {};
-
-  // Ensure schema has type "object"
-  if (sanitizedSchema.type !== "object") {
-    console.warn(`Unexpected schema type: ${sanitizedSchema.type}, treating as object`);
-  }
-
-  if (sanitizedSchema.properties && Object.keys(sanitizedSchema.properties).length > 0) {
-    for (const [key, prop] of Object.entries(sanitizedSchema.properties)) {
-      let zodType: z.ZodTypeAny;
-
-      // Handle boolean shorthand (true = accept all, false = reject all)
-      if (typeof prop === "boolean") {
-        zodType = prop ? z.unknown() : z.never();
-      } else if (typeof prop === "object" && prop !== null && "type" in prop) {
-        // Type assertion after validation
-        const propSchema = prop as { type: string; description?: string };
-
-        // Handle type being None, null, or undefined
-        const propType = propSchema.type || "string";
-
-        switch (propType) {
-          case "string":
-            zodType = z.string();
-            break;
-          case "number":
-          case "integer":
-            zodType = z.number();
-            break;
-          case "boolean":
-            zodType = z.boolean();
-            break;
-          case "object":
-            zodType = z.record(z.string(), z.unknown());
-            break;
-          case "array":
-            zodType = z.array(z.unknown());
-            break;
-          case "None":
-          case "null":
-            // Treat None/null as optional string
-            zodType = z.string().optional();
-            break;
-          default:
-            zodType = z.unknown();
-        }
-
-        if (propSchema.description) {
-          zodType = zodType.describe(propSchema.description);
-        }
-      } else {
-        // Fallback for other property types
-        zodType = z.unknown();
-      }
-
-      // Make optional if not in required array
-      if (!sanitizedSchema.required?.includes(key)) {
-        zodType = zodType.optional();
-      }
-
-      shape[key] = zodType;
-    }
-  }
-
-  // Return object schema (even if empty)
-  return z.object(shape).passthrough();
-}
-
-/**
- * Wrap an MCP tool as a Claude Agent SDK tool
- */
-export function wrapToolForClaudeAgent(
-  mcpTool: Tool,
-  registry?: MCPClientRegistry,
-): ReturnType<typeof tool> {
-  // Sanitize input schema to ensure type is "object"
-  // Some MCP tools may have invalid schemas like type: "None"
-  const sanitizedSchema = {
-    ...mcpTool.inputSchema,
-    type: "object" as const,
-  };
-
-  const zodSchema = jsonSchemaToZod(sanitizedSchema);
-
-  // Type assertion needed due to Zod version mismatch between SDK and our dependencies
-  return tool(
-    mcpTool.name,
-    mcpTool.description,
-    // deno-lint-ignore no-explicit-any
-    zodSchema.shape as any,
-    async (args: Record<string, unknown>, _extra: unknown) => {
-      // For testing: simulate failures for tools named "failing_tool"
-      if (mcpTool.name === "failing_tool") {
-        throw new Error(`Tool ${mcpTool.name} failed to execute`);
-      }
-
-      // If registry is provided, call actual MCP tool
-      if (registry) {
-        try {
-          const result = await registry.callTool(
-            mcpTool.serverName,
-            mcpTool.name,
-            args,
-          );
-
-          // Convert MCP response to Claude Agent SDK format
-          return {
-            content: [
-              {
-                type: "text" as const,
-                text: typeof result === "string" ? result : JSON.stringify(result),
-              },
-            ],
-          };
-        } catch (error) {
-          throw new Error(
-            `Tool ${mcpTool.name} failed: ${
-              error instanceof Error ? error.message : String(error)
-            }`,
-          );
-        }
-      }
-
-      // Fallback to mock result for testing
-      return {
-        content: [
-          {
-            type: "text" as const,
-            text: `Mock result from ${mcpTool.name} with args: ${
-              JSON.stringify(
-                args,
-              )
-            }`,
-          },
-        ],
-      };
-    },
-  );
-}
 
 /**
  * Recursively sanitize JSON Schema to fix invalid type values
@@ -386,99 +209,7 @@ export function createSubAgent(
 }
 
 /**
- * Execute an agent with Claude Agent SDK (Anthropic provider)
- */
-async function executeAgentWithClaudeSDK(
-  subAgent: SubAgent,
-  request: AgentRequest,
-  apiKey: string,
-  registry?: MCPClientRegistry,
-): Promise<AgentResponse> {
-  try {
-    // Set API key in environment for Claude Agent SDK
-    const originalApiKey = Deno.env.get("ANTHROPIC_API_KEY");
-    Deno.env.set("ANTHROPIC_API_KEY", apiKey);
-
-    // Also set for Node.js compatibility layer (process.env)
-    if (typeof globalThis.process !== "undefined" && globalThis.process.env) {
-      globalThis.process.env.ANTHROPIC_API_KEY = apiKey;
-    }
-
-    try {
-      // Create SDK MCP server with wrapped tools
-      const wrappedTools = subAgent.toolGroup.tools.map((tool) =>
-        wrapToolForClaudeAgent(tool, registry)
-      );
-
-      const mcpServer = createSdkMcpServer({
-        name: "tamamo-x-mcp",
-        version: "1.0.0",
-        tools: wrappedTools,
-      });
-
-      // Execute query with Claude Agent SDK
-      const stream: Query = query({
-        prompt: request.prompt,
-        options: {
-          systemPrompt: subAgent.systemPrompt,
-          mcpServers: {
-            "tamamo-x": mcpServer,
-          },
-          model: subAgent.llmProvider.model,
-        },
-      });
-
-      let result = "";
-      const toolsUsed: string[] = [];
-
-      // Process streaming response
-      for await (const item of stream) {
-        switch (item.type) {
-          case "assistant":
-            for (const piece of item.message.content) {
-              if (piece.type === "text") {
-                result += piece.text;
-              } else if (piece.type === "tool_use") {
-                toolsUsed.push(piece.name);
-              }
-            }
-            break;
-        }
-      }
-
-      return {
-        requestId: request.requestId,
-        agentId: request.agentId,
-        result: result || "No response from agent",
-        toolsUsed,
-        timestamp: new Date(),
-      };
-    } finally {
-      // Restore original API key
-      if (originalApiKey) {
-        Deno.env.set("ANTHROPIC_API_KEY", originalApiKey);
-        if (typeof globalThis.process !== "undefined" && globalThis.process.env) {
-          globalThis.process.env.ANTHROPIC_API_KEY = originalApiKey;
-        }
-      } else {
-        Deno.env.delete("ANTHROPIC_API_KEY");
-        if (typeof globalThis.process !== "undefined" && globalThis.process.env) {
-          delete globalThis.process.env.ANTHROPIC_API_KEY;
-        }
-      }
-    }
-  } catch (error) {
-    return {
-      requestId: request.requestId,
-      agentId: request.agentId,
-      timestamp: new Date(),
-      error: error instanceof Error ? error.message : "Unknown error",
-    };
-  }
-}
-
-/**
- * Execute an agent with Vercel AI SDK (non-Anthropic providers)
+ * Execute an agent with Vercel AI SDK (all providers)
  */
 async function executeAgentWithVercelAI(
   subAgent: SubAgent,
@@ -494,6 +225,9 @@ async function executeAgentWithVercelAI(
     // deno-lint-ignore no-explicit-any
     let model: any;
     switch (subAgent.llmProvider.type) {
+      case "anthropic":
+        model = createAnthropic({ apiKey })(modelName);
+        break;
       case "openai":
         model = createOpenAI({ apiKey })(modelName);
         break;
@@ -630,17 +364,7 @@ export async function executeAgent(
       throw new Error("API key required for LLM provider");
     }
 
-    // Use Claude Agent SDK for Anthropic provider
-    if (subAgent.llmProvider.type === "anthropic") {
-      return await executeAgentWithClaudeSDK(
-        subAgent,
-        request,
-        credentials.apiKey,
-        registry,
-      );
-    }
-
-    // For other providers, use Vercel AI SDK
+    // Use Vercel AI SDK for all providers
     return await executeAgentWithVercelAI(subAgent, request, credentials.apiKey, registry);
   } catch (error) {
     return {

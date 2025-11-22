@@ -1,33 +1,15 @@
 {
   "version": "1.0.0",
-  "mcpServers": [
-    {
-      "name": "serena",
-      "transport": "stdio",
-      "command": "serena",
-      "args": ["start-mcp-server", "--context", "ide-assistant"],
-      "env": {}
-    },
-    {
-      "name": "codex",
-      "transport": "stdio",
-      "command": "codex",
-      "args": ["mcp-server"],
-      "env": {
-        "PATH": "/home/mazrean/.local/share/mise/installs/node/24.10.0/bin:/home/mazrean/.local/share/mise/installs/npm-anthropic-ai-claude-code/2.0.14/bin:/home/mazrean/.local/share/mise/installs/npm-openai-codex/0.46.0/bin:/home/mazrean/.local/share/mise/installs/npm-playwright-mcp/0.0.42/bin:/home/mazrean/.local/share/mise/installs/npm-chrome-devtools-mcp/0.8.0/bin:/home/mazrean/.local/share/mise/installs/python/3.14.0/bin:/home/mazrean/.local/share/mise/installs/uv/0.9.2/uv-x86_64-unknown-linux-musl:/home/mazrean/.local/share/mise/installs/pipx-oraios-serena/v0.1.4/bin:/home/mazrean/.local/share/mise/installs/go/1.24.0/bin:/home/mazrean/.local/share/mise/installs/go-github-com-hashicorp-terraform-mcp-server-cmd-terraform-mcp-server/0.3.1/bin:/home/mazrean/.local/share/mise/installs/go-golang-org-x-tools-gopls/0.20.0/bin:/home/mazrean/.local/share/mise/installs/kubectl/1.31.0:/home/mazrean/.local/share/mise/installs/kotlin/2.0.20/kotlinc/bin:/home/mazrean/.local/share/mise/installs/kotlin/2.0.20/kotlin-native/bin:/home/mazrean/.local/share/mise/installs/gradle/8.9.0/gradle-8.9/bin:/home/mazrean/.local/share/mise/installs/maven/3.9.9/apache-maven-3.9.9/bin:/home/mazrean/.cargo/bin:/home/mazrean/.local/share/mise/installs/java/openjdk-20.0.2/bin:/home/mazrean/.local/share/mise/installs/ruby/3.3.1/bin:/home/mazrean/.local/share/mise/installs/sqlite/3.46.0/bin:/home/mazrean/.local/share/mise/installs/groovy/4.0.22/bin:/home/mazrean/.local/share/mise/installs/bun/1.1.26/bin:/home/mazrean/.local/share/mise/installs/deno/1.46.1/bin:/home/mazrean/.local/share/mise/installs/deno/1.46.1/.deno/bin:/home/mazrean/.local/share/mise/installs/gcloud/489.0.0/bin:/home/mazrean/.local/share/mise/installs/terraform/1.9.5:/home/mazrean/.local/share/mise/installs/flutter/3.24.3-stable/bin:/home/mazrean/.local/share/mise/installs/awscli/2.24.18/aws/dist:/home/mazrean/.local/share/mise/installs/zig/0.13.0/bin:/home/mazrean/.local/share/mise/installs/php/8.4.6/bin:/home/mazrean/.local/share/mise/installs/php/8.4.6/sbin:/home/mazrean/.local/share/mise/installs/php/8.4.6/.composer/vendor/bin:/home/mazrean/.local/share/JetBrains/Toolbox/scripts:/home/mazrean/Android/Sdk/cmdline-tools/latest/bin:/home/mazrean/Android/Sdk/platform-tools:/home/mazrean/.local/share/pnpm:/home/mazrean/.cargo/bin:/home/mazrean/go/bin:/home/mazrean/.local/bin:/home/mazrean/dotfiles/bin:/home/mazrean/.asdf/shims:/home/mazrean/.asdf/bin:/home/mazrean/.zplug/bin:/usr/local/bin:/usr/local/sbin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/usr/lib/wsl/lib"
-      }
-    },
-    {
-      "name": "deepwiki",
-      "transport": "http",
-      "url": "https://mcp.deepwiki.com/mcp"
-    }
-  ],
+  "mcpServers": [],
   "llmProvider": {
-    "type": "openai",
+    "type": "anthropic",
+    "model": "claude-3-5-sonnet-20241022",
     "credentialSource": "cli-tool"
   },
-  "projectContext": {
-    "claudeFilePath": "CLAUDE.md"
+  "groupingConstraints": {
+    "minToolsPerGroup": 5,
+    "maxToolsPerGroup": 20,
+    "minGroups": 3,
+    "maxGroups": 10
   }
 }

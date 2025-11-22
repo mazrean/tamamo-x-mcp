@@ -412,8 +412,10 @@ describe("Config Validator", () => {
 
   describe("LLMProviderConfig validation", () => {
     it("should validate supported LLM provider types", () => {
-      // Arrange
-      const providers: Array<Configuration["llmProvider"]["type"]> = [
+      // Arrange - Standard API-based providers
+      const standardProviders: Array<
+        "anthropic" | "openai" | "gemini" | "vercel" | "bedrock" | "openrouter"
+      > = [
         "anthropic",
         "openai",
         "gemini",
@@ -422,8 +424,8 @@ describe("Config Validator", () => {
         "openrouter",
       ];
 
-      // Act & Assert
-      providers.forEach((type) => {
+      // Act & Assert - Standard providers
+      standardProviders.forEach((type) => {
         const config: Configuration = {
           ...validConfig,
           llmProvider: {
@@ -434,6 +436,17 @@ describe("Config Validator", () => {
         const result = validateConfig(config);
         assertEquals(result.valid, true, `Provider ${type} should be valid`);
       });
+
+      // Act & Assert - ACP provider (different structure)
+      const acpConfig: Configuration = {
+        ...validConfig,
+        llmProvider: {
+          type: "acp",
+          agentCommand: "/path/to/agent",
+        },
+      };
+      const acpResult = validateConfig(acpConfig);
+      assertEquals(acpResult.valid, true, "ACP provider should be valid");
     });
 
     it("should reject invalid LLM provider type", () => {
@@ -474,8 +487,8 @@ describe("Config Validator", () => {
     });
 
     it("should validate credential source options", () => {
-      // Arrange
-      const validSources: Array<Configuration["llmProvider"]["credentialSource"]> = [
+      // Arrange - Only for standard providers (not ACP)
+      const validSources: Array<"cli-tool" | "env-var" | "prompt"> = [
         "cli-tool",
         "env-var",
         "prompt",
@@ -493,6 +506,108 @@ describe("Config Validator", () => {
         const result = validateConfig(config);
         assertEquals(result.valid, true, `Credential source ${source} should be valid`);
       });
+    });
+
+    it("should validate ACP provider with required agentCommand", () => {
+      // Arrange
+      const acpConfig: Configuration = {
+        ...validConfig,
+        llmProvider: {
+          type: "acp",
+          agentCommand: "/usr/bin/gemini",
+        },
+      };
+
+      // Act
+      const result = validateConfig(acpConfig);
+
+      // Assert
+      assertEquals(result.valid, true, "ACP provider with agentCommand should be valid");
+    });
+
+    it("should validate ACP provider with optional agentArgs and model", () => {
+      // Arrange
+      const acpConfig: Configuration = {
+        ...validConfig,
+        llmProvider: {
+          type: "acp",
+          agentCommand: "/usr/bin/gemini",
+          agentArgs: ["--model", "gemini-2.0-flash"],
+          model: "gemini-2.0-flash",
+        },
+      };
+
+      // Act
+      const result = validateConfig(acpConfig);
+
+      // Assert
+      assertEquals(result.valid, true, "ACP provider with full config should be valid");
+    });
+
+    it("should reject ACP provider without agentCommand", () => {
+      // Arrange
+      const invalidConfig = {
+        ...validConfig,
+        llmProvider: {
+          type: "acp",
+          // Missing agentCommand
+        } as never,
+      };
+
+      // Act
+      const result = validateConfig(invalidConfig as Configuration);
+
+      // Assert
+      assertEquals(result.valid, false, "ACP provider without agentCommand should be invalid");
+      assertEquals(
+        result.errors.some((e) => e.field.includes("agentCommand")),
+        true,
+        "Should have agentCommand error",
+      );
+    });
+
+    it("should reject ACP provider with empty agentCommand", () => {
+      // Arrange
+      const invalidConfig: Configuration = {
+        ...validConfig,
+        llmProvider: {
+          type: "acp",
+          agentCommand: "",
+        },
+      };
+
+      // Act
+      const result = validateConfig(invalidConfig);
+
+      // Assert
+      assertEquals(result.valid, false, "ACP provider with empty agentCommand should be invalid");
+      assertEquals(
+        result.errors.some((e) => e.message.includes("Agent command is required")),
+        true,
+        "Should have 'Agent command is required' error",
+      );
+    });
+
+    it("should reject ACP provider with credentialSource field", () => {
+      // Arrange
+      const invalidConfig = {
+        ...validConfig,
+        llmProvider: {
+          type: "acp",
+          agentCommand: "/usr/bin/gemini",
+          credentialSource: "cli-tool", // Should not be allowed for ACP
+        } as never,
+      };
+
+      // Act
+      const result = validateConfig(invalidConfig as Configuration);
+
+      // Assert
+      assertEquals(
+        result.valid,
+        false,
+        "ACP provider with credentialSource should be invalid",
+      );
     });
 
     it("should reject invalid credential source", () => {
