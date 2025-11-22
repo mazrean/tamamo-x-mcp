@@ -136,26 +136,6 @@ export OPENAI_API_KEY=your-api-key-here
 export GOOGLE_API_KEY=your-api-key-here
 ```
 
-## Example Configuration
-
-```json
-{
-  "version": "1.0.0",
-  "mcpServers": [
-    {
-      "name": "filesystem-server",
-      "transport": "stdio",
-      "command": "mcp-server-filesystem",
-      "args": ["--root", "."]
-    }
-  ],
-  "llmProvider": {
-    "type": "anthropic",
-    "credentialSource": "cli-tool"
-  }
-}
-```
-
 ## Documentation
 
 ### For Users
