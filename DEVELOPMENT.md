@@ -368,19 +368,33 @@ Runs automatically on:
 - Push to `main` or `develop` branches
 - Pull requests to `main` or `develop` branches
 
-**Steps:**
+**Parallel Job Structure:**
 
-1. **Format Check**: `deno fmt --check`
-2. **Lint**: `deno lint`
-3. **Type Check**: `deno check src/**/*.ts` (with bash shell for cross-platform glob expansion)
-4. **Unit Tests**: `deno test --allow-all tests/unit/`
-5. **Integration Tests**: `deno test --allow-all tests/integration/`
-6. **Distribution Tests**: `deno test --allow-all tests/distribution/`
-7. **CI Tests**: `deno test --allow-all tests/ci/`
-8. **Coverage**: Test coverage report (Ubuntu only)
-9. **Build**: Compiles Deno binary and npm package
+The CI workflow is optimized for maximum parallelism:
 
-**Platforms**: Tests run in parallel on Ubuntu, macOS, and Windows
+1. **quality-gates** (fast, runs first)
+   - Format check: `deno fmt --check`
+   - Lint: `deno lint`
+   - Type check: `deno check src/**/*.ts`
+   - Runs on: Ubuntu, macOS, Windows
+
+2. **Parallel Test Jobs** (run simultaneously)
+   - **unit-tests**: `deno test --allow-all tests/unit/`
+   - **integration-tests**: `deno test --allow-all tests/integration/`
+   - **distribution-tests**: `deno test --allow-all tests/distribution/`
+   - **ci-tests**: `deno test --allow-all tests/ci/`
+   - Each runs on: Ubuntu, macOS, Windows
+
+3. **coverage** (depends on all tests)
+   - Generates coverage report (Ubuntu only)
+   - Uploads to Codecov
+
+4. **build** (depends on quality-gates + all tests)
+   - Compiles Deno binary
+   - Builds npm package
+   - Verifies package installation
+
+**Performance**: Jobs run in parallel, reducing total CI time by ~4x compared to sequential execution
 
 #### Release Workflow (`.github/workflows/release.yml`)
 
