@@ -34,7 +34,7 @@ console.log("\n📦 Transpiling with esbuild...");
 
 const result = await esbuild.build({
   plugins: [...denoPlugins()],
-  entryPoints: ["./src/cli/main.ts"],
+  entryPoints: ["./src/cli/main_node.ts"],
   outfile: join(NPM_DIR, "dist", "main.js"),
   bundle: true,
   format: "esm",
@@ -42,18 +42,16 @@ const result = await esbuild.build({
   target: "node20",
   banner: {
     js: `#!/usr/bin/env node
-// Import Deno shims for full API compatibility
-import * as DenoShim from "@deno/shim-deno";
-// Set up globalThis.Deno with proper args from process.argv
-globalThis.Deno = {
-  ...DenoShim.Deno,
-  args: process.argv.slice(2),
-};
+import { createRequire as __createRequire } from 'module';
+import { fileURLToPath as __fileURLToPath } from 'url';
+import { dirname as __dirname } from 'path';
+const require = __createRequire(import.meta.url);
+const __filename = __fileURLToPath(import.meta.url);
 `,
   },
   external: [
     // Keep all npm packages external (not bundled)
-    "@deno/shim-deno",
+    // NOTE: @deno/shim-deno is bundled, not external, to avoid import issues
     "@anthropic-ai/*",
     "@ai-sdk/*",
     "@aws-sdk/*",
@@ -89,6 +87,9 @@ globalThis.Deno = {
   minify: false,
   sourcemap: true,
   treeShaking: true,
+  define: {
+    "import.meta.main": "false",
+  },
 });
 
 if (result.errors.length > 0) {
