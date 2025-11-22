@@ -66,6 +66,7 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         uses: codecov/codecov-action@v4
         with:
+          token: ${{ secrets.CODECOV_TOKEN }}
           files: ./cov_profile.lcov
           flags: unit-tests
           fail_ci_if_error: false
@@ -98,6 +99,7 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         uses: codecov/codecov-action@v4
         with:
+          token: ${{ secrets.CODECOV_TOKEN }}
           files: ./cov_profile.lcov
           flags: integration-tests
           fail_ci_if_error: false
@@ -141,6 +143,7 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         uses: codecov/codecov-action@v4
         with:
+          token: ${{ secrets.CODECOV_TOKEN }}
           files: ./cov_profile.lcov
           flags: distribution-tests
           fail_ci_if_error: false
