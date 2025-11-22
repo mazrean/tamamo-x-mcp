@@ -69,6 +69,17 @@ Deno.test("Parity - version output matches", async () => {
   const denoResult = await runDenoBinary(["--version"]);
   const npmResult = await runNpmPackage(["--version"]);
 
+  if (denoResult.code !== npmResult.code || denoResult.stdout !== npmResult.stdout) {
+    console.error("Deno binary result:");
+    console.error("  Exit code:", denoResult.code);
+    console.error("  STDOUT:", denoResult.stdout);
+    console.error("  STDERR:", denoResult.stderr);
+    console.error("npm package result:");
+    console.error("  Exit code:", npmResult.code);
+    console.error("  STDOUT:", npmResult.stdout);
+    console.error("  STDERR:", npmResult.stderr);
+  }
+
   assertEquals(denoResult.code, npmResult.code, "Exit codes should match for --version");
 
   // Normalize outputs (remove platform-specific differences)
@@ -84,6 +95,17 @@ Deno.test("Parity - version output matches", async () => {
 Deno.test("Parity - help output matches", async () => {
   const denoResult = await runDenoBinary(["--help"]);
   const npmResult = await runNpmPackage(["--help"]);
+
+  if (denoResult.code !== npmResult.code || denoResult.stdout !== npmResult.stdout) {
+    console.error("Deno binary result:");
+    console.error("  Exit code:", denoResult.code);
+    console.error("  STDOUT:", denoResult.stdout);
+    console.error("  STDERR:", denoResult.stderr);
+    console.error("npm package result:");
+    console.error("  Exit code:", npmResult.code);
+    console.error("  STDOUT:", npmResult.stdout);
+    console.error("  STDERR:", npmResult.stderr);
+  }
 
   assertEquals(denoResult.code, npmResult.code, "Exit codes should match for --help");
 

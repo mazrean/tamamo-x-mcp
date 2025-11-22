@@ -68,8 +68,15 @@ Deno.test("npm package - can be executed via node (shows version)", async () => 
     stderr: "piped",
   });
 
-  const { code, stdout } = await command.output();
+  const { code, stdout, stderr } = await command.output();
   const output = new TextDecoder().decode(stdout);
+  const errorOutput = new TextDecoder().decode(stderr);
+
+  if (code !== 0 || !output.includes("tamamo-x")) {
+    console.error("Exit code:", code);
+    console.error("STDOUT:", output);
+    console.error("STDERR:", errorOutput);
+  }
 
   assertEquals(code, 0, "npm package should exit with code 0 for --version");
   assertEquals(output.includes("tamamo-x"), true, "Version output should include 'tamamo-x'");
@@ -91,8 +98,15 @@ Deno.test("npm package - can be executed via node (shows help)", async () => {
     stderr: "piped",
   });
 
-  const { code, stdout } = await command.output();
+  const { code, stdout, stderr } = await command.output();
   const output = new TextDecoder().decode(stdout);
+  const errorOutput = new TextDecoder().decode(stderr);
+
+  if (code !== 0 || !output.includes("init")) {
+    console.error("Exit code:", code);
+    console.error("STDOUT:", output);
+    console.error("STDERR:", errorOutput);
+  }
 
   assertEquals(code, 0, "npm package should exit with code 0 for --help");
   assertEquals(output.includes("init"), true, "Help should mention 'init' command");
@@ -119,8 +133,15 @@ Deno.test("npm package - init command works via node", async () => {
       stderr: "piped",
     });
 
-    const { code, stdout } = await command.output();
+    const { code, stdout, stderr } = await command.output();
     const output = new TextDecoder().decode(stdout);
+    const errorOutput = new TextDecoder().decode(stderr);
+
+    if (code !== 0 || !(output.includes("init") || output.includes("Initialize"))) {
+      console.error("Exit code:", code);
+      console.error("STDOUT:", output);
+      console.error("STDERR:", errorOutput);
+    }
 
     assertEquals(code, 0, "npm package init command should be invokable");
     assertEquals(
@@ -152,8 +173,15 @@ Deno.test("npm package - build command works via node", async () => {
       stderr: "piped",
     });
 
-    const { code, stdout } = await command.output();
+    const { code, stdout, stderr } = await command.output();
     const output = new TextDecoder().decode(stdout);
+    const errorOutput = new TextDecoder().decode(stderr);
+
+    if (code !== 0 || !(output.includes("build") || output.includes("Build"))) {
+      console.error("Exit code:", code);
+      console.error("STDOUT:", output);
+      console.error("STDERR:", errorOutput);
+    }
 
     assertEquals(code, 0, "npm package build command should be invokable");
     assertEquals(
@@ -185,8 +213,15 @@ Deno.test("npm package - mcp command works via node", async () => {
       stderr: "piped",
     });
 
-    const { code, stdout } = await command.output();
+    const { code, stdout, stderr } = await command.output();
     const output = new TextDecoder().decode(stdout);
+    const errorOutput = new TextDecoder().decode(stderr);
+
+    if (code !== 0 || !(output.includes("mcp") || output.includes("MCP"))) {
+      console.error("Exit code:", code);
+      console.error("STDOUT:", output);
+      console.error("STDERR:", errorOutput);
+    }
 
     assertEquals(code, 0, "npm package mcp command should be invokable");
     assertEquals(
