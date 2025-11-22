@@ -86,6 +86,9 @@ export async function loadGroups(
       );
     }
 
+    // Sort groups by ID for consistent ordering across different filesystems
+    groups.sort((a, b) => a.id.localeCompare(b.id));
+
     return { groups, instructions };
   } catch (error) {
     if (error instanceof Deno.errors.NotFound) {

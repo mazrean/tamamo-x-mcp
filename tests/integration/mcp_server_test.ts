@@ -495,6 +495,9 @@ async function loadGroups(baseDir: string): Promise<ToolGroup[]> {
       throw new Error("No groups found");
     }
 
+    // Sort groups by ID for consistent ordering across different filesystems
+    groups.sort((a, b) => a.id.localeCompare(b.id));
+
     return groups;
   } catch (error) {
     if (error instanceof Deno.errors.NotFound) {
