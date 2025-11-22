@@ -36,7 +36,7 @@ sudo mv tamamo-x /usr/local/bin/
 tamamo-x --version
 ```
 
-For Windows, download `tamamo-x-Windows-x86_64.exe` from the [releases page](https://github.com/mazrean/tamamo-x-mcp/releases).
+For Windows, download `tamamo-x-mcp-windows-x64.exe` from the [releases page](https://github.com/mazrean/tamamo-x-mcp/releases).
 
 **Option 2: npm Package**
 
