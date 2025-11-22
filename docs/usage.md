@@ -150,23 +150,76 @@ tamamo-x-mcp init [options]
 
 **Options**:
 
+- `--agent <name>`: Import configuration from specific coding agent (claude-code, codex, gemini-cli, cursor, windsurf). Default: auto-detect all installed agents
+- `--detect-agents`: Explicitly auto-detect and import from all installed agents (this is the default behavior when no `--agent` is specified)
+- `--no-add-to-agent`: Don't add tamamo-x-mcp to agent's MCP server config. Default: auto-add tamamo-x-mcp to detected/specified agent configs
+- `--preserve-servers`: Preserve existing servers when adding tamamo-x-mcp. Default: replace all existing servers with tamamo-x-mcp only
 - `--version`, `-v`: Show version information
 - `--help`, `-h`: Show help message
 
-**Behavior**:
+**Default Behavior**:
 
-1. Auto-imports MCP servers from `.mcp.json` (if present)
-2. Detects project context files (`Agent.md`, `CLAUDE.md`)
-3. Creates config at `./tamamo-x.config.json`
-4. Uses default LLM provider (Anthropic with CLI credential discovery)
+By default (no options specified), `tamamo-x-mcp init` will:
 
-**Example**:
+1. Auto-detect all installed coding agents
+2. Import MCP server configurations from detected agents
+3. Replace agent configurations with tamamo-x-mcp only
+4. Detect project context files (`Agent.md`, `CLAUDE.md`)
+5. Create config at `./tamamo-x.config.json`
+
+**Supported Coding Agents**:
+
+- `claude-code`: Claude Code (reads from project-level `.mcp.json`)
+- `codex`: Codex (reads from project-level `.mcp.json`)
+- `gemini-cli`: Gemini CLI (reads from project-level `.mcp.json`)
+- `cursor`: Cursor IDE (reads from project-level `.cursor/mcp.json`)
+- `windsurf`: Windsurf IDE (reads from project-level `.mcp.json`)
+
+**Examples**:
 
 ```bash
+# Default initialization (auto-detect agents and replace their configs)
 $ tamamo-x-mcp init
-✓ Detected 2 MCP servers from .mcp.json
-✓ Found project context: Agent.md, CLAUDE.md
+Initializing tamamo-x-mcp configuration...
+Detecting installed coding agents...
+Found 2 installed coding agent(s):
+  - claude-code
+  - codex
+Found claude-code configuration at .mcp.json
+Imported 5 MCP server(s) from claude-code
+✓ Replaced claude-code configuration with tamamo-x-mcp only
+Found codex configuration at .mcp.json
+Imported 3 MCP server(s) from codex
+✓ Replaced codex configuration with tamamo-x-mcp only
 ✓ Created tamamo-x.config.json
+  MCP servers: 8
+  LLM provider: anthropic
+
+# Import from specific agent (Claude Code) and replace its config
+$ tamamo-x-mcp init --agent claude-code
+Found claude-code configuration at .mcp.json
+Imported 5 MCP server(s) from claude-code
+✓ Replaced claude-code configuration with tamamo-x-mcp only
+✓ Created tamamo-x.config.json
+
+# Import from Claude Code and add tamamo-x-mcp while preserving existing servers
+$ tamamo-x-mcp init --agent claude-code --preserve-servers
+Found claude-code configuration at .mcp.json
+Imported 5 MCP server(s) from claude-code
+✓ Added tamamo-x-mcp to claude-code configuration (preserving existing servers)
+✓ Created tamamo-x.config.json
+
+# Auto-detect agents but don't modify their configs
+$ tamamo-x-mcp init --no-add-to-agent
+Detecting installed coding agents...
+Found 2 installed coding agent(s):
+  - claude-code
+  - codex
+Imported 5 MCP server(s) from claude-code
+Imported 3 MCP server(s) from codex
+✓ Created tamamo-x.config.json
+  MCP servers: 8
+  LLM provider: anthropic
 ```
 
 ### `tamamo-x-mcp build`

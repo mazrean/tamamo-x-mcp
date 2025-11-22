@@ -70,11 +70,26 @@ cd npm && npm pack
 
 #### 1. Initialize Configuration
 
+**Basic initialization (auto-detects agents and adds tamamo-x-mcp):**
+
 ```bash
 tamamo-x init
 ```
 
-Creates `tamamo-x.config.json` with auto-detected MCP servers and LLM settings.
+**Import from specific coding agent:**
+
+```bash
+# Import from Claude Code and replace its config with tamamo-x-mcp only (default)
+tamamo-x init --agent claude-code
+
+# Import from Claude Code and add tamamo-x-mcp while preserving existing servers
+tamamo-x init --agent claude-code --preserve-servers
+
+# Import from agent without modifying its config
+tamamo-x init --agent codex --no-add-to-agent
+```
+
+By default, `tamamo-x init` automatically detects all installed coding agents (Claude Code, Codex, Gemini CLI, Cursor, Windsurf) and replaces their MCP server configurations with tamamo-x-mcp only. Use `--preserve-servers` to keep existing servers or `--no-add-to-agent` to skip modifying agent configs.
 
 #### 2. Build Sub-Agents
 
@@ -88,7 +103,8 @@ Analyzes tools and creates specialized agent groups using LLM intelligence.
 
 Add tamamo-x-mcp to your coding agent's MCP configuration:
 
-**Claude Code** (`.claude/mcp.json`):
+**Claude Code** (project-level `.mcp.json`):
+
 ```json
 {
   "mcpServers": {
@@ -100,17 +116,34 @@ Add tamamo-x-mcp to your coding agent's MCP configuration:
 }
 ```
 
-**Cursor/Windsurf** (Settings → MCP):
+**Cursor** (project-level `.cursor/mcp.json`):
+
 ```json
 {
-  "tamamo-x": {
-    "command": "tamamo-x",
-    "args": ["mcp"]
+  "mcpServers": {
+    "tamamo-x": {
+      "command": "tamamo-x",
+      "args": ["mcp"]
+    }
   }
 }
 ```
 
-**Codex** (`.codex/mcp.json`):
+**Windsurf** (project-level `.mcp.json`):
+
+```json
+{
+  "mcpServers": {
+    "tamamo-x": {
+      "command": "tamamo-x",
+      "args": ["mcp"]
+    }
+  }
+}
+```
+
+**Codex** (project-level `.mcp.json`):
+
 ```json
 {
   "mcpServers": {
@@ -125,11 +158,13 @@ Add tamamo-x-mcp to your coding agent's MCP configuration:
 > **Note**: Restart your coding agent after adding the configuration.
 
 **API Key Requirement**: tamamo-x-mcp requires LLM API credentials to analyze and group tools. By default, it auto-discovers credentials from:
+
 - **Anthropic Claude**: Claude Code CLI (`~/.config/claude/config.json`)
 - **OpenAI**: `OPENAI_API_KEY` environment variable
 - **Gemini**: Gemini CLI (`~/.config/gemini/credentials.json`)
 
 Alternatively, set the API key directly:
+
 ```bash
 export ANTHROPIC_API_KEY=your-api-key-here
 export OPENAI_API_KEY=your-api-key-here

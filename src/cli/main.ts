@@ -30,14 +30,41 @@ COMMANDS:
     mcp         Start MCP server with grouped sub-agents
     help        Show this help message
 
-OPTIONS:
+GLOBAL OPTIONS:
     --version   Show version information
     --help      Show this help message
 
+INIT COMMAND OPTIONS:
+    --agent <name>        Import config from specific coding agent
+                          (claude-code, codex, gemini-cli, cursor, windsurf)
+                          Default: auto-detect all installed agents
+    --detect-agents       Explicitly auto-detect and import from all installed agents
+                          (This is the default behavior when no --agent is specified)
+    --no-add-to-agent     Don't add tamamo-x-mcp to agent's MCP server config
+                          Default: auto-add tamamo-x-mcp to detected/specified agent configs
+    --preserve-servers    Preserve existing servers when adding tamamo-x-mcp
+                          Default: replace all existing servers with tamamo-x-mcp only
+
 EXAMPLES:
+    # Initialize with default settings (auto-detect agents and add tamamo-x-mcp)
     tamamo-x-mcp init
+
+    # Import from Claude Code and replace its config with tamamo-x-mcp only
+    tamamo-x-mcp init --agent claude-code
+
+    # Import from Claude Code and add tamamo-x-mcp while preserving existing servers
+    tamamo-x-mcp init --agent claude-code --preserve-servers
+
+    # Auto-detect all agents but don't modify their configs
+    tamamo-x-mcp init --no-add-to-agent
+
+    # Import from specific agent without modifying its config
+    tamamo-x-mcp init --agent codex --no-add-to-agent
+
+    # Other commands
+    tamamo-x-mcp build
+    tamamo-x-mcp mcp
     tamamo-x-mcp --version
-    tamamo-x-mcp help
 
 For more information, visit: https://github.com/your-org/tamamo-x-mcp
   `.trim());
@@ -55,8 +82,15 @@ function showVersion(): void {
  */
 async function main(args: string[]): Promise<void> {
   const parsed = parseArgs(args, {
-    boolean: ["help", "version"],
-    string: [],
+    boolean: [
+      "help",
+      "version",
+      "add-to-agent",
+      "no-add-to-agent",
+      "preserve-servers",
+      "detect-agents",
+    ],
+    string: ["agent"],
     alias: {
       h: "help",
       v: "version",
@@ -87,9 +121,57 @@ async function main(args: string[]): Promise<void> {
   // Route to appropriate command
   try {
     switch (command) {
-      case "init":
-        await init();
+      case "init": {
+        // Validate agent option
+        const validAgents = ["claude-code", "codex", "gemini-cli", "cursor", "windsurf"];
+        if (parsed.agent && !validAgents.includes(parsed.agent)) {
+          console.error(`Error: Invalid agent '${parsed.agent}'`);
+          console.error(`Valid agents: ${validAgents.join(", ")}`);
+          Deno.exit(1);
+        }
+
+        // Determine addToAgent behavior:
+        // 1. If --no-add-to-agent is specified, addToAgent=false
+        // 2. If --add-to-agent is specified, addToAgent=true
+        // 3. Otherwise (default), addToAgent=true
+        let addToAgent: boolean;
+        if (parsed["no-add-to-agent"]) {
+          addToAgent = false;
+        } else if (parsed["add-to-agent"]) {
+          addToAgent = true;
+        } else {
+          // Default behavior: addToAgent=true
+          addToAgent = true;
+        }
+
+        // Determine detectAgents behavior:
+        // 1. If --agent is specified, detectAgents=false (use specific agent)
+        // 2. If --detect-agents is specified, detectAgents=true
+        // 3. Otherwise (default), detectAgents=true
+        let detectAgents: boolean;
+        if (parsed.agent) {
+          detectAgents = false;
+        } else if (parsed["detect-agents"]) {
+          detectAgents = true;
+        } else {
+          // Default behavior: detectAgents=true
+          detectAgents = true;
+        }
+
+        await init({
+          agent: parsed.agent as
+            | "claude-code"
+            | "codex"
+            | "gemini-cli"
+            | "cursor"
+            | "windsurf"
+            | undefined,
+          addToAgent,
+          preserveServers: parsed["preserve-servers"],
+          detectAgents,
+        });
         break;
+      }
 
       case "build":
         await build();
