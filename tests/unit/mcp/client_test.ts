@@ -105,11 +105,16 @@ describe("MCP Client", () => {
 
       // Act & Assert
       const client = new MCPClient(serverConfig);
-      await assertRejects(
-        async () => await client.connect(),
-        Error,
-        "Failed to connect",
-      );
+      try {
+        await assertRejects(
+          async () => await client.connect(),
+          Error,
+          "Failed to connect",
+        );
+      } finally {
+        // Cleanup: disconnect to clear any timers/resources
+        await client.disconnect();
+      }
     });
 
     it("should disconnect from MCP server cleanly", async () => {
