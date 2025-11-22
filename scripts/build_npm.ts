@@ -146,10 +146,10 @@ const packageJson = {
   ],
   repository: {
     type: "git",
-    url: "git+https://github.com/yourusername/tamamo-x-mcp.git",
+    url: "git+https://github.com/mazrean/tamamo-x-mcp.git",
   },
   bugs: {
-    url: "https://github.com/yourusername/tamamo-x-mcp/issues",
+    url: "https://github.com/mazrean/tamamo-x-mcp/issues",
   },
 };
 

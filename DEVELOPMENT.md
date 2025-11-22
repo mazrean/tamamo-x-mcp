@@ -30,7 +30,7 @@ This guide provides instructions for contributing to tamamo-x-mcp development.
 ### Clone Repository
 
 ```bash
-git clone https://github.com/yourusername/tamamo-x-mcp.git
+git clone https://github.com/mazrean/tamamo-x-mcp.git
 cd tamamo-x-mcp
 ```
 
@@ -361,18 +361,141 @@ deno task npm:build
 
 ### CI/CD Workflows
 
-**CI Workflow** (`.github/workflows/ci.yml`):
+#### Continuous Integration (`.github/workflows/ci.yml`)
 
-- Quality gates (lint, format, type check)
-- Test matrix (unit, integration, distribution)
-- Coverage reporting
-- Build verification
+Runs automatically on:
 
-**Release Workflow** (`.github/workflows/release.yml`):
+- Push to `main` or `develop` branches
+- Pull requests to `main` or `develop` branches
 
-- Triggered on version tags (`v*.*.*`)
-- Builds Deno binary and npm package
-- Creates GitHub release with artifacts
+**Steps:**
+
+1. **Format Check**: `deno fmt --check`
+2. **Lint**: `deno lint`
+3. **Type Check**: `deno check src/**/*.ts` (with bash shell for cross-platform glob expansion)
+4. **Unit Tests**: `deno test --allow-all tests/unit/`
+5. **Integration Tests**: `deno test --allow-all tests/integration/`
+6. **Distribution Tests**: `deno test --allow-all tests/distribution/`
+7. **CI Tests**: `deno test --allow-all tests/ci/`
+8. **Coverage**: Test coverage report (Ubuntu only)
+9. **Build**: Compiles Deno binary and npm package
+
+**Platforms**: Tests run in parallel on Ubuntu, macOS, and Windows
+
+#### Release Workflow (`.github/workflows/release.yml`)
+
+Triggers automatically when you push a version tag (e.g., `v1.0.0`)
+
+**Built Artifacts:**
+
+- **Linux x86_64** (`tamamo-x-mcp-linux-x64`)
+- **Linux ARM64** (`tamamo-x-mcp-linux-arm64`)
+- **macOS Intel** (`tamamo-x-mcp-darwin-x64`) - built on `macos-13`
+- **macOS Apple Silicon** (`tamamo-x-mcp-darwin-arm64`) - built on `macos-14`
+- **Windows x86_64** (`tamamo-x-mcp-windows-x64.exe`)
+- **npm package** (published to npm registry)
+
+**Release Steps:**
+
+1. **Build Binaries**: Compiles standalone binaries for all platforms
+2. **Build npm Package**: Creates npm package for Node.js users
+3. **Create Release**: Creates GitHub Release with all binaries and SHA256 checksums
+4. **Publish npm**: Publishes package to npm registry
+
+#### Creating a Release
+
+**Prerequisites:**
+
+This project uses **npm Trusted Publishers** (Provenance) for secure, automated publishing from GitHub Actions.
+
+**Initial Setup:**
+
+1. **For First-Time Publication** (package doesn't exist on npm):
+   - Create an npm automation token (Classic Token) at https://www.npmjs.com/settings/YOUR_USERNAME/tokens
+   - Add `NPM_TOKEN` to GitHub repository secrets:
+     - Settings → Secrets and variables → Actions
+     - Create new secret named `NPM_TOKEN`
+   - Perform first release (see Release Process below)
+
+2. **After First Successful Publish:**
+   - **IMPORTANT**: Delete the `NPM_TOKEN` secret from GitHub repository:
+     - Settings → Secrets and variables → Actions → NPM_TOKEN → Remove
+   - From this point forward, the workflow will use OIDC authentication automatically
+   - No npm token required for subsequent releases
+
+**How Trusted Publishers (OIDC) Works:**
+
+- When `NPM_TOKEN` is **not set**, npm automatically uses GitHub Actions OIDC tokens
+- Workflow has `id-token: write` permission to request OIDC tokens
+- Publishes with `--provenance` flag for cryptographic proof of origin
+- Package includes signed attestation linking it to this specific repository
+- More secure than long-lived tokens (no token storage, automatic rotation)
+
+**Important Notes:**
+
+- If `NPM_TOKEN` exists, it takes precedence over OIDC (defeating Trusted Publishers)
+- Remove the token after first publish to enable true OIDC authentication
+- First publish requires token because package doesn't exist yet on npm
+
+**Release Process:**
+
+1. **Update Version** in `deno.json`:
+   ```json
+   {
+     "version": "1.0.0"
+   }
+   ```
+
+2. **Commit and Tag**:
+   ```bash
+   git add deno.json
+   git commit -m "chore: bump version to 1.0.0"
+   git tag v1.0.0
+   git push origin v1.0.0
+   ```
+
+3. **Monitor**: Check the Actions tab on GitHub for build progress
+
+**What Gets Released:**
+
+- GitHub Release with all binaries and checksums
+- npm package published to registry
+- Auto-generated release notes
+
+#### Troubleshooting CI/CD
+
+**Release Fails:**
+
+- **Binary compilation fails**: Check Deno version compatibility and platform support
+- **npm publish fails**:
+  - For first-time publish: Verify `NPM_TOKEN` secret is set correctly
+  - For subsequent publishes with OIDC: Ensure `NPM_TOKEN` secret has been removed
+  - If `NPM_TOKEN` still exists, OIDC won't activate (remove the secret)
+  - Ensure version isn't already published on npm
+  - Check that workflow has `id-token: write` permission for provenance
+
+**CI Fails:**
+
+- **Tests fail on Windows**: Ensure file paths use forward slashes and globs work cross-platform
+- **Type check fails**: Run `deno check src/**/*.ts` locally to reproduce
+
+#### Architecture Notes
+
+**Cross-Platform Compatibility:**
+
+- All build scripts use `shell: bash` for consistency across Windows/macOS/Linux
+- Type check step explicitly uses bash to expand glob patterns on Windows
+- macOS builds use specific runners: `macos-13` (Intel) and `macos-14` (Apple Silicon)
+- Explicitly creates `dist/` directory before compilation
+
+**Security:**
+
+- No credentials stored in repository or config files
+- Uses npm Trusted Publishers (Provenance) with OIDC tokens (after initial publish)
+- Long-lived npm token only required for first publish, then removed
+- Cryptographic proof of package origin via signed attestations
+- OIDC tokens are short-lived and automatically rotated
+- All binary artifacts include SHA256 checksums
 
 ### Branch Protection Rules
 
@@ -417,8 +540,8 @@ act push
 
 ### Getting Help
 
-- **Issues**: [GitHub Issues](https://github.com/yourusername/tamamo-x-mcp/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/yourusername/tamamo-x-mcp/discussions)
+- **Issues**: [GitHub Issues](https://github.com/mazrean/tamamo-x-mcp/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/mazrean/tamamo-x-mcp/discussions)
 - **Documentation**: [specs/001-tool-grouping/](specs/001-tool-grouping/)
 
 ## License
