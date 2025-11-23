@@ -55,7 +55,8 @@ async function addToAgentConfig(
   try {
     const content = await Deno.readTextFile(configPath);
 
-    // Try JSON first (newer format), fall back to TOML if supported by this agent
+    // For agents that support TOML: try JSON first (newer format), fall back to TOML (legacy)
+    // For agents that don't support TOML: only try JSON
     if (handler.supportToml) {
       try {
         config = JSON.parse(content);
