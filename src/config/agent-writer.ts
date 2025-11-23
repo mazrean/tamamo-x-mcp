@@ -2,7 +2,10 @@
  * Write tamamo-x-mcp configuration to coding agent config files
  */
 
+import { dirname } from "jsr:@std/path@^1.0.0";
+import { parse as parseToml } from "jsr:@std/toml@^1.0.0";
 import type { CodingAgent } from "./agent-detector.ts";
+import { normalizeEnv } from "./agent-parsers.ts";
 
 /**
  * tamamo-x-mcp MCP server configuration template
@@ -32,11 +35,23 @@ async function addToClaudeCode(configPath: string, preserveServers = false): Pro
 
   // Replace or preserve existing servers
   if (preserveServers) {
+    // Handle array format by converting to object format
+    if (Array.isArray(config.mcpServers)) {
+      const serversArray = config.mcpServers as Array<Record<string, unknown>>;
+      const serversObject: Record<string, unknown> = {};
+
+      // Convert array to object using 'name' field as key
+      for (const server of serversArray) {
+        if (server.name && typeof server.name === "string") {
+          serversObject[server.name] = server;
+        }
+      }
+
+      config.mcpServers = serversObject;
+    }
+
     // Ensure mcpServers object exists
-    if (
-      !config.mcpServers || typeof config.mcpServers !== "object" ||
-      Array.isArray(config.mcpServers)
-    ) {
+    if (!config.mcpServers || typeof config.mcpServers !== "object") {
       config.mcpServers = {};
     }
 
@@ -66,19 +81,58 @@ async function addToCodex(configPath: string, preserveServers = false): Promise<
 
   try {
     const content = await Deno.readTextFile(configPath);
-    config = JSON.parse(content);
+    // Try JSON first (newer format), fall back to TOML (legacy format)
+    try {
+      config = JSON.parse(content);
+    } catch {
+      config = parseToml(content) as Record<string, unknown>;
+    }
   } catch {
-    // Start fresh
+    // Start fresh if file doesn't exist or both parsers fail
     config = {};
   }
 
   // Replace or preserve existing servers
   if (preserveServers) {
+    // Convert TOML format to JSON format if needed
+    if (config.mcp && typeof config.mcp === "object") {
+      const mcpSection = config.mcp as Record<string, unknown>;
+      if (Array.isArray(mcpSection.servers)) {
+        // Convert TOML [[mcp.servers]] to JSON object format
+        const serversObject: Record<string, unknown> = {};
+        for (const server of mcpSection.servers) {
+          const s = server as Record<string, unknown>;
+          if (s.name && typeof s.name === "string") {
+            // Normalize env values to strings (TOML may have numbers/bools)
+            if (s.env && typeof s.env === "object") {
+              s.env = normalizeEnv(s.env as Record<string, unknown>);
+            }
+            serversObject[s.name] = s;
+          }
+        }
+        config.mcpServers = serversObject;
+        // Remove only the servers field, preserve other mcp.* settings
+        delete mcpSection.servers;
+      }
+    }
+
+    // Handle array format by converting to object format
+    if (Array.isArray(config.mcpServers)) {
+      const serversArray = config.mcpServers as Array<Record<string, unknown>>;
+      const serversObject: Record<string, unknown> = {};
+
+      // Convert array to object using 'name' field as key
+      for (const server of serversArray) {
+        if (server.name && typeof server.name === "string") {
+          serversObject[server.name] = server;
+        }
+      }
+
+      config.mcpServers = serversObject;
+    }
+
     // Ensure mcpServers object exists
-    if (
-      !config.mcpServers || typeof config.mcpServers !== "object" ||
-      Array.isArray(config.mcpServers)
-    ) {
+    if (!config.mcpServers || typeof config.mcpServers !== "object") {
       config.mcpServers = {};
     }
 
@@ -93,9 +147,14 @@ async function addToCodex(configPath: string, preserveServers = false): Promise<
     config.mcpServers = {
       "tamamo-x-mcp": getTamamoXMCPServerConfig(),
     };
+    // Remove only the servers field from TOML structure, preserve other mcp.* settings
+    if (config.mcp && typeof config.mcp === "object") {
+      const mcpSection = config.mcp as Record<string, unknown>;
+      delete mcpSection.servers;
+    }
   }
 
-  // Write back
+  // Write back (always write as JSON)
   await Deno.writeTextFile(configPath, JSON.stringify(config, null, 2));
 }
 
@@ -224,7 +283,7 @@ export async function addTamamoXToAgent(
   preserveServers = false,
 ): Promise<void> {
   // Ensure parent directory exists
-  const parentDir = configPath.substring(0, configPath.lastIndexOf("/"));
+  const parentDir = dirname(configPath);
   try {
     await Deno.mkdir(parentDir, { recursive: true });
   } catch {

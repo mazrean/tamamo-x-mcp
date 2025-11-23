@@ -7,6 +7,17 @@ import type { CodingAgent } from "./agent-detector.ts";
 import type { LLMProviderConfig, LLMProviderType, MCPServerConfig } from "../types/index.ts";
 
 /**
+ * Convert env object values to strings (TOML may parse numbers/bools)
+ */
+export function normalizeEnv(env: Record<string, unknown>): Record<string, string> {
+  const normalized: Record<string, string> = {};
+  for (const [key, value] of Object.entries(env)) {
+    normalized[key] = String(value);
+  }
+  return normalized;
+}
+
+/**
  * Extracted MCP configuration from a coding agent
  */
 export interface AgentMCPConfig {
@@ -62,30 +73,157 @@ function parseClaudeCodeConfig(content: string): AgentMCPConfig {
 
 /**
  * Parse Codex configuration
- * Format: TOML with [[mcp.servers]] array
+ * Format: TOML ([[mcp.servers]]) or JSON (object/array format)
  */
 function parseCodexConfig(content: string): AgentMCPConfig {
-  const config = parseToml(content) as Record<string, unknown>;
+  let config: Record<string, unknown>;
+
+  // Try JSON first (newer format), fall back to TOML (legacy format)
+  try {
+    config = JSON.parse(content);
+  } catch {
+    // Failed to parse as JSON, try TOML
+    config = parseToml(content) as Record<string, unknown>;
+  }
+
   const mcpServers: MCPServerConfig[] = [];
 
-  // Codex format: [[mcp.servers]]
+  // Codex can use either object format (like Claude Code) or array format
+  if (config.mcpServers) {
+    if (Array.isArray(config.mcpServers)) {
+      // Array format: [{name: "server1", command: "...", ...}, ...]
+      for (const serverConfig of config.mcpServers) {
+        const s = serverConfig as Record<string, unknown>;
+
+        // Get name from the object itself
+        const name = typeof s.name === "string" ? s.name : undefined;
+        if (!name) {
+          console.warn(`Skipping server without name in array format`);
+          continue;
+        }
+
+        // Determine transport type
+        let server: MCPServerConfig;
+
+        if (s.url && typeof s.url === "string") {
+          // URL-based transport (http or websocket)
+          if (s.url.startsWith("ws://") || s.url.startsWith("wss://")) {
+            server = {
+              name,
+              transport: "websocket",
+              url: s.url,
+              command: typeof s.command === "string" ? s.command : undefined,
+              args: Array.isArray(s.args) ? s.args as string[] : undefined,
+              env: s.env && typeof s.env === "object"
+                ? normalizeEnv(s.env as Record<string, unknown>)
+                : undefined,
+            };
+          } else {
+            server = {
+              name,
+              transport: "http",
+              url: s.url,
+              command: typeof s.command === "string" ? s.command : undefined,
+              args: Array.isArray(s.args) ? s.args as string[] : undefined,
+              env: s.env && typeof s.env === "object"
+                ? normalizeEnv(s.env as Record<string, unknown>)
+                : undefined,
+            };
+          }
+        } else if (s.command && typeof s.command === "string") {
+          // stdio transport
+          server = {
+            name,
+            transport: "stdio",
+            command: s.command,
+            args: Array.isArray(s.args) ? s.args as string[] : undefined,
+            env: s.env && typeof s.env === "object"
+              ? normalizeEnv(s.env as Record<string, unknown>)
+              : undefined,
+          };
+        } else {
+          console.warn(`Skipping ${name}: missing required command or url`);
+          continue;
+        }
+
+        mcpServers.push(server);
+      }
+    } else if (typeof config.mcpServers === "object") {
+      // Object format: {"server1": {command: "...", ...}, ...}
+      for (const [name, serverConfig] of Object.entries(config.mcpServers)) {
+        const s = serverConfig as Record<string, unknown>;
+
+        // Determine transport type
+        let server: MCPServerConfig;
+
+        if (s.url && typeof s.url === "string") {
+          // URL-based transport (http or websocket)
+          if (s.url.startsWith("ws://") || s.url.startsWith("wss://")) {
+            server = {
+              name,
+              transport: "websocket",
+              url: s.url,
+              command: typeof s.command === "string" ? s.command : undefined,
+              args: Array.isArray(s.args) ? s.args as string[] : undefined,
+              env: s.env && typeof s.env === "object"
+                ? normalizeEnv(s.env as Record<string, unknown>)
+                : undefined,
+            };
+          } else {
+            server = {
+              name,
+              transport: "http",
+              url: s.url,
+              command: typeof s.command === "string" ? s.command : undefined,
+              args: Array.isArray(s.args) ? s.args as string[] : undefined,
+              env: s.env && typeof s.env === "object"
+                ? normalizeEnv(s.env as Record<string, unknown>)
+                : undefined,
+            };
+          }
+        } else if (s.command && typeof s.command === "string") {
+          // stdio transport
+          server = {
+            name,
+            transport: "stdio",
+            command: s.command,
+            args: Array.isArray(s.args) ? s.args as string[] : undefined,
+            env: s.env && typeof s.env === "object"
+              ? normalizeEnv(s.env as Record<string, unknown>)
+              : undefined,
+          };
+        } else {
+          console.warn(`Skipping ${name}: missing required command or url`);
+          continue;
+        }
+
+        mcpServers.push(server);
+      }
+    }
+  }
+
+  // TOML format: [[mcp.servers]]
   if (config.mcp && typeof config.mcp === "object") {
     const mcpSection = config.mcp as Record<string, unknown>;
     if (Array.isArray(mcpSection.servers)) {
       for (const server of mcpSection.servers) {
         const s = server as Record<string, unknown>;
 
-        if (typeof s.name !== "string") continue;
+        const name = typeof s.name === "string" ? s.name : undefined;
+        if (!name) {
+          console.warn(`Skipping server without name in TOML format`);
+          continue;
+        }
 
         // Skip if command is missing (required for stdio transport)
         if (typeof s.command !== "string") {
-          console.warn(`Skipping ${s.name}: command is required for stdio transport`);
+          console.warn(`Skipping ${name}: command is required for stdio transport`);
           continue;
         }
 
         const mcpServer: MCPServerConfig = {
-          name: s.name,
-          transport: "stdio", // Codex primarily uses stdio
+          name,
+          transport: "stdio", // Codex TOML primarily uses stdio
           command: s.command,
         };
 
@@ -94,7 +232,7 @@ function parseCodexConfig(content: string): AgentMCPConfig {
         }
 
         if (s.env && typeof s.env === "object") {
-          mcpServer.env = s.env as Record<string, string>;
+          mcpServer.env = normalizeEnv(s.env as Record<string, unknown>);
         }
 
         mcpServers.push(mcpServer);

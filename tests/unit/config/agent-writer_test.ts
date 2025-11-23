@@ -229,6 +229,110 @@ Deno.test({
   sanitizeOps: false,
 });
 
+Deno.test({
+  name: "addTamamoXToAgent - preserves TOML servers with preserveServers=true (Codex)",
+  async fn() {
+    const configPath = join(testDir, "codex-toml-preserve.toml");
+
+    // Start with TOML config with other mcp.* settings
+    const initialConfig = `
+[mcp]
+timeout = 30000
+retries = 3
+
+[[mcp.servers]]
+name = "existing-server"
+command = "node"
+args = ["server.js"]
+
+[mcp.servers.env]
+PORT = 8080
+
+[llm]
+provider = "openai"
+model = "gpt-4o"
+`;
+
+    await Deno.writeTextFile(configPath, initialConfig);
+
+    // Add tamamo-x-mcp with preserveServers=true
+    await addTamamoXToAgent("codex", configPath, true);
+
+    // Read and verify - existing-server should still exist and be converted to JSON
+    const content = await Deno.readTextFile(configPath);
+    const config = JSON.parse(content);
+
+    assertEquals(Object.keys(config.mcpServers).length, 2);
+    assertEquals(config.mcpServers["existing-server"].command, "node");
+    assertEquals(config.mcpServers["existing-server"].args, ["server.js"]);
+    assertEquals(config.mcpServers["tamamo-x-mcp"].command, "tamamo-x-mcp");
+    assertEquals(config.mcpServers["tamamo-x-mcp"].args, ["mcp"]);
+
+    // Verify env values are converted to strings (TOML had numeric PORT)
+    assertEquals(config.mcpServers["existing-server"].env?.PORT, "8080");
+    assertEquals(typeof config.mcpServers["existing-server"].env?.PORT, "string");
+
+    // Verify old TOML servers field is removed but other mcp.* settings are preserved
+    assertEquals(config.mcp?.servers, undefined);
+    assertEquals(config.mcp?.timeout, 30000);
+    assertEquals(config.mcp?.retries, 3);
+
+    // Verify LLM config is preserved
+    assertEquals(config.llm.provider, "openai");
+    assertEquals(config.llm.model, "gpt-4o");
+  },
+  sanitizeResources: false,
+  sanitizeOps: false,
+});
+
+Deno.test({
+  name: "addTamamoXToAgent - replaces TOML servers by default (Codex)",
+  async fn() {
+    const configPath = join(testDir, "codex-toml-replace.toml");
+
+    // Start with TOML config with other mcp.* settings
+    const initialConfig = `
+[mcp]
+timeout = 30000
+retries = 3
+
+[[mcp.servers]]
+name = "existing-server"
+command = "node"
+args = ["server.js"]
+
+[llm]
+provider = "openai"
+model = "gpt-4o"
+`;
+
+    await Deno.writeTextFile(configPath, initialConfig);
+
+    // Add tamamo-x-mcp (default behavior: replace)
+    await addTamamoXToAgent("codex", configPath);
+
+    // Read and verify - existing-server should be gone
+    const content = await Deno.readTextFile(configPath);
+    const config = JSON.parse(content);
+
+    assertEquals(Object.keys(config.mcpServers).length, 1);
+    assertEquals(config.mcpServers["existing-server"], undefined);
+    assertEquals(config.mcpServers["tamamo-x-mcp"].command, "tamamo-x-mcp");
+    assertEquals(config.mcpServers["tamamo-x-mcp"].args, ["mcp"]);
+
+    // Verify old TOML servers field is removed but other mcp.* settings are preserved
+    assertEquals(config.mcp?.servers, undefined);
+    assertEquals(config.mcp?.timeout, 30000);
+    assertEquals(config.mcp?.retries, 3);
+
+    // Verify LLM config is preserved
+    assertEquals(config.llm.provider, "openai");
+    assertEquals(config.llm.model, "gpt-4o");
+  },
+  sanitizeResources: false,
+  sanitizeOps: false,
+});
+
 // Cleanup test directory
 Deno.test({
   name: "cleanup test directory",
