@@ -36,7 +36,7 @@ GLOBAL OPTIONS:
 
 INIT COMMAND OPTIONS:
     --agent <name>        Import config from specific coding agent
-                          (claude-code, codex, gemini-cli, cursor, windsurf)
+                          (claude-code, gemini-cli, cursor)
                           Default: auto-detect all installed agents
     --detect-agents       Explicitly auto-detect and import from all installed agents
                           (This is the default behavior when no --agent is specified)
@@ -59,7 +59,7 @@ EXAMPLES:
     tamamo-x-mcp init --no-add-to-agent
 
     # Import from specific agent without modifying its config
-    tamamo-x-mcp init --agent codex --no-add-to-agent
+    tamamo-x-mcp init --agent gemini-cli --no-add-to-agent
 
     # Other commands
     tamamo-x-mcp build
@@ -123,7 +123,7 @@ async function main(args: string[]): Promise<void> {
     switch (command) {
       case "init": {
         // Validate agent option
-        const validAgents = ["claude-code", "codex", "gemini-cli", "cursor", "windsurf"];
+        const validAgents = ["claude-code", "gemini-cli", "cursor"];
         if (parsed.agent && !validAgents.includes(parsed.agent)) {
           console.error(`Error: Invalid agent '${parsed.agent}'`);
           console.error(`Valid agents: ${validAgents.join(", ")}`);
@@ -161,10 +161,8 @@ async function main(args: string[]): Promise<void> {
         await init({
           agent: parsed.agent as
             | "claude-code"
-            | "codex"
             | "gemini-cli"
             | "cursor"
-            | "windsurf"
             | undefined,
           addToAgent,
           preserveServers: parsed["preserve-servers"],

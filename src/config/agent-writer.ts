@@ -3,9 +3,7 @@
  */
 
 import { dirname } from "jsr:@std/path@^1.0.0";
-import { parse as parseToml } from "jsr:@std/toml@^1.0.0";
 import type { CodingAgent } from "./agent-detector.ts";
-import { normalizeEnv } from "./agent-parsers.ts";
 
 /**
  * tamamo-x-mcp MCP server configuration template
@@ -22,7 +20,6 @@ function getTamamoXMCPServerConfig() {
  * Configuration handler for different agent types
  */
 interface AgentConfigHandler {
-  supportToml?: boolean;
   supportArrayFormat?: boolean;
 }
 
@@ -31,10 +28,8 @@ interface AgentConfigHandler {
  */
 const agentHandlers: Record<CodingAgent, AgentConfigHandler> = {
   "claude-code": { supportArrayFormat: true },
-  "codex": { supportToml: true },
   "gemini-cli": {},
   "cursor": {},
-  "windsurf": {},
 };
 
 /**
@@ -57,18 +52,7 @@ async function addToAgentConfig(
   // Read and parse configuration
   try {
     const content = await Deno.readTextFile(configPath);
-
-    // For agents that support TOML: try JSON first (newer format), fall back to TOML (legacy)
-    // For agents that don't support TOML: only try JSON
-    if (handler.supportToml) {
-      try {
-        config = JSON.parse(content);
-      } catch {
-        config = parseToml(content) as Record<string, unknown>;
-      }
-    } else {
-      config = JSON.parse(content);
-    }
+    config = JSON.parse(content);
   } catch {
     // Start fresh if file doesn't exist or parsing fails
     config = {};
@@ -76,28 +60,6 @@ async function addToAgentConfig(
 
   // Process servers based on preserveServers flag
   if (preserveServers) {
-    // Convert TOML format to JSON format if needed
-    if (handler.supportToml && config.mcp && typeof config.mcp === "object") {
-      const mcpSection = config.mcp as Record<string, unknown>;
-      if (Array.isArray(mcpSection.servers)) {
-        // Convert TOML [[mcp.servers]] to JSON object format
-        const serversObject: Record<string, unknown> = {};
-        for (const server of mcpSection.servers) {
-          const s = server as Record<string, unknown>;
-          if (s.name && typeof s.name === "string") {
-            // Normalize env values to strings (TOML may have numbers/bools)
-            if (s.env && typeof s.env === "object") {
-              s.env = normalizeEnv(s.env as Record<string, unknown>);
-            }
-            serversObject[s.name] = s;
-          }
-        }
-        config.mcpServers = serversObject;
-        // Remove only the servers field, preserve other mcp.* settings
-        delete mcpSection.servers;
-      }
-    }
-
     // Handle array format by converting to object format
     if (handler.supportArrayFormat && Array.isArray(config.mcpServers)) {
       const serversArray = config.mcpServers as Array<Record<string, unknown>>;
@@ -132,11 +94,6 @@ async function addToAgentConfig(
     config.mcpServers = {
       "tamamo-x-mcp": getTamamoXMCPServerConfig(),
     };
-    // Remove only the servers field from TOML structure, preserve other mcp.* settings
-    if (handler.supportToml && config.mcp && typeof config.mcp === "object") {
-      const mcpSection = config.mcp as Record<string, unknown>;
-      delete mcpSection.servers;
-    }
   }
 
   // Write back (always write as JSON)

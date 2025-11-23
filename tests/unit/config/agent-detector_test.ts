@@ -15,7 +15,7 @@ Deno.test("getAgentConfigPath - returns correct path for each agent", () => {
   const projectRoot = "/test/project";
 
   // Test each agent
-  const agents: CodingAgent[] = ["claude-code", "codex", "gemini-cli", "cursor", "windsurf"];
+  const agents: CodingAgent[] = ["claude-code", "gemini-cli", "cursor"];
 
   for (const agent of agents) {
     const path = getAgentConfigPath(agent, projectRoot);
@@ -33,11 +33,13 @@ Deno.test("getAgentConfigPath - returns correct path for each agent", () => {
     // Verify path contains agent-specific segments
     switch (agent) {
       case "claude-code":
-      case "codex":
-      case "gemini-cli":
-      case "windsurf":
-        // These use .mcp.json
+        // Claude Code uses .mcp.json
         assertEquals(path.includes(".mcp.json"), true, `${agent} should use .mcp.json`);
+        break;
+      case "gemini-cli":
+        // Gemini CLI uses .gemini/settings.json
+        assertEquals(path.includes(".gemini"), true, "Gemini CLI should use .gemini directory");
+        assertEquals(path.includes("settings.json"), true, "Gemini CLI should use settings.json");
         break;
       case "cursor":
         // Cursor uses .cursor/mcp.json
@@ -70,8 +72,8 @@ Deno.test("detectCodingAgents - returns all agents", async () => {
 
   const agents = await detectCodingAgents(projectRoot);
 
-  // Should return 5 agents
-  assertEquals(agents.length, 5);
+  // Should return 3 agents
+  assertEquals(agents.length, 3);
 
   // Each agent should have proper structure
   for (const agent of agents) {
@@ -83,10 +85,8 @@ Deno.test("detectCodingAgents - returns all agents", async () => {
   // Should include all expected agents
   const agentNames = agents.map((a) => a.agent);
   assertEquals(agentNames.includes("claude-code"), true);
-  assertEquals(agentNames.includes("codex"), true);
   assertEquals(agentNames.includes("gemini-cli"), true);
   assertEquals(agentNames.includes("cursor"), true);
-  assertEquals(agentNames.includes("windsurf"), true);
 
   // Cleanup
   await Deno.remove(projectRoot, { recursive: true });

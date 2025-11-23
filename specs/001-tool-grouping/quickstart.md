@@ -22,8 +22,8 @@ Download the pre-built standalone binary (zero dependencies):
 **Linux/macOS:**
 
 ```bash
-# Download and install
-curl -fsSL https://github.com/mazrean/tamamo-x-mcp/releases/latest/download/tamamo-x-$(uname -s)-$(uname -m) -o tamamo-x
+# Download and install (auto-detects your platform)
+curl -fsSL https://github.com/mazrean/tamamo-x-mcp/releases/latest/download/tamamo-x-mcp-$(uname -s)-$(uname -m) -o tamamo-x
 chmod +x tamamo-x
 sudo mv tamamo-x /usr/local/bin/
 
@@ -33,7 +33,7 @@ tamamo-x --version
 
 **Windows:**
 
-Download `tamamo-x-Windows-x86_64.exe` from the [releases page](https://github.com/mazrean/tamamo-x-mcp/releases), rename to `tamamo-x.exe`, and add to your PATH.
+Download `tamamo-x-mcp-Windows-x86_64.exe` from the [releases page](https://github.com/mazrean/tamamo-x-mcp/releases), rename to `tamamo-x.exe`, and add to your PATH.
 
 ### Option 2: npm Package
 

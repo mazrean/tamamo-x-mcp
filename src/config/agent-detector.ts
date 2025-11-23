@@ -6,9 +6,9 @@ import { join } from "jsr:@std/path@^1.0.0";
 import { exists } from "jsr:@std/fs@^1.0.0";
 
 /**
- * Supported coding agents
+ * Supported coding agents with project-level MCP configuration
  */
-export type CodingAgent = "claude-code" | "codex" | "gemini-cli" | "cursor" | "windsurf";
+export type CodingAgent = "claude-code" | "gemini-cli" | "cursor";
 
 /**
  * Agent configuration file location info
@@ -29,18 +29,12 @@ export function getAgentConfigPath(agent: CodingAgent, projectRoot: string): str
     case "claude-code":
       // Project-level: .mcp.json
       return join(projectRoot, ".mcp.json");
-    case "codex":
-      // Project-level: .codex/mcp.json (if exists), otherwise .mcp.json
-      return join(projectRoot, ".mcp.json");
     case "gemini-cli":
-      // Project-level: .gemini/mcp.json or .mcp.json
-      return join(projectRoot, ".mcp.json");
+      // Project-level: .gemini/settings.json
+      return join(projectRoot, ".gemini", "settings.json");
     case "cursor":
       // Project-level: .cursor/mcp.json
       return join(projectRoot, ".cursor", "mcp.json");
-    case "windsurf":
-      // Project-level: .mcp.json (Windsurf can use generic .mcp.json)
-      return join(projectRoot, ".mcp.json");
     default:
       throw new Error(`Unknown coding agent: ${agent}`);
   }
@@ -51,7 +45,7 @@ export function getAgentConfigPath(agent: CodingAgent, projectRoot: string): str
  * @param projectRoot - Project root directory
  */
 export async function detectCodingAgents(projectRoot: string): Promise<AgentConfigLocation[]> {
-  const agents: CodingAgent[] = ["claude-code", "codex", "gemini-cli", "cursor", "windsurf"];
+  const agents: CodingAgent[] = ["claude-code", "gemini-cli", "cursor"];
   const locations: AgentConfigLocation[] = [];
 
   for (const agent of agents) {

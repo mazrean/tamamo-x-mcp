@@ -27,8 +27,8 @@ When working with multiple MCP servers, managing dozens of tools becomes overwhe
 Download the pre-built binary from GitHub Releases:
 
 ```bash
-# Linux/macOS
-curl -fsSL https://github.com/mazrean/tamamo-x-mcp/releases/latest/download/tamamo-x-$(uname -s)-$(uname -m) -o tamamo-x
+# Linux/macOS (auto-detects your platform)
+curl -fsSL https://github.com/mazrean/tamamo-x-mcp/releases/latest/download/tamamo-x-mcp-$(uname -s)-$(uname -m) -o tamamo-x
 chmod +x tamamo-x
 sudo mv tamamo-x /usr/local/bin/
 
@@ -36,7 +36,7 @@ sudo mv tamamo-x /usr/local/bin/
 tamamo-x --version
 ```
 
-For Windows, download `tamamo-x-mcp-windows-x64.exe` from the [releases page](https://github.com/mazrean/tamamo-x-mcp/releases).
+For Windows, download `tamamo-x-mcp-Windows-x86_64.exe` from the [releases page](https://github.com/mazrean/tamamo-x-mcp/releases).
 
 **Option 2: npm Package**
 
