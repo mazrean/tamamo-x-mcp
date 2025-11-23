@@ -3,6 +3,7 @@
  */
 
 import { assertEquals, assertExists } from "jsr:@std/assert@^1.0.0";
+import { normalize } from "jsr:@std/path@^1.0.0";
 import {
   type CodingAgent,
   detectAgent,
@@ -20,11 +21,13 @@ Deno.test("getAgentConfigPath - returns correct path for each agent", () => {
     const path = getAgentConfigPath(agent, projectRoot);
     assertExists(path, `Path for ${agent} should exist`);
 
-    // Verify path is project-level
+    // Verify path is project-level (normalize both paths for cross-platform compatibility)
+    const normalizedPath = normalize(path);
+    const normalizedRoot = normalize(projectRoot);
     assertEquals(
-      path.startsWith(projectRoot),
+      normalizedPath.startsWith(normalizedRoot),
       true,
-      `Path should start with project root: ${path}`,
+      `Path should start with project root: ${normalizedPath} vs ${normalizedRoot}`,
     );
 
     // Verify path contains agent-specific segments
