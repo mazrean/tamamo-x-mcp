@@ -54,8 +54,8 @@ async function addToAgentConfig(
   // Read and parse configuration
   try {
     const content = await Deno.readTextFile(configPath);
-    
-    // Try TOML if supported by this agent
+
+    // Try JSON first (newer format), fall back to TOML if supported by this agent
     if (handler.supportToml) {
       try {
         config = JSON.parse(content);
@@ -128,7 +128,7 @@ async function addToAgentConfig(
     config.mcpServers = {
       "tamamo-x-mcp": getTamamoXMCPServerConfig(),
     };
-    
+
     // Remove only the servers field from TOML structure, preserve other mcp.* settings
     if (handler.supportToml && config.mcp && typeof config.mcp === "object") {
       const mcpSection = config.mcp as Record<string, unknown>;
