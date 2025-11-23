@@ -128,7 +128,6 @@ async function addToAgentConfig(
     config.mcpServers = {
       "tamamo-x-mcp": getTamamoXMCPServerConfig(),
     };
-
     // Remove only the servers field from TOML structure, preserve other mcp.* settings
     if (handler.supportToml && config.mcp && typeof config.mcp === "object") {
       const mcpSection = config.mcp as Record<string, unknown>;
