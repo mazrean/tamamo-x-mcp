@@ -45,8 +45,55 @@ const result = await esbuild.build({
 import { createRequire as __createRequire } from 'module';
 import { fileURLToPath as __fileURLToPath } from 'url';
 import { dirname as __dirname } from 'path';
+import { platform as __platform, arch as __arch } from 'os';
 const require = __createRequire(import.meta.url);
 const __filename = __fileURLToPath(import.meta.url);
+
+// Minimal Deno.build polyfill (will be overridden by @deno/shim-deno later)
+if (typeof globalThis.Deno === 'undefined') {
+  const __nodePlatform = __platform();
+  const __nodeArch = __arch();
+
+  // Map Node.js arch to Deno arch
+  let __denoArch;
+  if (__nodeArch === 'arm64') __denoArch = 'aarch64';
+  else if (__nodeArch === 'x64' || __nodeArch === 'ia32') __denoArch = 'x86_64';
+  else {
+    __denoArch = __nodeArch;
+    console.warn('[deno polyfill] Unknown architecture "' + __nodeArch + '", using as-is.');
+  }
+
+  // Map Node.js platform to Deno os
+  let __denoOs = 'linux';
+  if (__nodePlatform === 'win32') __denoOs = 'windows';
+  else if (__nodePlatform === 'darwin') __denoOs = 'darwin';
+  else if (__nodePlatform === 'linux') __denoOs = 'linux';
+
+  // Determine vendor and env based on platform
+  let __vendor = 'unknown';
+  let __env = undefined;
+  if (__nodePlatform === 'darwin') {
+    __vendor = 'apple';
+  } else if (__nodePlatform === 'win32') {
+    __vendor = 'pc';
+    __env = 'msvc';
+  } else if (__nodePlatform === 'linux') {
+    __vendor = 'unknown';
+    __env = 'gnu';
+  }
+
+  const __target = \`\${__denoArch}-\${__vendor}-\${__denoOs}\${__env ? '-' + __env : ''}\`;
+
+  globalThis.Deno = {
+    build: {
+      target: __target,
+      arch: __denoArch,
+      os: __denoOs,
+      vendor: __vendor,
+      env: __env,
+    },
+  };
+}
 `,
   },
   external: [

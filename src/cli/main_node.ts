@@ -11,11 +11,15 @@
 // Import Deno shims for full API compatibility
 import * as DenoShim from "npm:@deno/shim-deno@^0.19.2";
 
-// Set up globalThis.Deno with proper args from process.argv
+// Set up globalThis.Deno with proper args from process.argv and build info
 // @ts-ignore: DenoShim.Deno does not have all properties of the native Deno type
 globalThis.Deno = {
   ...DenoShim.Deno,
   args: typeof process !== "undefined" ? process.argv.slice(2) : [],
+  build: {
+    ...(globalThis.Deno?.build || {}), // Keep banner's corrected build info
+    standalone: false,
+  },
 };
 
 // Import and run the main CLI

@@ -109,7 +109,9 @@ If you have Codex installed:
 
 ## Step 4: Initialize Configuration
 
-Run the init command to generate `tamamo-x.config.json`:
+### Default Initialization (Recommended)
+
+By default, `tamamo-x init` automatically detects all installed coding agents and replaces their MCP server configurations with tamamo-x-mcp only:
 
 ```bash
 ./dist/tamamo-x init
@@ -118,8 +120,49 @@ Run the init command to generate `tamamo-x.config.json`:
 Expected output:
 
 ```
+Initializing tamamo-x-mcp configuration...
+Detecting installed coding agents...
+Found 2 installed coding agent(s):
+  - claude-code
+  - codex
+Found claude-code configuration at .mcp.json
+Imported 5 MCP server(s) from claude-code
+✓ Replaced claude-code configuration with tamamo-x-mcp only
+Found codex configuration at .mcp.json
+Imported 3 MCP server(s) from codex
+✓ Replaced codex configuration with tamamo-x-mcp only
+✓ Created tamamo-x.config.json
+  MCP servers: 8
+  LLM provider: anthropic
+```
+
+### Import from Specific Agent
+
+To import from a specific coding agent instead of auto-detecting all:
+
+```bash
+# Import from Claude Code and replace its config with tamamo-x-mcp only (default)
+./dist/tamamo-x init --agent claude-code
+
+# Import from Claude Code and add tamamo-x-mcp while preserving existing servers
+./dist/tamamo-x init --agent claude-code --preserve-servers
+
+# Import from agent without modifying its config
+./dist/tamamo-x init --agent codex --no-add-to-agent
+```
+
+### Manual Configuration (No Agent Modification)
+
+If you don't want to modify any agent configurations, create `.mcp.json` first (see Step 2), then run:
+
+```bash
+./dist/tamamo-x init --no-add-to-agent
+```
+
+Expected output:
+
+```
 ✓ Detected 2 MCP servers from .mcp.json
-✓ Auto-detected LLM provider: Anthropic (Claude Code)
 ✓ Created tamamo-x.config.json
 ```
 

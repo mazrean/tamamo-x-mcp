@@ -10,6 +10,9 @@ import { join } from "jsr:@std/path@^1.0.0";
 import { saveConfig } from "../../config/loader.ts";
 import { validateConfig } from "../../config/validator.ts";
 import type { Configuration, MCPServerConfig } from "../../types/index.ts";
+import { type CodingAgent, detectAgent, detectCodingAgents } from "../../config/agent-detector.ts";
+import { normalizeServerNames, parseAgentConfig } from "../../config/agent-parsers.ts";
+import { addTamamoXToAgent } from "../../config/agent-writer.ts";
 
 /**
  * Check if a file exists at the given path
@@ -139,11 +142,81 @@ async function detectProjectContext(projectRoot: string) {
 }
 
 /**
+ * Import MCP servers from a coding agent's configuration
+ * @param preserveServers - If false (default), replace all servers with tamamo-x-mcp only. If true, preserve existing servers.
+ */
+async function importFromAgent(
+  agent: CodingAgent,
+  projectRoot: string,
+  addToAgentConfig: boolean = false,
+  preserveServers: boolean = false,
+): Promise<{ mcpServers: MCPServerConfig[]; llmProviderType?: string }> {
+  try {
+    const location = await detectAgent(agent, projectRoot);
+
+    if (!location.exists) {
+      console.log(`${agent} configuration not found at ${location.configPath}`);
+      return { mcpServers: [] };
+    }
+
+    console.log(`Found ${agent} configuration at ${location.configPath}`);
+
+    // Parse agent config
+    const agentConfig = await parseAgentConfig(agent, location.configPath);
+
+    // Normalize server names to avoid conflicts (e.g., "git" -> "claude-code:git")
+    const normalizedServers = normalizeServerNames(agentConfig.mcpServers, agent);
+
+    console.log(`Imported ${normalizedServers.length} MCP server(s) from ${agent}`);
+
+    // Optionally add tamamo-x-mcp to the agent's config
+    if (addToAgentConfig) {
+      try {
+        await addTamamoXToAgent(agent, location.configPath, preserveServers);
+        if (preserveServers) {
+          console.log(
+            `✓ Added tamamo-x-mcp to ${agent} configuration (preserving existing servers)`,
+          );
+        } else {
+          console.log(`✓ Replaced ${agent} configuration with tamamo-x-mcp only`);
+        }
+      } catch (error) {
+        console.warn(
+          `Warning: Failed to add tamamo-x-mcp to ${agent}: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        );
+      }
+    }
+
+    return {
+      mcpServers: normalizedServers,
+      llmProviderType: agentConfig.llmProvider?.type,
+    };
+  } catch (error) {
+    console.error(
+      `Failed to import from ${agent}: ${error instanceof Error ? error.message : String(error)}`,
+    );
+    return { mcpServers: [] };
+  }
+}
+
+/**
  * Initialize tamamo-x-mcp configuration
  * @param options Initialization options
  * @param options.projectRoot Project root directory (defaults to current directory)
+ * @param options.agent Coding agent to import configuration from
+ * @param options.addToAgent Add tamamo-x-mcp to the agent's configuration
+ * @param options.preserveServers Preserve existing servers when adding tamamo-x-mcp (default: false, replaces all servers)
+ * @param options.detectAgents Auto-detect and import from all installed agents
  */
-export async function init(options: { projectRoot?: string } = {}): Promise<void> {
+export async function init(options: {
+  projectRoot?: string;
+  agent?: CodingAgent;
+  addToAgent?: boolean;
+  preserveServers?: boolean;
+  detectAgents?: boolean;
+} = {}): Promise<void> {
   const projectRoot = options.projectRoot || Deno.cwd();
   const configPath = join(projectRoot, "tamamo-x.config.json");
 
@@ -155,13 +228,56 @@ export async function init(options: { projectRoot?: string } = {}): Promise<void
 
   console.log("Initializing tamamo-x-mcp configuration...");
 
-  // Import MCP servers from .mcp.json if present
-  const mcpServers = await importMCPServers(projectRoot);
+  let mcpServers: MCPServerConfig[] = [];
+  let llmProviderType: string | undefined;
 
-  if (mcpServers.length > 0) {
-    console.log(`Imported ${mcpServers.length} MCP server(s) from .mcp.json`);
-  } else {
-    console.log("No .mcp.json found or no servers configured");
+  // Priority 1: Import from specified coding agent
+  if (options.agent) {
+    const imported = await importFromAgent(
+      options.agent,
+      projectRoot,
+      options.addToAgent,
+      options.preserveServers ?? false,
+    );
+    mcpServers = imported.mcpServers;
+    llmProviderType = imported.llmProviderType;
+  } // Priority 2: Auto-detect all installed coding agents
+  else if (options.detectAgents) {
+    console.log("Detecting installed coding agents...");
+    const agents = await detectCodingAgents(projectRoot);
+    const installedAgents = agents.filter((a) => a.exists);
+
+    if (installedAgents.length > 0) {
+      console.log(`Found ${installedAgents.length} installed coding agent(s):`);
+      installedAgents.forEach((a) => console.log(`  - ${a.agent}`));
+
+      // Import from all detected agents
+      for (const agentLoc of installedAgents) {
+        const imported = await importFromAgent(
+          agentLoc.agent,
+          projectRoot,
+          options.addToAgent,
+          options.preserveServers ?? false,
+        );
+        mcpServers.push(...imported.mcpServers);
+
+        // Use the first detected LLM provider
+        if (!llmProviderType && imported.llmProviderType) {
+          llmProviderType = imported.llmProviderType;
+        }
+      }
+    } else {
+      console.log("No coding agents detected");
+    }
+  } // Priority 3: Import MCP servers from .mcp.json if present
+  else {
+    mcpServers = await importMCPServers(projectRoot);
+
+    if (mcpServers.length > 0) {
+      console.log(`Imported ${mcpServers.length} MCP server(s) from .mcp.json`);
+    } else {
+      console.log("No .mcp.json found or no servers configured");
+    }
   }
 
   // Detect project context files
@@ -178,11 +294,34 @@ export async function init(options: { projectRoot?: string } = {}): Promise<void
   }
 
   // Create default configuration
+  // Determine LLM provider type (use detected or default to anthropic)
+  // Only use standard providers (not ACP which requires different config)
+  type StandardProviderType =
+    | "anthropic"
+    | "openai"
+    | "gemini"
+    | "vercel"
+    | "bedrock"
+    | "openrouter";
+  const standardProviders: StandardProviderType[] = [
+    "anthropic",
+    "openai",
+    "gemini",
+    "vercel",
+    "bedrock",
+    "openrouter",
+  ];
+
+  const llmType: StandardProviderType = (llmProviderType &&
+      standardProviders.includes(llmProviderType as StandardProviderType))
+    ? llmProviderType as StandardProviderType
+    : "anthropic";
+
   const config: Configuration = {
     version: "1.0.0",
     mcpServers: mcpServers.length > 0 ? mcpServers : [],
     llmProvider: {
-      type: "anthropic",
+      type: llmType,
       credentialSource: "cli-tool",
     },
     projectContext,

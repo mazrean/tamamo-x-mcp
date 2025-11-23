@@ -24,19 +24,19 @@ When working with multiple MCP servers, managing dozens of tools becomes overwhe
 
 **Option 1: Deno Binary (Recommended)**
 
-Build from source:
+Download the pre-built binary from GitHub Releases:
 
 ```bash
-# Clone repository
-git clone <repository-url>
-cd tamamo-x-mcp
+# Linux/macOS (auto-detects your platform)
+curl -fsSL https://github.com/mazrean/tamamo-x-mcp/releases/latest/download/tamamo-x-mcp-$(uname -s)-$(uname -m) -o tamamo-x
+chmod +x tamamo-x
+sudo mv tamamo-x /usr/local/bin/
 
-# Build standalone binary
-deno task compile
-
-# Binary will be at: dist/tamamo-x
-./dist/tamamo-x --version
+# Verify installation
+tamamo-x --version
 ```
+
+For Windows, download `tamamo-x-mcp-Windows-x86_64.exe` from the [releases page](https://github.com/mazrean/tamamo-x-mcp/releases).
 
 **Option 2: npm Package**
 
@@ -44,54 +44,131 @@ deno task compile
 # Install globally
 npm install -g tamamo-x-mcp
 
-# Or use via npx (no installation)
+# Or use via npx (no installation required)
 npx tamamo-x-mcp --version
+```
+
+**Option 3: Build from Source**
+
+For development or if pre-built binaries are not available:
+
+```bash
+# Clone repository
+git clone <repository-url>
+cd tamamo-x-mcp
+
+# Build Deno binary
+deno task compile
+./dist/tamamo-x --version
+
+# Or build npm package
+deno task npm:build
+cd npm && npm pack
 ```
 
 ### Usage (3 Simple Steps)
 
 #### 1. Initialize Configuration
 
+**Basic initialization (auto-detects agents and adds tamamo-x-mcp):**
+
 ```bash
-./dist/tamamo-x init
+tamamo-x init
 ```
 
-Creates `tamamo-x.config.json` with auto-detected MCP servers and LLM settings.
+**Import from specific coding agent:**
+
+```bash
+# Import from Claude Code and replace its config with tamamo-x-mcp only (default)
+tamamo-x init --agent claude-code
+
+# Import from Claude Code and add tamamo-x-mcp while preserving existing servers
+tamamo-x init --agent claude-code --preserve-servers
+
+# Import from agent without modifying its config
+tamamo-x init --agent codex --no-add-to-agent
+```
+
+By default, `tamamo-x init` automatically detects all installed coding agents (Claude Code, Codex, Gemini CLI, Cursor, Windsurf) and replaces their MCP server configurations with tamamo-x-mcp only. Use `--preserve-servers` to keep existing servers or `--no-add-to-agent` to skip modifying agent configs.
 
 #### 2. Build Sub-Agents
 
 ```bash
-./dist/tamamo-x build
+tamamo-x build
 ```
 
 Analyzes tools and creates specialized agent groups using LLM intelligence.
 
-#### 3. Start MCP Server
+#### 3. Configure Your Coding Agent
 
-```bash
-./dist/tamamo-x mcp
-```
+Add tamamo-x-mcp to your coding agent's MCP configuration:
 
-Starts MCP server exposing grouped sub-agents via stdio transport.
-
-## Example Configuration
+**Claude Code** (project-level `.mcp.json`):
 
 ```json
 {
-  "version": "1.0.0",
-  "mcpServers": [
-    {
-      "name": "filesystem-server",
-      "transport": "stdio",
-      "command": "mcp-server-filesystem",
-      "args": ["--root", "."]
+  "mcpServers": {
+    "tamamo-x": {
+      "command": "tamamo-x",
+      "args": ["mcp"]
     }
-  ],
-  "llmProvider": {
-    "type": "anthropic",
-    "credentialSource": "cli-tool"
   }
 }
+```
+
+**Cursor** (project-level `.cursor/mcp.json`):
+
+```json
+{
+  "mcpServers": {
+    "tamamo-x": {
+      "command": "tamamo-x",
+      "args": ["mcp"]
+    }
+  }
+}
+```
+
+**Windsurf** (project-level `.mcp.json`):
+
+```json
+{
+  "mcpServers": {
+    "tamamo-x": {
+      "command": "tamamo-x",
+      "args": ["mcp"]
+    }
+  }
+}
+```
+
+**Codex** (project-level `.mcp.json`):
+
+```json
+{
+  "mcpServers": {
+    "tamamo-x": {
+      "command": "tamamo-x",
+      "args": ["mcp"]
+    }
+  }
+}
+```
+
+> **Note**: Restart your coding agent after adding the configuration.
+
+**API Key Requirement**: tamamo-x-mcp requires LLM API credentials to analyze and group tools. By default, it auto-discovers credentials from:
+
+- **Anthropic Claude**: Claude Code CLI (`~/.config/claude/config.json`)
+- **OpenAI**: `OPENAI_API_KEY` environment variable
+- **Gemini**: Gemini CLI (`~/.config/gemini/credentials.json`)
+
+Alternatively, set the API key directly:
+
+```bash
+export ANTHROPIC_API_KEY=your-api-key-here
+export OPENAI_API_KEY=your-api-key-here
+export GOOGLE_API_KEY=your-api-key-here
 ```
 
 ## Documentation
