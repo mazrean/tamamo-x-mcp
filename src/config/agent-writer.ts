@@ -49,6 +49,9 @@ async function addToAgentConfig(
   preserveServers = false,
 ): Promise<void> {
   const handler = agentHandlers[agent];
+  if (!handler) {
+    throw new Error(`Unknown coding agent: ${agent}`);
+  }
   let config: Record<string, unknown>;
 
   // Read and parse configuration
