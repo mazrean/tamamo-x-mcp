@@ -55,9 +55,13 @@ if (typeof globalThis.Deno === 'undefined') {
   const __nodeArch = __arch();
 
   // Map Node.js arch to Deno arch
-  let __denoArch = 'x86_64';
+  let __denoArch;
   if (__nodeArch === 'arm64') __denoArch = 'aarch64';
   else if (__nodeArch === 'x64' || __nodeArch === 'ia32') __denoArch = 'x86_64';
+  else {
+    __denoArch = __nodeArch;
+    console.warn('[deno polyfill] Unknown architecture "' + __nodeArch + '", using as-is.');
+  }
 
   // Map Node.js platform to Deno os
   let __denoOs = 'linux';
