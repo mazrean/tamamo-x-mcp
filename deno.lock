@@ -27,6 +27,7 @@
     "npm:@mastra/core@0.24.3": "0.24.3_zod@4.1.12_ai@4.3.19__zod@4.1.12_@opentelemetry+api@1.9.0_@opentelemetry+core@2.0.1__@opentelemetry+api@1.9.0_hono@4.10.6",
     "npm:@modelcontextprotocol/sdk@1.22.0": "1.22.0_ajv@8.17.1_express@5.1.0_zod@3.25.76",
     "npm:@openrouter/ai-sdk-provider@0.0.5": "0.0.5_zod@4.1.12",
+    "npm:@smithy/smithy-client@4.6.2": "4.6.2",
     "npm:@types/json-schema@7.0.15": "7.0.15",
     "npm:ai@5.0.97": "5.0.97_zod@4.1.12",
     "npm:esbuild@~0.24.2": "0.24.2",
@@ -428,7 +429,7 @@
         "@smithy/node-config-provider",
         "@smithy/node-http-handler",
         "@smithy/protocol-http",
-        "@smithy/smithy-client",
+        "@smithy/smithy-client@4.9.8",
         "@smithy/types",
         "@smithy/url-parser",
         "@smithy/util-base64",
@@ -472,7 +473,7 @@
         "@smithy/node-config-provider",
         "@smithy/node-http-handler",
         "@smithy/protocol-http",
-        "@smithy/smithy-client",
+        "@smithy/smithy-client@4.9.8",
         "@smithy/types",
         "@smithy/url-parser",
         "@smithy/util-base64",
@@ -497,7 +498,7 @@
         "@smithy/property-provider",
         "@smithy/protocol-http",
         "@smithy/signature-v4",
-        "@smithy/smithy-client",
+        "@smithy/smithy-client@4.9.8",
         "@smithy/types",
         "@smithy/util-base64",
         "@smithy/util-middleware",
@@ -524,7 +525,7 @@
         "@smithy/node-http-handler",
         "@smithy/property-provider",
         "@smithy/protocol-http",
-        "@smithy/smithy-client",
+        "@smithy/smithy-client@4.9.8",
         "@smithy/types",
         "@smithy/util-stream",
         "tslib"
@@ -701,7 +702,7 @@
         "@smithy/node-config-provider",
         "@smithy/node-http-handler",
         "@smithy/protocol-http",
-        "@smithy/smithy-client",
+        "@smithy/smithy-client@4.9.8",
         "@smithy/types",
         "@smithy/url-parser",
         "@smithy/util-base64",
@@ -2141,7 +2142,7 @@
         "@smithy/node-config-provider",
         "@smithy/protocol-http",
         "@smithy/service-error-classification",
-        "@smithy/smithy-client",
+        "@smithy/smithy-client@4.9.8",
         "@smithy/types",
         "@smithy/util-middleware",
         "@smithy/util-retry",
@@ -2238,6 +2239,18 @@
         "tslib"
       ]
     },
+    "@smithy/smithy-client@4.6.2": {
+      "integrity": "sha512-u82cjh/x7MlMat76Z38TRmEcG6JtrrxN4N2CSNG5o2v2S3hfLAxRgSgFqf0FKM3dglH41Evknt/HOX+7nfzZ3g==",
+      "dependencies": [
+        "@smithy/core",
+        "@smithy/middleware-endpoint",
+        "@smithy/middleware-stack",
+        "@smithy/protocol-http",
+        "@smithy/types",
+        "@smithy/util-stream",
+        "tslib"
+      ]
+    },
     "@smithy/smithy-client@4.9.8": {
       "integrity": "sha512-8xgq3LgKDEFoIrLWBho/oYKyWByw9/corz7vuh1upv7ZBm0ZMjGYBhbn6v643WoIqA9UTcx5A5htEp/YatUwMA==",
       "dependencies": [
@@ -2308,7 +2321,7 @@
       "integrity": "sha512-yHv+r6wSQXEXTPVCIQTNmXVWs7ekBTpMVErjqZoWkYN75HIFN5y9+/+sYOejfAuvxWGvgzgxbTHa/oz61YTbKw==",
       "dependencies": [
         "@smithy/property-provider",
-        "@smithy/smithy-client",
+        "@smithy/smithy-client@4.9.8",
         "@smithy/types",
         "tslib"
       ]
@@ -2320,7 +2333,7 @@
         "@smithy/credential-provider-imds",
         "@smithy/node-config-provider",
         "@smithy/property-provider",
-        "@smithy/smithy-client",
+        "@smithy/smithy-client@4.9.8",
         "@smithy/types",
         "tslib"
       ]

@@ -5,11 +5,12 @@
 
 import {
   BedrockRuntimeClient,
+  ConverseCommand,
   InvokeModelCommand,
 } from "npm:@aws-sdk/client-bedrock-runtime@3.933.0";
+import type { DocumentType } from "npm:@smithy/smithy-client@4.6.2";
 import type { CompletionOptions, LLMClient } from "../client.ts";
 import type { BedrockCredentials } from "../credentials.ts";
-import { extractJsonFromText } from "../utils.ts";
 
 export function createBedrockClient(
   credentials: BedrockCredentials,
@@ -32,37 +33,66 @@ export function createBedrockClient(
       prompt: string,
       options?: CompletionOptions,
     ): Promise<string> {
-      // If responseSchema is provided, enhance prompt with strict JSON instructions
-      let enhancedPrompt = prompt;
+      // If responseSchema is provided, use Converse API with Tool Calling
+      // for enforced structured output
       if (options?.responseSchema) {
-        const schemaStr = JSON.stringify(options.responseSchema, null, 2);
-        enhancedPrompt += `
+        const command = new ConverseCommand({
+          modelId: selectedModel,
+          messages: [
+            {
+              role: "user",
+              content: [{ text: prompt }],
+            },
+          ],
+          toolConfig: {
+            tools: [
+              {
+                toolSpec: {
+                  name: "return_structured_data",
+                  description: "Returns structured data conforming to the specified schema",
+                  inputSchema: {
+                    // Cast to DocumentType for Bedrock API compatibility
+                    // JSONSchema is structurally compatible with DocumentType
+                    json: options.responseSchema as DocumentType,
+                  },
+                },
+              },
+            ],
+            toolChoice: {
+              tool: { name: "return_structured_data" },
+            },
+          },
+          inferenceConfig: {
+            maxTokens: options?.maxTokens || 4096,
+            temperature: options?.temperature,
+          },
+        });
 
-<json_schema>
-${schemaStr}
-</json_schema>
+        const response = await client.send(command);
 
-CRITICAL INSTRUCTIONS FOR JSON OUTPUT:
-1. Your response MUST be valid, parseable JSON
-2. Your response MUST conform EXACTLY to the schema provided above
-3. Do NOT include ANY text before the opening brace {
-4. Do NOT include ANY text after the closing brace }
-5. Do NOT include markdown code fences, explanations, or commentary
-6. Do NOT use ellipsis (...) or placeholders - provide complete data
-7. Ensure all required fields are present
-8. Ensure all field types match the schema (string, number, array, object)
-9. Ensure array items match their schema definitions
+        // Extract tool use from response
+        const toolUse = response.output?.message?.content?.find(
+          (block) => block.toolUse,
+        );
 
-Your ENTIRE response should be parseable by JSON.parse() without any modifications.`;
+        if (!toolUse?.toolUse) {
+          throw new Error(
+            "Bedrock provider: No tool use in response. Expected structured output via tool calling.",
+          );
+        }
+
+        // Return the tool input as JSON string (already validated by SDK)
+        return JSON.stringify(toolUse.toolUse.input);
       }
 
+      // For non-structured output, use InvokeModel API
       const command = new InvokeModelCommand({
         modelId: selectedModel,
         body: JSON.stringify({
           anthropic_version: "bedrock-2023-05-31",
           max_tokens: options?.maxTokens || 4096,
           temperature: options?.temperature,
-          messages: [{ role: "user", content: enhancedPrompt }],
+          messages: [{ role: "user", content: prompt }],
         }),
       });
 
@@ -73,17 +103,10 @@ Your ENTIRE response should be parseable by JSON.parse() without any modificatio
       }
 
       const responseBody = JSON.parse(new TextDecoder().decode(response.body));
-      let text = responseBody.content?.[0]?.text;
+      const text = responseBody.content?.[0]?.text;
 
       if (!text) {
         throw new Error("No text content in AWS Bedrock response");
-      }
-
-      // If schema was provided, extract and validate JSON from response
-      // Note: AWS Bedrock Runtime doesn't support enforced structured output,
-      // so we rely on prompt instructions and post-processing validation
-      if (options?.responseSchema) {
-        text = extractJsonFromText(text.trim(), "Bedrock");
       }
 
       return text;

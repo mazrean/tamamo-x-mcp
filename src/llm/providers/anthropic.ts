@@ -5,7 +5,6 @@
 
 import Anthropic from "npm:@anthropic-ai/sdk@0.70.0";
 import type { CompletionOptions, LLMClient } from "../client.ts";
-import { extractJsonFromText } from "../utils.ts";
 
 const DEFAULT_MODEL = "claude-haiku-4-5";
 
@@ -42,34 +41,10 @@ export function createAnthropicClient(
             content: prompt,
           });
         } else {
-          // If responseSchema is provided, enhance prompt with strict JSON instructions
-          let enhancedPrompt = prompt;
-          if (options?.responseSchema) {
-            const schemaStr = JSON.stringify(options.responseSchema, null, 2);
-            enhancedPrompt += `
-
-<json_schema>
-${schemaStr}
-</json_schema>
-
-CRITICAL INSTRUCTIONS FOR JSON OUTPUT:
-1. Your response MUST be valid, parseable JSON
-2. Your response MUST conform EXACTLY to the schema provided above
-3. Do NOT include ANY text before the opening brace {
-4. Do NOT include ANY text after the closing brace }
-5. Do NOT include markdown code fences, explanations, or commentary
-6. Do NOT use ellipsis (...) or placeholders - provide complete data
-7. Ensure all required fields are present
-8. Ensure all field types match the schema (string, number, array, object)
-9. Ensure array items match their schema definitions
-
-Your ENTIRE response should be parseable by JSON.parse() without any modifications.`;
-          }
-
           messages = [
             {
               role: "user",
-              content: enhancedPrompt,
+              content: prompt,
             },
           ];
         }
@@ -93,6 +68,38 @@ Your ENTIRE response should be parseable by JSON.parse() without any modificatio
           createParams.system = options.system;
         }
 
+        // If responseSchema is provided, use Tool Calling for enforced structured output
+        // This guarantees schema compliance at the SDK level (Public Beta for Sonnet 4.5+)
+        if (options?.responseSchema) {
+          createParams.tools = [
+            {
+              name: "return_structured_data",
+              description: "Returns structured data conforming to the specified schema",
+              input_schema: options.responseSchema,
+            },
+          ];
+          createParams.tool_choice = {
+            type: "tool",
+            name: "return_structured_data",
+          };
+
+          const response = await client.messages.create(createParams);
+
+          // Extract tool use from response
+          const toolUse = response.content.find(
+            (block) => block.type === "tool_use",
+          );
+          if (!toolUse || toolUse.type !== "tool_use") {
+            throw new Error(
+              "Anthropic provider: No tool use in response. Expected structured output via tool calling.",
+            );
+          }
+
+          // Return the tool input as JSON string (already validated by SDK)
+          return JSON.stringify(toolUse.input);
+        }
+
+        // For non-structured output, use standard text completion
         const response = await client.messages.create(createParams);
 
         // Extract text from response
@@ -103,16 +110,7 @@ Your ENTIRE response should be parseable by JSON.parse() without any modificatio
           throw new Error("No text content in Anthropic response");
         }
 
-        let text = textContent.text.trim();
-
-        // If schema was provided, extract and validate JSON from response
-        // Note: Anthropic Messages API doesn't support enforced structured output,
-        // so we rely on prompt instructions and post-processing validation
-        if (options?.responseSchema) {
-          text = extractJsonFromText(text, "Anthropic");
-        }
-
-        return text;
+        return textContent.text.trim();
       } catch (error) {
         console.error("Error in Anthropic provider:", error);
         if (error instanceof Error) {
