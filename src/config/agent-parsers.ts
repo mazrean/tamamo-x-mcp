@@ -37,24 +37,51 @@ function parseClaudeCodeConfig(content: string): AgentMCPConfig {
     for (const [name, serverConfig] of Object.entries(config.mcpServers)) {
       const server = serverConfig as Record<string, unknown>;
 
-      // Skip if command is missing (required for stdio transport)
-      if (typeof server.command !== "string") {
-        console.warn(`Skipping ${name}: command is required for stdio transport`);
+      // Determine transport type and create appropriate server config
+      let mcpServer: MCPServerConfig;
+
+      if (server.url && typeof server.url === "string") {
+        // HTTP/WebSocket transport
+        if (server.url.startsWith("ws://") || server.url.startsWith("wss://")) {
+          // WebSocket transport
+          mcpServer = {
+            name,
+            transport: "websocket",
+            url: server.url,
+            command: typeof server.command === "string" ? server.command : undefined,
+            args: Array.isArray(server.args) ? server.args as string[] : undefined,
+            env: server.env && typeof server.env === "object"
+              ? server.env as Record<string, string>
+              : undefined,
+          };
+        } else {
+          // HTTP transport
+          mcpServer = {
+            name,
+            transport: "http",
+            url: server.url,
+            command: typeof server.command === "string" ? server.command : undefined,
+            args: Array.isArray(server.args) ? server.args as string[] : undefined,
+            env: server.env && typeof server.env === "object"
+              ? server.env as Record<string, string>
+              : undefined,
+          };
+        }
+      } else if (typeof server.command === "string") {
+        // stdio transport
+        mcpServer = {
+          name,
+          transport: "stdio",
+          command: server.command,
+          args: Array.isArray(server.args) ? server.args as string[] : undefined,
+          env: server.env && typeof server.env === "object"
+            ? server.env as Record<string, string>
+            : undefined,
+        };
+      } else {
+        // Skip if neither url nor command is provided
+        console.warn(`Skipping ${name}: either url or command must be provided`);
         continue;
-      }
-
-      const mcpServer: MCPServerConfig = {
-        name,
-        transport: "stdio", // Claude Code uses stdio by default
-        command: server.command,
-      };
-
-      if (Array.isArray(server.args)) {
-        mcpServer.args = server.args as string[];
-      }
-
-      if (server.env && typeof server.env === "object") {
-        mcpServer.env = server.env as Record<string, string>;
       }
 
       mcpServers.push(mcpServer);
@@ -84,24 +111,51 @@ function parseGeminiConfig(content: string): AgentMCPConfig {
       for (const [name, serverConfig] of Object.entries(config.mcpServers)) {
         const server = serverConfig as Record<string, unknown>;
 
-        // Skip if command is missing
-        if (typeof server.command !== "string") {
-          console.warn(`Skipping ${name}: command is required for stdio transport`);
+        // Determine transport type and create appropriate server config
+        let mcpServer: MCPServerConfig;
+
+        if (server.url && typeof server.url === "string") {
+          // HTTP/WebSocket transport
+          if (server.url.startsWith("ws://") || server.url.startsWith("wss://")) {
+            // WebSocket transport
+            mcpServer = {
+              name,
+              transport: "websocket",
+              url: server.url,
+              command: typeof server.command === "string" ? server.command : undefined,
+              args: Array.isArray(server.args) ? server.args as string[] : undefined,
+              env: server.env && typeof server.env === "object"
+                ? server.env as Record<string, string>
+                : undefined,
+            };
+          } else {
+            // HTTP transport
+            mcpServer = {
+              name,
+              transport: "http",
+              url: server.url,
+              command: typeof server.command === "string" ? server.command : undefined,
+              args: Array.isArray(server.args) ? server.args as string[] : undefined,
+              env: server.env && typeof server.env === "object"
+                ? server.env as Record<string, string>
+                : undefined,
+            };
+          }
+        } else if (typeof server.command === "string") {
+          // stdio transport
+          mcpServer = {
+            name,
+            transport: "stdio",
+            command: server.command,
+            args: Array.isArray(server.args) ? server.args as string[] : undefined,
+            env: server.env && typeof server.env === "object"
+              ? server.env as Record<string, string>
+              : undefined,
+          };
+        } else {
+          // Skip if neither url nor command is provided
+          console.warn(`Skipping ${name}: either url or command must be provided`);
           continue;
-        }
-
-        const mcpServer: MCPServerConfig = {
-          name,
-          transport: "stdio",
-          command: server.command,
-        };
-
-        if (Array.isArray(server.args)) {
-          mcpServer.args = server.args as string[];
-        }
-
-        if (server.env && typeof server.env === "object") {
-          mcpServer.env = server.env as Record<string, string>;
         }
 
         mcpServers.push(mcpServer);
@@ -111,24 +165,51 @@ function parseGeminiConfig(content: string): AgentMCPConfig {
       for (const server of config.mcpServers) {
         if (typeof server.name !== "string") continue;
 
-        // Skip if command is missing
-        if (typeof server.command !== "string") {
-          console.warn(`Skipping ${server.name}: command is required for stdio transport`);
+        // Determine transport type and create appropriate server config
+        let mcpServer: MCPServerConfig;
+
+        if (server.url && typeof server.url === "string") {
+          // HTTP/WebSocket transport
+          if (server.url.startsWith("ws://") || server.url.startsWith("wss://")) {
+            // WebSocket transport
+            mcpServer = {
+              name: server.name,
+              transport: "websocket",
+              url: server.url,
+              command: typeof server.command === "string" ? server.command : undefined,
+              args: Array.isArray(server.args) ? server.args as string[] : undefined,
+              env: server.env && typeof server.env === "object"
+                ? server.env as Record<string, string>
+                : undefined,
+            };
+          } else {
+            // HTTP transport
+            mcpServer = {
+              name: server.name,
+              transport: "http",
+              url: server.url,
+              command: typeof server.command === "string" ? server.command : undefined,
+              args: Array.isArray(server.args) ? server.args as string[] : undefined,
+              env: server.env && typeof server.env === "object"
+                ? server.env as Record<string, string>
+                : undefined,
+            };
+          }
+        } else if (typeof server.command === "string") {
+          // stdio transport
+          mcpServer = {
+            name: server.name,
+            transport: "stdio",
+            command: server.command,
+            args: Array.isArray(server.args) ? server.args as string[] : undefined,
+            env: server.env && typeof server.env === "object"
+              ? server.env as Record<string, string>
+              : undefined,
+          };
+        } else {
+          // Skip if neither url nor command is provided
+          console.warn(`Skipping ${server.name}: either url or command must be provided`);
           continue;
-        }
-
-        const mcpServer: MCPServerConfig = {
-          name: server.name,
-          transport: "stdio",
-          command: server.command,
-        };
-
-        if (Array.isArray(server.args)) {
-          mcpServer.args = server.args as string[];
-        }
-
-        if (server.env && typeof server.env === "object") {
-          mcpServer.env = server.env as Record<string, string>;
         }
 
         mcpServers.push(mcpServer);
@@ -157,24 +238,51 @@ function parseCursorConfig(content: string): AgentMCPConfig {
     for (const [name, serverConfig] of Object.entries(config.mcpServers)) {
       const server = serverConfig as Record<string, unknown>;
 
-      // Skip if command is missing
-      if (typeof server.command !== "string") {
-        console.warn(`Skipping ${name}: command is required for stdio transport`);
+      // Determine transport type and create appropriate server config
+      let mcpServer: MCPServerConfig;
+
+      if (server.url && typeof server.url === "string") {
+        // HTTP/WebSocket transport
+        if (server.url.startsWith("ws://") || server.url.startsWith("wss://")) {
+          // WebSocket transport
+          mcpServer = {
+            name,
+            transport: "websocket",
+            url: server.url,
+            command: typeof server.command === "string" ? server.command : undefined,
+            args: Array.isArray(server.args) ? server.args as string[] : undefined,
+            env: server.env && typeof server.env === "object"
+              ? server.env as Record<string, string>
+              : undefined,
+          };
+        } else {
+          // HTTP transport
+          mcpServer = {
+            name,
+            transport: "http",
+            url: server.url,
+            command: typeof server.command === "string" ? server.command : undefined,
+            args: Array.isArray(server.args) ? server.args as string[] : undefined,
+            env: server.env && typeof server.env === "object"
+              ? server.env as Record<string, string>
+              : undefined,
+          };
+        }
+      } else if (typeof server.command === "string") {
+        // stdio transport
+        mcpServer = {
+          name,
+          transport: "stdio",
+          command: server.command,
+          args: Array.isArray(server.args) ? server.args as string[] : undefined,
+          env: server.env && typeof server.env === "object"
+            ? server.env as Record<string, string>
+            : undefined,
+        };
+      } else {
+        // Skip if neither url nor command is provided
+        console.warn(`Skipping ${name}: either url or command must be provided`);
         continue;
-      }
-
-      const mcpServer: MCPServerConfig = {
-        name,
-        transport: "stdio",
-        command: server.command,
-      };
-
-      if (Array.isArray(server.args)) {
-        mcpServer.args = server.args as string[];
-      }
-
-      if (server.env && typeof server.env === "object") {
-        mcpServer.env = server.env as Record<string, string>;
       }
 
       mcpServers.push(mcpServer);
