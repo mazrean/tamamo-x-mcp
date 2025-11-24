@@ -5,6 +5,7 @@
 
 import Anthropic from "npm:@anthropic-ai/sdk@0.70.0";
 import type { CompletionOptions, LLMClient } from "../client.ts";
+import { extractJsonFromText } from "../utils.ts";
 
 const DEFAULT_MODEL = "claude-haiku-4-5";
 
@@ -108,26 +109,7 @@ Your ENTIRE response should be parseable by JSON.parse() without any modificatio
         // Note: Anthropic Messages API doesn't support enforced structured output,
         // so we rely on prompt instructions and post-processing validation
         if (options?.responseSchema) {
-          // Remove markdown code fences if present
-          text = text.replace(/^```json?\s*/i, "").replace(/\s*```$/i, "");
-
-          // Try to find JSON object boundaries
-          const firstBrace = text.indexOf("{");
-          const lastBrace = text.lastIndexOf("}");
-          if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
-            text = text.substring(firstBrace, lastBrace + 1);
-          }
-
-          // Validate that the extracted text is valid JSON
-          try {
-            JSON.parse(text);
-          } catch (_parseError) {
-            throw new Error(
-              `Anthropic provider: Failed to generate valid JSON. Response was: ${
-                text.substring(0, 200)
-              }...`,
-            );
-          }
+          text = extractJsonFromText(text, "Anthropic");
         }
 
         return text;

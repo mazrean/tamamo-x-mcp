@@ -9,6 +9,7 @@ import {
 } from "npm:@aws-sdk/client-bedrock-runtime@3.933.0";
 import type { CompletionOptions, LLMClient } from "../client.ts";
 import type { BedrockCredentials } from "../credentials.ts";
+import { extractJsonFromText } from "../utils.ts";
 
 export function createBedrockClient(
   credentials: BedrockCredentials,
@@ -82,27 +83,7 @@ Your ENTIRE response should be parseable by JSON.parse() without any modificatio
       // Note: AWS Bedrock Runtime doesn't support enforced structured output,
       // so we rely on prompt instructions and post-processing validation
       if (options?.responseSchema) {
-        text = text.trim();
-        // Remove markdown code fences if present
-        text = text.replace(/^```json?\s*/i, "").replace(/\s*```$/i, "");
-
-        // Try to find JSON object boundaries
-        const firstBrace = text.indexOf("{");
-        const lastBrace = text.lastIndexOf("}");
-        if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
-          text = text.substring(firstBrace, lastBrace + 1);
-        }
-
-        // Validate that the extracted text is valid JSON
-        try {
-          JSON.parse(text);
-        } catch (_parseError) {
-          throw new Error(
-            `Bedrock provider: Failed to generate valid JSON. Response was: ${
-              text.substring(0, 200)
-            }...`,
-          );
-        }
+        text = extractJsonFromText(text.trim(), "Bedrock");
       }
 
       return text;

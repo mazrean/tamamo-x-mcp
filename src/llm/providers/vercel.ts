@@ -6,6 +6,7 @@
 import { generateObject, generateText, jsonSchema } from "npm:ai@5.0.97";
 import { createOpenAI } from "npm:@ai-sdk/openai@2.0.68";
 import type { CompletionOptions, LLMClient } from "../client.ts";
+import { toJsonSchema7 } from "../utils.ts";
 
 export function createVercelClient(apiKey: string, model?: string): LLMClient {
   const openai = createOpenAI({ apiKey });
@@ -22,10 +23,10 @@ export function createVercelClient(apiKey: string, model?: string): LLMClient {
       if (options?.responseSchema) {
         const result = await generateObject({
           model: openai(selectedModel),
-          schema: jsonSchema(options.responseSchema as never),
+          schema: jsonSchema(toJsonSchema7(options.responseSchema)),
           prompt,
-          temperature: options.temperature,
-          maxOutputTokens: options.maxTokens,
+          temperature: options?.temperature,
+          maxOutputTokens: options?.maxTokens,
           experimental_telemetry: { isEnabled: false },
         });
 
