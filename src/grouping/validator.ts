@@ -43,34 +43,35 @@ export function validateGroups(
     };
   }
 
-  // Use validated constraints
-  const validatedConstraints = constraintsResult.data;
+  // NOTE: Grouping constraints (tool count and group count) are now advisory only.
+  // They are not enforced during validation to allow flexibility in tool grouping.
+  // The constraints serve as guidelines for the LLM during the grouping process.
 
-  // Validate group count against constraints
-  if (groups.length < validatedConstraints.minGroups) {
-    errors.push(
-      `Too few groups: ${groups.length} (minimum constraint: ${validatedConstraints.minGroups})`,
-    );
-  }
-  if (groups.length > validatedConstraints.maxGroups) {
-    errors.push(
-      `Too many groups: ${groups.length} (maximum constraint: ${validatedConstraints.maxGroups})`,
-    );
-  }
+  // COMMENTED OUT: Group count validation (advisory only)
+  // if (groups.length < validatedConstraints.minGroups) {
+  //   errors.push(
+  //     `Too few groups: ${groups.length} (minimum constraint: ${validatedConstraints.minGroups})`,
+  //   );
+  // }
+  // if (groups.length > validatedConstraints.maxGroups) {
+  //   errors.push(
+  //     `Too many groups: ${groups.length} (maximum constraint: ${validatedConstraints.maxGroups})`,
+  //   );
+  // }
 
-  // Validate tools per group against constraints
-  groups.forEach((group) => {
-    if (group.tools.length < validatedConstraints.minToolsPerGroup) {
-      errors.push(
-        `Group "${group.name}" has too few tools: ${group.tools.length} (minimum constraint: ${validatedConstraints.minToolsPerGroup})`,
-      );
-    }
-    if (group.tools.length > validatedConstraints.maxToolsPerGroup) {
-      errors.push(
-        `Group "${group.name}" has too many tools: ${group.tools.length} (maximum constraint: ${validatedConstraints.maxToolsPerGroup})`,
-      );
-    }
-  });
+  // COMMENTED OUT: Tools per group validation (advisory only)
+  // groups.forEach((group) => {
+  //   if (group.tools.length < validatedConstraints.minToolsPerGroup) {
+  //     errors.push(
+  //       `Group "${group.name}" has too few tools: ${group.tools.length} (minimum constraint: ${validatedConstraints.minToolsPerGroup})`,
+  //     );
+  //   }
+  //   if (group.tools.length > validatedConstraints.maxToolsPerGroup) {
+  //     errors.push(
+  //       `Group "${group.name}" has too many tools: ${group.tools.length} (maximum constraint: ${validatedConstraints.maxToolsPerGroup})`,
+  //     );
+  //   }
+  // });
 
   // Validate unique group IDs
   const groupIds = groups.map((g) => g.id);
