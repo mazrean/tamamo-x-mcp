@@ -21,6 +21,29 @@ export interface BedrockCredentials {
 }
 
 /**
+ * Get environment variable with TAMAMO_X_ prefix support
+ * Prioritizes TAMAMO_X_{name} over {name}
+ * This allows using different credentials for tamamo-x-mcp vs coding agents
+ *
+ * Ignores empty or whitespace-only values to prevent overriding valid fallback values
+ *
+ * @param name Environment variable name (without TAMAMO_X_ prefix)
+ * @returns Value from prefixed env var, or fallback to standard name, or undefined
+ *
+ * @example
+ * // If TAMAMO_X_ANTHROPIC_API_KEY is set and non-empty, returns that value
+ * // Otherwise, returns ANTHROPIC_API_KEY value
+ * const key = getEnvWithPrefix("ANTHROPIC_API_KEY");
+ */
+function getEnvWithPrefix(name: string): string | undefined {
+  const prefixed = Deno.env.get(`TAMAMO_X_${name}`);
+  if (prefixed && prefixed.trim() !== "") {
+    return prefixed;
+  }
+  return Deno.env.get(name);
+}
+
+/**
  * Discover credentials for a given LLM provider
  * @param provider LLM provider type
  * @param homeDir Optional home directory override (for testing)
@@ -34,12 +57,13 @@ export async function discoverCredentials(
 
   // Abort if HOME directory is not available or is a suspicious path
   // (prevents exploring current directory, root, or temp directories)
+  // Exception: Allow /tmp/tamamo_x_home_ prefix for testing
   if (
     !home ||
     home === "." ||
     home === "./" ||
     home === "/" ||
-    home.startsWith("/tmp")
+    (home.startsWith("/tmp") && !home.startsWith("/tmp/tamamo_x_home_"))
   ) {
     return null;
   }
@@ -69,11 +93,12 @@ export async function discoverCredentials(
 
 /**
  * Discover AWS Bedrock credentials
+ * Priority: TAMAMO_X_AWS_* > AWS_*
  * @returns Bedrock credentials or null if not found
  */
 export function discoverBedrockCredentials(): Promise<BedrockCredentials | null> {
-  const accessKeyId = Deno.env.get("AWS_ACCESS_KEY_ID");
-  const secretAccessKey = Deno.env.get("AWS_SECRET_ACCESS_KEY");
+  const accessKeyId = getEnvWithPrefix("AWS_ACCESS_KEY_ID");
+  const secretAccessKey = getEnvWithPrefix("AWS_SECRET_ACCESS_KEY");
 
   // Validate credentials are non-empty strings
   if (
@@ -85,18 +110,25 @@ export function discoverBedrockCredentials(): Promise<BedrockCredentials | null>
     return Promise.resolve(null);
   }
 
-  const region = Deno.env.get("AWS_REGION") || "us-east-1";
+  const region = getEnvWithPrefix("AWS_REGION") || "us-east-1";
 
   return Promise.resolve({ accessKeyId, secretAccessKey, region });
 }
 
 /**
  * Discover Anthropic (Claude Code) credentials
+ * Priority: TAMAMO_X_ANTHROPIC_API_KEY > ANTHROPIC_API_KEY > CLI tool
  */
 async function discoverAnthropicCredentials(
   home: string,
 ): Promise<string | null> {
-  // Try Claude Code credentials first
+  // Try environment variable first (with prefix support)
+  const envKey = getEnvWithPrefix("ANTHROPIC_API_KEY");
+  if (envKey) {
+    return envKey;
+  }
+
+  // Fallback to Claude Code credentials
   const claudeCredsPath = join(home, ".config", "claude", "credentials.json");
   try {
     const content = await Deno.readTextFile(claudeCredsPath);
@@ -105,13 +137,7 @@ async function discoverAnthropicCredentials(
       return creds.apiKey;
     }
   } catch {
-    // Ignore errors, try env var
-  }
-
-  // Fallback to environment variable
-  const envKey = Deno.env.get("ANTHROPIC_API_KEY");
-  if (envKey) {
-    return envKey;
+    // Ignore errors, return null
   }
 
   return null;
@@ -119,9 +145,16 @@ async function discoverAnthropicCredentials(
 
 /**
  * Discover OpenAI/Codex credentials
+ * Priority: TAMAMO_X_OPENAI_API_KEY > OPENAI_API_KEY > CLI tool
  */
 async function discoverOpenAICredentials(home: string): Promise<string | null> {
-  // Try OpenAI config first
+  // Try environment variable first (with prefix support)
+  const envKey = getEnvWithPrefix("OPENAI_API_KEY");
+  if (envKey) {
+    return envKey;
+  }
+
+  // Fallback to OpenAI config
   const openaiConfigPath = join(home, ".codex", "auth.json");
   try {
     const content = await Deno.readTextFile(openaiConfigPath);
@@ -130,13 +163,7 @@ async function discoverOpenAICredentials(home: string): Promise<string | null> {
       return config.OPENAI_API_KEY;
     }
   } catch {
-    // Ignore errors, try env var
-  }
-
-  // Fallback to environment variable
-  const envKey = Deno.env.get("OPENAI_API_KEY");
-  if (envKey) {
-    return envKey;
+    // Ignore errors, return null
   }
 
   return null;
@@ -144,14 +171,14 @@ async function discoverOpenAICredentials(home: string): Promise<string | null> {
 
 /**
  * Discover Gemini credentials
+ * Priority: TAMAMO_X_GOOGLE_API_KEY > GOOGLE_API_KEY > gcloud CLI
  *
- * IMPORTANT: This function prioritizes GOOGLE_API_KEY environment variable.
- * OAuth client_secret from gcloud ADC should NOT be used as an API key
+ * IMPORTANT: OAuth client_secret from gcloud ADC should NOT be used as an API key
  * as it represents an OAuth flow secret, not a static API token.
  */
 async function discoverGeminiCredentials(home: string): Promise<string | null> {
-  // Prioritize environment variable (explicit API key)
-  const envKey = Deno.env.get("GOOGLE_API_KEY");
+  // Prioritize environment variable (with prefix support)
+  const envKey = getEnvWithPrefix("GOOGLE_API_KEY");
   if (envKey) {
     return envKey;
   }
