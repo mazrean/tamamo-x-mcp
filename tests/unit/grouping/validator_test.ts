@@ -8,8 +8,10 @@ import { validateGroups } from "../../../src/grouping/validator.ts";
  * Unit tests for grouping validator (src/grouping/validator.ts)
  *
  * The validator is responsible for:
- * 1. Enforcing GroupingConstraints (minToolsPerGroup, maxToolsPerGroup, minGroups, maxGroups)
- * 2. Validating group metadata (unique IDs, non-empty names)
+ * 1. Validating group metadata (unique IDs/names, non-empty fields)
+ * 2. Validating constraint structure (not enforcement)
+ *
+ * Note: Tool count and group count constraints are advisory only and not enforced.
  */
 
 describe("Grouping Validator", () => {
@@ -471,6 +473,64 @@ describe("Grouping Validator", () => {
         result.errors.some((e) => e.includes("unique") && e.includes("ID")),
         "Error should mention non-unique IDs",
       );
+    });
+  });
+
+  describe("Constraint structure validation", () => {
+    it("should fail validation when constraint object has invalid structure", () => {
+      // Arrange
+      const groups = createMockGroups(3, 10);
+      const invalidConstraints = {
+        minToolsPerGroup: -1, // Invalid: negative value
+        maxToolsPerGroup: 20,
+        minGroups: 3,
+        maxGroups: 10,
+      } as GroupingConstraints;
+
+      // Act
+      const result = validateGroups(groups, invalidConstraints);
+
+      // Assert
+      assertEquals(result.valid, false, "Should fail validation for invalid constraint structure");
+      assert(result.errors.length > 0, "Should have errors for invalid constraints");
+      assert(
+        result.errors.some((e) => e.includes("Constraints")),
+        "Error should mention constraint validation failure",
+      );
+    });
+
+    it("should fail validation when required constraint fields are missing", () => {
+      // Arrange
+      const groups = createMockGroups(3, 10);
+      const incompleteConstraints = {
+        minToolsPerGroup: 5,
+        maxToolsPerGroup: 20,
+        // Missing minGroups and maxGroups
+      } as GroupingConstraints;
+
+      // Act
+      const result = validateGroups(groups, incompleteConstraints);
+
+      // Assert
+      assertEquals(result.valid, false, "Should fail validation for missing constraint fields");
+      assert(result.errors.length > 0, "Should have errors for missing fields");
+    });
+
+    it("should pass validation when constraint structure is valid", () => {
+      // Arrange
+      const groups = createMockGroups(3, 10);
+      const validConstraints: GroupingConstraints = {
+        minToolsPerGroup: 5,
+        maxToolsPerGroup: 20,
+        minGroups: 3,
+        maxGroups: 10,
+      };
+
+      // Act
+      const result = validateGroups(groups, validConstraints);
+
+      // Assert
+      assertEquals(result.valid, true, "Should pass validation for valid constraint structure");
     });
   });
 });

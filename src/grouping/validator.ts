@@ -1,6 +1,7 @@
 /**
  * Grouping constraint validator
- * Enforces grouping constraints and validates tool groups using Zod
+ * Validates tool group metadata (IDs, names, descriptions) using Zod.
+ * Note: Tool count and group count constraints are advisory only and not enforced.
  */
 
 import { GroupingConstraintsRequiredSchema, ToolGroupSchema } from "../schemas/index.ts";
@@ -43,35 +44,8 @@ export function validateGroups(
     };
   }
 
-  // NOTE: Grouping constraints (tool count and group count) are now advisory only.
-  // They are not enforced during validation to allow flexibility in tool grouping.
-  // The constraints serve as guidelines for the LLM during the grouping process.
-
-  // COMMENTED OUT: Group count validation (advisory only)
-  // if (groups.length < validatedConstraints.minGroups) {
-  //   errors.push(
-  //     `Too few groups: ${groups.length} (minimum constraint: ${validatedConstraints.minGroups})`,
-  //   );
-  // }
-  // if (groups.length > validatedConstraints.maxGroups) {
-  //   errors.push(
-  //     `Too many groups: ${groups.length} (maximum constraint: ${validatedConstraints.maxGroups})`,
-  //   );
-  // }
-
-  // COMMENTED OUT: Tools per group validation (advisory only)
-  // groups.forEach((group) => {
-  //   if (group.tools.length < validatedConstraints.minToolsPerGroup) {
-  //     errors.push(
-  //       `Group "${group.name}" has too few tools: ${group.tools.length} (minimum constraint: ${validatedConstraints.minToolsPerGroup})`,
-  //     );
-  //   }
-  //   if (group.tools.length > validatedConstraints.maxToolsPerGroup) {
-  //     errors.push(
-  //       `Group "${group.name}" has too many tools: ${group.tools.length} (maximum constraint: ${validatedConstraints.maxToolsPerGroup})`,
-  //     );
-  //   }
-  // });
+  // NOTE: Tool count and group count constraints are advisory only.
+  // They serve as guidelines for the LLM during grouping but are not enforced here.
 
   // Validate unique group IDs
   const groupIds = groups.map((g) => g.id);
