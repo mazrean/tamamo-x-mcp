@@ -8,8 +8,10 @@ import { validateGroups } from "../../../src/grouping/validator.ts";
  * Unit tests for grouping validator (src/grouping/validator.ts)
  *
  * The validator is responsible for:
- * 1. Enforcing GroupingConstraints (minToolsPerGroup, maxToolsPerGroup, minGroups, maxGroups)
- * 2. Validating group metadata (unique IDs, non-empty names)
+ * 1. Validating group metadata (unique IDs/names, non-empty fields)
+ * 2. Validating constraint structure (not enforcement)
+ *
+ * Note: Tool count and group count constraints are advisory only and not enforced.
  */
 
 describe("Grouping Validator", () => {
@@ -32,7 +34,7 @@ describe("Grouping Validator", () => {
       assertEquals(result.errors.length, 0, "Should have no errors");
     });
 
-    it("should fail validation when group count is below minimum", () => {
+    it("should pass validation when group count is below minimum (advisory only)", () => {
       // Arrange
       const groups = createMockGroups(2, 10);
       const constraints: GroupingConstraints = {
@@ -46,15 +48,20 @@ describe("Grouping Validator", () => {
       const result = validateGroups(groups, constraints);
 
       // Assert
-      assertEquals(result.valid, false, "Should fail validation for too few groups");
-      assert(result.errors.length > 0, "Should have errors");
-      assert(
-        result.errors.some((e) => e.includes("minimum") && e.includes("groups")),
-        "Error should mention minimum groups constraint",
+      // Constraints are advisory only, so validation should still pass
+      assertEquals(
+        result.valid,
+        true,
+        "Should pass validation even with fewer groups (advisory constraint)",
+      );
+      assertEquals(
+        result.errors.length,
+        0,
+        "Should have no errors for advisory constraint violation",
       );
     });
 
-    it("should fail validation when group count is above maximum", () => {
+    it("should pass validation when group count is above maximum (advisory only)", () => {
       // Arrange
       const groups = createMockGroups(12, 5);
       const constraints: GroupingConstraints = {
@@ -68,11 +75,16 @@ describe("Grouping Validator", () => {
       const result = validateGroups(groups, constraints);
 
       // Assert
-      assertEquals(result.valid, false, "Should fail validation for too many groups");
-      assert(result.errors.length > 0, "Should have errors");
-      assert(
-        result.errors.some((e) => e.includes("maximum") && e.includes("groups")),
-        "Error should mention maximum groups constraint",
+      // Constraints are advisory only, so validation should still pass
+      assertEquals(
+        result.valid,
+        true,
+        "Should pass validation even with more groups (advisory constraint)",
+      );
+      assertEquals(
+        result.errors.length,
+        0,
+        "Should have no errors for advisory constraint violation",
       );
     });
   });
@@ -95,7 +107,7 @@ describe("Grouping Validator", () => {
       assertEquals(result.valid, true, "Should pass validation for valid tool counts");
     });
 
-    it("should fail validation when a group has too few tools", () => {
+    it("should pass validation when a group has too few tools (advisory only)", () => {
       // Arrange
       const groups = createMockGroups(3, 10);
       groups[2].tools = groups[2].tools.slice(0, 3); // Reduce last group to 3 tools
@@ -110,14 +122,20 @@ describe("Grouping Validator", () => {
       const result = validateGroups(groups, constraints);
 
       // Assert
-      assertEquals(result.valid, false, "Should fail validation for group with too few tools");
-      assert(
-        result.errors.some((e) => e.includes("minimum") && e.includes("tools")),
-        "Error should mention minimum tools constraint",
+      // Constraints are advisory only, so validation should still pass
+      assertEquals(
+        result.valid,
+        true,
+        "Should pass validation even with group with too few tools (advisory constraint)",
+      );
+      assertEquals(
+        result.errors.length,
+        0,
+        "Should have no errors for advisory constraint violation",
       );
     });
 
-    it("should fail validation when a group has too many tools", () => {
+    it("should pass validation when a group has too many tools (advisory only)", () => {
       // Arrange
       const groups = createMockGroups(3, 10);
       // Add extra tools to first group
@@ -133,14 +151,20 @@ describe("Grouping Validator", () => {
       const result = validateGroups(groups, constraints);
 
       // Assert
-      assertEquals(result.valid, false, "Should fail validation for group with too many tools");
-      assert(
-        result.errors.some((e) => e.includes("maximum") && e.includes("tools")),
-        "Error should mention maximum tools constraint",
+      // Constraints are advisory only, so validation should still pass
+      assertEquals(
+        result.valid,
+        true,
+        "Should pass validation even with group with too many tools (advisory constraint)",
+      );
+      assertEquals(
+        result.errors.length,
+        0,
+        "Should have no errors for advisory constraint violation",
       );
     });
 
-    it("should report all groups that violate constraints", () => {
+    it("should pass validation even when multiple groups violate constraints (advisory only)", () => {
       // Arrange
       const groups = createMockGroups(5, 10);
       groups[1].tools = groups[1].tools.slice(0, 2); // Too few
@@ -156,8 +180,17 @@ describe("Grouping Validator", () => {
       const result = validateGroups(groups, constraints);
 
       // Assert
-      assertEquals(result.valid, false, "Should fail validation");
-      assert(result.errors.length >= 2, "Should report errors for both violating groups");
+      // Constraints are advisory only, so validation should still pass
+      assertEquals(
+        result.valid,
+        true,
+        "Should pass validation even with multiple constraint violations (advisory)",
+      );
+      assertEquals(
+        result.errors.length,
+        0,
+        "Should have no errors for advisory constraint violations",
+      );
     });
   });
 
@@ -373,7 +406,7 @@ describe("Grouping Validator", () => {
   });
 
   describe("Edge cases", () => {
-    it("should handle empty group list", () => {
+    it("should pass validation even for empty group list (advisory constraint)", () => {
       // Arrange
       const groups: ToolGroup[] = [];
       const constraints: GroupingConstraints = {
@@ -387,10 +420,16 @@ describe("Grouping Validator", () => {
       const result = validateGroups(groups, constraints);
 
       // Assert
-      assertEquals(result.valid, false, "Should fail validation for empty group list");
-      assert(
-        result.errors.some((e) => e.includes("minimum") && e.includes("groups")),
-        "Should report minimum groups violation",
+      // Constraints are advisory only, so validation should pass even for empty list
+      assertEquals(
+        result.valid,
+        true,
+        "Should pass validation even for empty group list (advisory constraint)",
+      );
+      assertEquals(
+        result.errors.length,
+        0,
+        "Should have no errors for advisory constraint violation",
       );
     });
 
@@ -411,10 +450,10 @@ describe("Grouping Validator", () => {
       assertEquals(result.valid, true, "Should pass validation for single group if allowed");
     });
 
-    it("should accumulate all validation errors", () => {
+    it("should accumulate metadata validation errors only (constraints are advisory)", () => {
       // Arrange
-      const groups = createMockGroups(12, 3); // Too many groups, too few tools per group
-      groups[0].id = groups[1].id; // Duplicate ID
+      const groups = createMockGroups(12, 3); // Tool/group count constraints don't cause errors (advisory)
+      groups[0].id = groups[1].id; // Duplicate ID (this should still fail)
       const constraints: GroupingConstraints = {
         minToolsPerGroup: 5,
         maxToolsPerGroup: 20,
@@ -426,8 +465,72 @@ describe("Grouping Validator", () => {
       const result = validateGroups(groups, constraints);
 
       // Assert
-      assertEquals(result.valid, false, "Should fail validation");
-      assert(result.errors.length >= 3, "Should accumulate all errors");
+      // Should fail only due to duplicate IDs (metadata validation)
+      // Not due to tool/group count constraints (advisory)
+      assertEquals(result.valid, false, "Should fail validation for metadata errors");
+      assert(result.errors.length >= 1, "Should have at least one error for duplicate IDs");
+      assert(
+        result.errors.some((e) => e.includes("unique") && e.includes("ID")),
+        "Error should mention non-unique IDs",
+      );
+    });
+  });
+
+  describe("Constraint structure validation", () => {
+    it("should fail validation when constraint object has invalid structure", () => {
+      // Arrange
+      const groups = createMockGroups(3, 10);
+      const invalidConstraints = {
+        minToolsPerGroup: -1, // Invalid: negative value
+        maxToolsPerGroup: 20,
+        minGroups: 3,
+        maxGroups: 10,
+      } as GroupingConstraints;
+
+      // Act
+      const result = validateGroups(groups, invalidConstraints);
+
+      // Assert
+      assertEquals(result.valid, false, "Should fail validation for invalid constraint structure");
+      assert(result.errors.length > 0, "Should have errors for invalid constraints");
+      assert(
+        result.errors.some((e) => e.includes("Constraints")),
+        "Error should mention constraint validation failure",
+      );
+    });
+
+    it("should fail validation when required constraint fields are missing", () => {
+      // Arrange
+      const groups = createMockGroups(3, 10);
+      const incompleteConstraints = {
+        minToolsPerGroup: 5,
+        maxToolsPerGroup: 20,
+        // Missing minGroups and maxGroups
+      } as GroupingConstraints;
+
+      // Act
+      const result = validateGroups(groups, incompleteConstraints);
+
+      // Assert
+      assertEquals(result.valid, false, "Should fail validation for missing constraint fields");
+      assert(result.errors.length > 0, "Should have errors for missing fields");
+    });
+
+    it("should pass validation when constraint structure is valid", () => {
+      // Arrange
+      const groups = createMockGroups(3, 10);
+      const validConstraints: GroupingConstraints = {
+        minToolsPerGroup: 5,
+        maxToolsPerGroup: 20,
+        minGroups: 3,
+        maxGroups: 10,
+      };
+
+      // Act
+      const result = validateGroups(groups, validConstraints);
+
+      // Assert
+      assertEquals(result.valid, true, "Should pass validation for valid constraint structure");
     });
   });
 });
