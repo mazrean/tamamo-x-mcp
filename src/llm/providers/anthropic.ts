@@ -104,8 +104,9 @@ Your ENTIRE response should be parseable by JSON.parse() without any modificatio
 
         let text = textContent.text.trim();
 
-        // If schema was provided, attempt to extract JSON from response
-        // (in case Claude wrapped it in markdown or added explanation)
+        // If schema was provided, extract and validate JSON from response
+        // Note: Anthropic Messages API doesn't support enforced structured output,
+        // so we rely on prompt instructions and post-processing validation
         if (options?.responseSchema) {
           // Remove markdown code fences if present
           text = text.replace(/^```json?\s*/i, "").replace(/\s*```$/i, "");
@@ -115,6 +116,17 @@ Your ENTIRE response should be parseable by JSON.parse() without any modificatio
           const lastBrace = text.lastIndexOf("}");
           if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
             text = text.substring(firstBrace, lastBrace + 1);
+          }
+
+          // Validate that the extracted text is valid JSON
+          try {
+            JSON.parse(text);
+          } catch (_parseError) {
+            throw new Error(
+              `Anthropic provider: Failed to generate valid JSON. Response was: ${
+                text.substring(0, 200)
+              }...`,
+            );
           }
         }
 

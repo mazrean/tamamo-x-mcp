@@ -78,7 +78,9 @@ Your ENTIRE response should be parseable by JSON.parse() without any modificatio
         throw new Error("No text content in AWS Bedrock response");
       }
 
-      // If schema was provided, attempt to extract JSON from response
+      // If schema was provided, extract and validate JSON from response
+      // Note: AWS Bedrock Runtime doesn't support enforced structured output,
+      // so we rely on prompt instructions and post-processing validation
       if (options?.responseSchema) {
         text = text.trim();
         // Remove markdown code fences if present
@@ -89,6 +91,17 @@ Your ENTIRE response should be parseable by JSON.parse() without any modificatio
         const lastBrace = text.lastIndexOf("}");
         if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
           text = text.substring(firstBrace, lastBrace + 1);
+        }
+
+        // Validate that the extracted text is valid JSON
+        try {
+          JSON.parse(text);
+        } catch (_parseError) {
+          throw new Error(
+            `Bedrock provider: Failed to generate valid JSON. Response was: ${
+              text.substring(0, 200)
+            }...`,
+          );
         }
       }
 

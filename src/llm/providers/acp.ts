@@ -442,6 +442,10 @@ export function createACPClient(
       prompt: string,
       _options?: CompletionOptions,
     ): Promise<string> {
+      // Note: ACP protocol doesn't support structured output enforcement
+      // The responseSchema option is ignored for ACP providers
+      // This is a protocol-level limitation, not an implementation gap
+
       try {
         // Lazy initialization: create client on first use
         if (!acpClient) {
