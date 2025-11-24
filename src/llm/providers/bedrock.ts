@@ -22,12 +22,15 @@ export function createBedrockClient(
     },
   });
 
-  const selectedModel = model || "anthropic.claude-3-sonnet-20240229-v1:0";
+  const selectedModel = model || "anthropic.claude-haiku-4-5-20251001-v1:0";
 
   return {
     provider: "bedrock",
     model: selectedModel,
-    async complete(prompt: string, options?: CompletionOptions): Promise<string> {
+    async complete(
+      prompt: string,
+      options?: CompletionOptions,
+    ): Promise<string> {
       // If responseSchema is provided, enhance prompt with strict JSON instructions
       let enhancedPrompt = prompt;
       if (options?.responseSchema) {

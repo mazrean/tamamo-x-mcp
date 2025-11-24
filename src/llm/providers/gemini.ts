@@ -44,19 +44,19 @@ function stripUnsupportedSchemaProperties(
   return cleanSchema;
 }
 
-const DEFAULT_MODEL = "gemini-2.5-pro-latest";
+const DEFAULT_MODEL = "gemini-2.5-pro";
 
-export function createGeminiClient(
-  apiKey: string,
-  model?: string,
-): LLMClient {
+export function createGeminiClient(apiKey: string, model?: string): LLMClient {
   const genAI = new GoogleGenAI({ apiKey });
   const selectedModel = model || DEFAULT_MODEL;
 
   return {
     provider: "gemini",
     model: selectedModel,
-    async complete(prompt: string, options?: CompletionOptions): Promise<string> {
+    async complete(
+      prompt: string,
+      options?: CompletionOptions,
+    ): Promise<string> {
       // Build config object for new API
       const config: Record<string, unknown> = {};
 

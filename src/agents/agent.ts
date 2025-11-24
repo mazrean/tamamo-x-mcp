@@ -26,12 +26,12 @@ import { createOpenRouter } from "npm:@openrouter/ai-sdk-provider@0.0.5";
  * Used when model is not specified in LLMProviderConfig
  */
 const DEFAULT_MODELS: Record<string, string> = {
-  anthropic: "claude-3-5-haiku-20241022",
-  openai: "gpt-4o",
-  gemini: "gemini-2.0-flash-exp",
-  vercel: "gpt-4o",
-  bedrock: "anthropic.claude-3-5-sonnet-20241022",
-  openrouter: "openai/gpt-4o",
+  anthropic: "claude-haiku-4-5",
+  openai: "gpt-5.1-codex",
+  gemini: "gemini-2.5-pro",
+  vercel: "gpt-5.1-codex",
+  bedrock: "anthropic.claude-haiku-4-5-20251001-v1:0",
+  openrouter: "openai/gpt-5.1-codex",
 };
 
 /**
@@ -56,7 +56,11 @@ function sanitizeJsonSchema(schema: any): any {
 
   // Fix type field if it's "None" or missing
   if ("type" in sanitized) {
-    if (sanitized.type === "None" || sanitized.type === null || sanitized.type === undefined) {
+    if (
+      sanitized.type === "None" ||
+      sanitized.type === null ||
+      sanitized.type === undefined
+    ) {
       sanitized.type = "string";
     }
   }
@@ -77,12 +81,20 @@ function sanitizeJsonSchema(schema: any): any {
   }
 
   // Recursively sanitize additionalProperties
-  if (sanitized.additionalProperties && typeof sanitized.additionalProperties === "object") {
-    sanitized.additionalProperties = sanitizeJsonSchema(sanitized.additionalProperties);
+  if (
+    sanitized.additionalProperties &&
+    typeof sanitized.additionalProperties === "object"
+  ) {
+    sanitized.additionalProperties = sanitizeJsonSchema(
+      sanitized.additionalProperties,
+    );
   }
 
   // Recursively sanitize patternProperties
-  if (sanitized.patternProperties && typeof sanitized.patternProperties === "object") {
+  if (
+    sanitized.patternProperties &&
+    typeof sanitized.patternProperties === "object"
+  ) {
     // deno-lint-ignore no-explicit-any
     const sanitizedPatternProps: Record<string, any> = {};
     for (const [key, prop] of Object.entries(sanitized.patternProperties)) {
@@ -165,7 +177,11 @@ export function wrapToolForVercelAI(
       }
 
       // Fallback to mock result for testing
-      return `Mock result from ${mcpTool.name} with args: ${JSON.stringify(args)}`;
+      return `Mock result from ${mcpTool.name} with args: ${
+        JSON.stringify(
+          args,
+        )
+      }`;
     },
   });
 }
@@ -268,7 +284,13 @@ async function executeAgentWithVercelAI(
         }
 
         // Terminal finish reasons that indicate completion or failure
-        const terminalReasons = ["stop", "length", "content-filter", "error", "other"];
+        const terminalReasons = [
+          "stop",
+          "length",
+          "content-filter",
+          "error",
+          "other",
+        ];
         if (last?.finishReason && terminalReasons.includes(last.finishReason)) {
           return true;
         }
@@ -292,10 +314,10 @@ async function executeAgentWithVercelAI(
     // Check for non-stop finish reasons and handle them appropriately
     if (lastStep?.finishReason && lastStep.finishReason !== "stop") {
       const errorMessages: Record<string, string> = {
-        "length": "Response truncated due to maximum token length",
+        length: "Response truncated due to maximum token length",
         "content-filter": "Response blocked by content filter",
-        "error": "Model encountered an error during generation",
-        "other": "Generation stopped due to unknown reason",
+        error: "Model encountered an error during generation",
+        other: "Generation stopped due to unknown reason",
       };
 
       return {
@@ -365,7 +387,12 @@ export async function executeAgent(
     }
 
     // Use Vercel AI SDK for all providers
-    return await executeAgentWithVercelAI(subAgent, request, credentials.apiKey, registry);
+    return await executeAgentWithVercelAI(
+      subAgent,
+      request,
+      credentials.apiKey,
+      registry,
+    );
   } catch (error) {
     return {
       requestId: request.requestId,

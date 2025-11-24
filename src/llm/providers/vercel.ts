@@ -9,7 +9,7 @@ import type { CompletionOptions, LLMClient } from "../client.ts";
 
 export function createVercelClient(apiKey: string, model?: string): LLMClient {
   const openai = createOpenAI({ apiKey });
-  const selectedModel = model || "gpt-4o";
+  const selectedModel = model || "gpt-5.1-codex";
 
   return {
     provider: "vercel",

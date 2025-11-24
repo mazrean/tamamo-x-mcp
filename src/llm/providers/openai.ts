@@ -6,7 +6,7 @@
 import OpenAI from "npm:openai@6.9.1";
 import type { CompletionOptions, LLMClient } from "../client.ts";
 
-const DEFAULT_MODEL = "gpt-5.1";
+const DEFAULT_MODEL = "gpt-5.1-codex";
 
 export function createOpenAIClient(
   apiKey: string,
