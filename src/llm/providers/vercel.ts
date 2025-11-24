@@ -3,9 +3,10 @@
  * Uses ai SDK and @ai-sdk/openai
  */
 
-import { generateText } from "npm:ai@5.0.97";
+import { generateObject, generateText, jsonSchema } from "npm:ai@5.0.97";
 import { createOpenAI } from "npm:@ai-sdk/openai@2.0.68";
 import type { CompletionOptions, LLMClient } from "../client.ts";
+import { toJsonSchema7 } from "../utils.ts";
 
 export function createVercelClient(apiKey: string, model?: string): LLMClient {
   const openai = createOpenAI({ apiKey });
@@ -18,43 +19,32 @@ export function createVercelClient(apiKey: string, model?: string): LLMClient {
       prompt: string,
       options?: CompletionOptions,
     ): Promise<string> {
-      // Build generation parameters
-      const params: {
-        model: ReturnType<typeof openai>;
-        prompt: string;
-        temperature?: number;
-        maxOutputTokens?: number;
-        experimental_telemetry?: { isEnabled: boolean };
-      } = {
+      // If responseSchema is provided, use generateObject for enforced structured output
+      if (options?.responseSchema) {
+        const result = await generateObject({
+          model: openai(selectedModel),
+          schema: jsonSchema(toJsonSchema7(options.responseSchema)),
+          prompt,
+          temperature: options?.temperature,
+          maxOutputTokens: options?.maxTokens,
+          experimental_telemetry: { isEnabled: false },
+        });
+
+        // Return the generated object as JSON string
+        return JSON.stringify(result.object);
+      }
+
+      // For non-structured output, use generateText
+      const { text } = await generateText({
         model: openai(selectedModel),
         prompt,
         temperature: options?.temperature,
         maxOutputTokens: options?.maxTokens,
         experimental_telemetry: { isEnabled: false },
-      };
-
-      // Note: Vercel AI SDK's generateText doesn't directly support response_format
-      // But we rely on the enhanced prompt instructions for JSON enforcement
-      // The underlying OpenAI SDK in Vercel AI should respect the prompt
-
-      const { text } = await generateText(params);
+      });
 
       if (!text) {
         throw new Error("No text content in Vercel AI response");
-      }
-
-      // If schema was provided, attempt to extract JSON
-      if (options?.responseSchema) {
-        let cleaned = text.trim();
-        // Remove markdown code fences if present
-        cleaned = cleaned.replace(/^```json?\s*/i, "").replace(/\s*```$/i, "");
-        // Try to find JSON object boundaries
-        const firstBrace = cleaned.indexOf("{");
-        const lastBrace = cleaned.lastIndexOf("}");
-        if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
-          return cleaned.substring(firstBrace, lastBrace + 1);
-        }
-        return cleaned;
       }
 
       return text;
