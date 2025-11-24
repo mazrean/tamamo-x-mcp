@@ -1,7 +1,11 @@
 import { assertEquals, assertExists } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import { afterEach, beforeEach, describe, it } from "https://deno.land/std@0.224.0/testing/bdd.ts";
 import { join } from "https://deno.land/std@0.224.0/path/mod.ts";
-import type { LLMProviderType } from "../../../src/types/index.ts";
+import {
+  discoverBedrockCredentials,
+  discoverCredentials,
+  validateConfigSecurity,
+} from "../../../src/llm/credentials.ts";
 
 /**
  * Unit tests for credential discovery (src/llm/credentials.ts)
@@ -32,6 +36,12 @@ describe("Credential Discovery", () => {
       AWS_ACCESS_KEY_ID: Deno.env.get("AWS_ACCESS_KEY_ID"),
       AWS_SECRET_ACCESS_KEY: Deno.env.get("AWS_SECRET_ACCESS_KEY"),
       AWS_REGION: Deno.env.get("AWS_REGION"),
+      TAMAMO_X_ANTHROPIC_API_KEY: Deno.env.get("TAMAMO_X_ANTHROPIC_API_KEY"),
+      TAMAMO_X_OPENAI_API_KEY: Deno.env.get("TAMAMO_X_OPENAI_API_KEY"),
+      TAMAMO_X_GOOGLE_API_KEY: Deno.env.get("TAMAMO_X_GOOGLE_API_KEY"),
+      TAMAMO_X_AWS_ACCESS_KEY_ID: Deno.env.get("TAMAMO_X_AWS_ACCESS_KEY_ID"),
+      TAMAMO_X_AWS_SECRET_ACCESS_KEY: Deno.env.get("TAMAMO_X_AWS_SECRET_ACCESS_KEY"),
+      TAMAMO_X_AWS_REGION: Deno.env.get("TAMAMO_X_AWS_REGION"),
     };
 
     // Clear env vars for testing
@@ -41,6 +51,12 @@ describe("Credential Discovery", () => {
     Deno.env.delete("AWS_ACCESS_KEY_ID");
     Deno.env.delete("AWS_SECRET_ACCESS_KEY");
     Deno.env.delete("AWS_REGION");
+    Deno.env.delete("TAMAMO_X_ANTHROPIC_API_KEY");
+    Deno.env.delete("TAMAMO_X_OPENAI_API_KEY");
+    Deno.env.delete("TAMAMO_X_GOOGLE_API_KEY");
+    Deno.env.delete("TAMAMO_X_AWS_ACCESS_KEY_ID");
+    Deno.env.delete("TAMAMO_X_AWS_SECRET_ACCESS_KEY");
+    Deno.env.delete("TAMAMO_X_AWS_REGION");
   });
 
   afterEach(async () => {
@@ -116,14 +132,14 @@ describe("Credential Discovery", () => {
   });
 
   describe("OpenAI/Codex credentials", () => {
-    it("should discover credentials from ~/.config/openai/config.json", async () => {
+    it("should discover credentials from ~/.codex/auth.json", async () => {
       // Arrange
-      const openaiConfigDir = join(tempHomeDir, ".config", "openai");
-      await Deno.mkdir(openaiConfigDir, { recursive: true });
-      const configPath = join(openaiConfigDir, "config.json");
+      const codexConfigDir = join(tempHomeDir, ".codex");
+      await Deno.mkdir(codexConfigDir, { recursive: true });
+      const authPath = join(codexConfigDir, "auth.json");
       await Deno.writeTextFile(
-        configPath,
-        JSON.stringify({ apiKey: "sk-openai-test-key-789" }, null, 2),
+        authPath,
+        JSON.stringify({ OPENAI_API_KEY: "sk-openai-test-key-789" }, null, 2),
       );
 
       // Act
@@ -164,7 +180,7 @@ describe("Credential Discovery", () => {
       const credentialsPath = join(gcloudConfigDir, "application_default_credentials.json");
       await Deno.writeTextFile(
         credentialsPath,
-        JSON.stringify({ client_secret: "gemini-secret-key" }, null, 2),
+        JSON.stringify({ api_key: "AIza-gemini-api-key-123" }, null, 2),
       );
 
       // Act
@@ -172,6 +188,7 @@ describe("Credential Discovery", () => {
 
       // Assert
       assertExists(apiKey, "Should discover Gemini credentials");
+      assertEquals(apiKey, "AIza-gemini-api-key-123", "Should return api_key from gcloud config");
     });
 
     it("should fallback to GOOGLE_API_KEY env var", async () => {
@@ -282,6 +299,157 @@ describe("Credential Discovery", () => {
     });
   });
 
+  describe("Prefixed environment variables", () => {
+    it("should prefer TAMAMO_X_ANTHROPIC_API_KEY over ANTHROPIC_API_KEY", async () => {
+      // Arrange
+      Deno.env.set("TAMAMO_X_ANTHROPIC_API_KEY", "sk-ant-prefixed-key");
+      Deno.env.set("ANTHROPIC_API_KEY", "sk-ant-standard-key");
+
+      // Act
+      const apiKey = await discoverCredentials("anthropic", tempHomeDir);
+
+      // Assert
+      assertEquals(
+        apiKey,
+        "sk-ant-prefixed-key",
+        "Should prefer TAMAMO_X_ prefixed env var",
+      );
+    });
+
+    it("should fallback to ANTHROPIC_API_KEY when TAMAMO_X_ANTHROPIC_API_KEY not set", async () => {
+      // Arrange
+      Deno.env.set("ANTHROPIC_API_KEY", "sk-ant-standard-key");
+
+      // Act
+      const apiKey = await discoverCredentials("anthropic", tempHomeDir);
+
+      // Assert
+      assertEquals(
+        apiKey,
+        "sk-ant-standard-key",
+        "Should fallback to standard env var",
+      );
+    });
+
+    it("should prefer TAMAMO_X_OPENAI_API_KEY over OPENAI_API_KEY", async () => {
+      // Arrange
+      Deno.env.set("TAMAMO_X_OPENAI_API_KEY", "sk-openai-prefixed-key");
+      Deno.env.set("OPENAI_API_KEY", "sk-openai-standard-key");
+
+      // Act
+      const apiKey = await discoverCredentials("openai", tempHomeDir);
+
+      // Assert
+      assertEquals(
+        apiKey,
+        "sk-openai-prefixed-key",
+        "Should prefer TAMAMO_X_ prefixed env var",
+      );
+    });
+
+    it("should prefer TAMAMO_X_GOOGLE_API_KEY over GOOGLE_API_KEY", async () => {
+      // Arrange
+      Deno.env.set("TAMAMO_X_GOOGLE_API_KEY", "AIza-prefixed-key");
+      Deno.env.set("GOOGLE_API_KEY", "AIza-standard-key");
+
+      // Act
+      const apiKey = await discoverCredentials("gemini", tempHomeDir);
+
+      // Assert
+      assertEquals(
+        apiKey,
+        "AIza-prefixed-key",
+        "Should prefer TAMAMO_X_ prefixed env var",
+      );
+    });
+
+    it("should prefer TAMAMO_X_AWS_* over AWS_* for Bedrock credentials", async () => {
+      // Arrange
+      Deno.env.set("TAMAMO_X_AWS_ACCESS_KEY_ID", "AKIA-prefixed-key");
+      Deno.env.set("TAMAMO_X_AWS_SECRET_ACCESS_KEY", "secret-prefixed-key");
+      Deno.env.set("TAMAMO_X_AWS_REGION", "ap-northeast-1");
+      Deno.env.set("AWS_ACCESS_KEY_ID", "AKIA-standard-key");
+      Deno.env.set("AWS_SECRET_ACCESS_KEY", "secret-standard-key");
+      Deno.env.set("AWS_REGION", "us-east-1");
+
+      // Act
+      const credentials = await discoverBedrockCredentials();
+
+      // Assert
+      assertExists(credentials);
+      assertEquals(
+        credentials.accessKeyId,
+        "AKIA-prefixed-key",
+        "Should prefer TAMAMO_X_AWS_ACCESS_KEY_ID",
+      );
+      assertEquals(
+        credentials.secretAccessKey,
+        "secret-prefixed-key",
+        "Should prefer TAMAMO_X_AWS_SECRET_ACCESS_KEY",
+      );
+      assertEquals(
+        credentials.region,
+        "ap-northeast-1",
+        "Should prefer TAMAMO_X_AWS_REGION",
+      );
+    });
+
+    it("should ignore empty or whitespace-only TAMAMO_X_ values and fallback", async () => {
+      // Arrange - Set prefixed env var to empty/whitespace
+      Deno.env.set("TAMAMO_X_ANTHROPIC_API_KEY", "   ");
+      Deno.env.set("ANTHROPIC_API_KEY", "sk-ant-standard-key");
+
+      // Act
+      const apiKey = await discoverCredentials("anthropic", tempHomeDir);
+
+      // Assert
+      assertEquals(
+        apiKey,
+        "sk-ant-standard-key",
+        "Should fallback to standard env var when prefixed is whitespace-only",
+      );
+    });
+
+    it("should ignore empty TAMAMO_X_ values and fallback to standard env var", async () => {
+      // Arrange
+      Deno.env.set("TAMAMO_X_OPENAI_API_KEY", "");
+      Deno.env.set("OPENAI_API_KEY", "sk-openai-standard-key");
+
+      // Act
+      const apiKey = await discoverCredentials("openai", tempHomeDir);
+
+      // Assert
+      assertEquals(
+        apiKey,
+        "sk-openai-standard-key",
+        "Should fallback to standard env var when prefixed is empty",
+      );
+    });
+
+    it("should still prefer CLI tool credentials over prefixed env vars", async () => {
+      // Arrange
+      const claudeConfigDir = join(tempHomeDir, ".config", "claude");
+      await Deno.mkdir(claudeConfigDir, { recursive: true });
+      const credentialsPath = join(claudeConfigDir, "credentials.json");
+      await Deno.writeTextFile(
+        credentialsPath,
+        JSON.stringify({ apiKey: "sk-ant-cli-key" }, null, 2),
+      );
+      Deno.env.set("TAMAMO_X_ANTHROPIC_API_KEY", "sk-ant-prefixed-key");
+      Deno.env.set("ANTHROPIC_API_KEY", "sk-ant-standard-key");
+
+      // Act
+      const apiKey = await discoverCredentials("anthropic", tempHomeDir);
+
+      // Assert
+      assertEquals(
+        apiKey,
+        "sk-ant-cli-key",
+        "CLI tool credentials should still take highest precedence",
+      );
+    });
+  });
+
   describe("Credential precedence", () => {
     it("should prefer CLI tool credentials over env vars", async () => {
       // Arrange
@@ -360,99 +528,3 @@ describe("Credential Discovery", () => {
     });
   });
 });
-
-// Helper functions (placeholders for actual implementation)
-
-async function discoverCredentials(
-  provider: LLMProviderType,
-  homeDir: string,
-): Promise<string | null> {
-  // TODO: Implement actual credential discovery
-  // For now, implement basic logic to make tests pass
-
-  try {
-    if (provider === "anthropic") {
-      // Try Claude Code credentials
-      const credPath = join(homeDir, ".config", "claude", "credentials.json");
-      try {
-        const content = await Deno.readTextFile(credPath);
-        const creds = JSON.parse(content);
-        if (creds.apiKey) return creds.apiKey;
-      } catch {
-        // Ignore errors, try env var
-      }
-
-      // Fallback to env var
-      const envKey = Deno.env.get("ANTHROPIC_API_KEY");
-      if (envKey) return envKey;
-    }
-
-    if (provider === "openai" || provider === "openrouter") {
-      // Try OpenAI config
-      const configPath = join(homeDir, ".config", "openai", "config.json");
-      try {
-        const content = await Deno.readTextFile(configPath);
-        const config = JSON.parse(content);
-        if (config.apiKey) return config.apiKey;
-      } catch {
-        // Ignore errors, try env var
-      }
-
-      // Fallback to env var
-      const envKey = Deno.env.get("OPENAI_API_KEY");
-      if (envKey) return envKey;
-    }
-
-    if (provider === "gemini") {
-      // Try gcloud credentials
-      const gcloudPath = join(
-        homeDir,
-        ".config",
-        "gcloud",
-        "application_default_credentials.json",
-      );
-      try {
-        const content = await Deno.readTextFile(gcloudPath);
-        const creds = JSON.parse(content);
-        if (creds.client_secret) return creds.client_secret;
-      } catch {
-        // Ignore errors, try env var
-      }
-
-      // Fallback to env var
-      const envKey = Deno.env.get("GOOGLE_API_KEY");
-      if (envKey) return envKey;
-    }
-
-    return null;
-  } catch {
-    return null;
-  }
-}
-
-function discoverBedrockCredentials(): Promise<
-  {
-    accessKeyId: string;
-    secretAccessKey: string;
-    region: string;
-  } | null
-> {
-  const accessKeyId = Deno.env.get("AWS_ACCESS_KEY_ID");
-  const secretAccessKey = Deno.env.get("AWS_SECRET_ACCESS_KEY");
-
-  if (!accessKeyId || !secretAccessKey) {
-    return Promise.resolve(null);
-  }
-
-  const region = Deno.env.get("AWS_REGION") || "us-east-1";
-
-  return Promise.resolve({ accessKeyId, secretAccessKey, region });
-}
-
-function validateConfigSecurity(config: { llmProvider?: { apiKey?: string } }): boolean {
-  // Config should NOT contain apiKey field
-  if (config.llmProvider?.apiKey) {
-    return false;
-  }
-  return true;
-}
