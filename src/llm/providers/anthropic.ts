@@ -6,7 +6,7 @@
 import Anthropic from "npm:@anthropic-ai/sdk@0.70.0";
 import type { CompletionOptions, LLMClient } from "../client.ts";
 
-const DEFAULT_MODEL = "claude-4-5-haiku";
+const DEFAULT_MODEL = "claude-haiku-4-5";
 
 export function createAnthropicClient(
   apiKey: string,
