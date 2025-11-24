@@ -99,7 +99,7 @@
     },
     "LLMProviderConfig": {
       "type": "object",
-      "required": ["type", "credentialSource"],
+      "required": ["type"],
       "properties": {
         "type": {
           "type": "string",
@@ -116,11 +116,6 @@
         "model": {
           "type": "string",
           "description": "Model name (provider-specific)"
-        },
-        "credentialSource": {
-          "type": "string",
-          "description": "How credentials are obtained",
-          "enum": ["cli-tool", "env-var", "prompt"]
         },
         "endpointOverride": {
           "type": "string",

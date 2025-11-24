@@ -17,7 +17,6 @@ describe("Config Loader", () => {
     ],
     llmProvider: {
       type: "anthropic",
-      credentialSource: "cli-tool",
     },
   };
 
@@ -104,7 +103,6 @@ describe("Config Loader", () => {
         ],
         llmProvider: {
           type: "openai",
-          credentialSource: "env-var",
         },
       };
       await Deno.writeTextFile(testConfigPath, JSON.stringify(httpConfig, null, 2));

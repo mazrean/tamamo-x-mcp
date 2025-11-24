@@ -16,7 +16,6 @@ export type {
   AgentRequest,
   AgentResponse,
   Configuration,
-  CredentialSource,
   GroupingConstraints,
   JSONSchema,
   JSONSchemaProperty,

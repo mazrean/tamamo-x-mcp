@@ -15,7 +15,6 @@ describe("Config Validator", () => {
     ],
     llmProvider: {
       type: "anthropic",
-      credentialSource: "cli-tool",
     },
   };
 
@@ -430,7 +429,6 @@ describe("Config Validator", () => {
           ...validConfig,
           llmProvider: {
             type,
-            credentialSource: "cli-tool",
           },
         };
         const result = validateConfig(config);
@@ -455,7 +453,6 @@ describe("Config Validator", () => {
         ...validConfig,
         llmProvider: {
           type: "invalid-provider" as never,
-          credentialSource: "cli-tool",
         },
       };
 
@@ -484,28 +481,6 @@ describe("Config Validator", () => {
         result.errors.some((e) => e.field === "llmProvider"),
         true,
       );
-    });
-
-    it("should validate credential source options", () => {
-      // Arrange - Only for standard providers (not ACP)
-      const validSources: Array<"cli-tool" | "env-var" | "prompt"> = [
-        "cli-tool",
-        "env-var",
-        "prompt",
-      ];
-
-      // Act & Assert
-      validSources.forEach((source) => {
-        const config: Configuration = {
-          ...validConfig,
-          llmProvider: {
-            type: "anthropic",
-            credentialSource: source,
-          },
-        };
-        const result = validateConfig(config);
-        assertEquals(result.valid, true, `Credential source ${source} should be valid`);
-      });
     });
 
     it("should validate ACP provider with required agentCommand", () => {
@@ -585,49 +560,6 @@ describe("Config Validator", () => {
         result.errors.some((e) => e.message.includes("Agent command is required")),
         true,
         "Should have 'Agent command is required' error",
-      );
-    });
-
-    it("should reject ACP provider with credentialSource field", () => {
-      // Arrange
-      const invalidConfig = {
-        ...validConfig,
-        llmProvider: {
-          type: "acp",
-          agentCommand: "/usr/bin/gemini",
-          credentialSource: "cli-tool", // Should not be allowed for ACP
-        } as never,
-      };
-
-      // Act
-      const result = validateConfig(invalidConfig as Configuration);
-
-      // Assert
-      assertEquals(
-        result.valid,
-        false,
-        "ACP provider with credentialSource should be invalid",
-      );
-    });
-
-    it("should reject invalid credential source", () => {
-      // Arrange
-      const invalidConfig: Configuration = {
-        ...validConfig,
-        llmProvider: {
-          type: "anthropic",
-          credentialSource: "invalid-source" as never,
-        },
-      };
-
-      // Act
-      const result = validateConfig(invalidConfig);
-
-      // Assert
-      assertEquals(result.valid, false);
-      assertEquals(
-        result.errors.some((e) => e.field.includes("credentialSource")),
-        true,
       );
     });
   });

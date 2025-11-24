@@ -21,7 +21,6 @@ describe("Unified LLM Client", () => {
       const config = {
         type: "anthropic" as LLMProviderType,
         model: "claude-3-5-sonnet-20241022",
-        credentialSource: "env-var" as const,
       };
       const credentials = "sk-ant-test-key";
 
@@ -38,7 +37,6 @@ describe("Unified LLM Client", () => {
       const config = {
         type: "openai" as LLMProviderType,
         model: "gpt-4o",
-        credentialSource: "env-var" as const,
       };
       const credentials = "sk-openai-test-key";
 
@@ -55,7 +53,6 @@ describe("Unified LLM Client", () => {
       const config = {
         type: "gemini" as LLMProviderType,
         model: "gemini-2.0-flash-exp",
-        credentialSource: "env-var" as const,
       };
       const credentials = "AIzaSy-test-key";
 
@@ -71,7 +68,6 @@ describe("Unified LLM Client", () => {
       // Arrange
       const config = {
         type: "unsupported-provider" as LLMProviderType,
-        credentialSource: "env-var" as const,
       };
 
       // Act & Assert
@@ -88,7 +84,6 @@ describe("Unified LLM Client", () => {
       // Arrange
       const config = {
         type: "anthropic" as LLMProviderType,
-        credentialSource: "env-var" as const,
       };
 
       // Act & Assert
@@ -108,7 +103,6 @@ describe("Unified LLM Client", () => {
       const config = {
         type: "anthropic" as LLMProviderType,
         model: "claude-3-5-sonnet-20241022",
-        credentialSource: "env-var" as const,
       };
       const client = await createLLMClient(config, "test-key");
       const prompt = "Analyze these tools and suggest grouping";
@@ -127,7 +121,6 @@ describe("Unified LLM Client", () => {
       const config = {
         type: "openai" as LLMProviderType,
         model: "gpt-4o",
-        credentialSource: "env-var" as const,
       };
       const client = await createLLMClient(config, "test-key");
       const prompt = "Test prompt";
@@ -148,7 +141,6 @@ describe("Unified LLM Client", () => {
       // Arrange
       const config = {
         type: "anthropic" as LLMProviderType,
-        credentialSource: "env-var" as const,
       };
       const client = await createLLMClient(config, "invalid-key");
 
@@ -176,7 +168,7 @@ describe("Unified LLM Client", () => {
 
       // Act & Assert
       for (const providerType of providers) {
-        const config = { type: providerType, credentialSource: "env-var" as const };
+        const config = { type: providerType };
         const client = await createLLMClient(config, "test-key");
         assertEquals(
           client.provider,
@@ -190,7 +182,6 @@ describe("Unified LLM Client", () => {
       // Arrange
       const config = {
         type: "openrouter" as LLMProviderType,
-        credentialSource: "env-var" as const,
         endpointOverride: "https://openrouter.ai/api/v1",
       };
 
@@ -208,7 +199,6 @@ describe("Unified LLM Client", () => {
       // Arrange
       const config = {
         type: "anthropic" as LLMProviderType,
-        credentialSource: "env-var" as const,
         // model not specified
       };
 
@@ -227,7 +217,6 @@ describe("Unified LLM Client", () => {
       // Arrange
       const config = {
         type: "openai" as LLMProviderType,
-        credentialSource: "env-var" as const,
       };
 
       // Act
@@ -241,7 +230,6 @@ describe("Unified LLM Client", () => {
       // Arrange
       const config = {
         type: "gemini" as LLMProviderType,
-        credentialSource: "env-var" as const,
       };
 
       // Act
@@ -256,7 +244,6 @@ describe("Unified LLM Client", () => {
       const config = {
         type: "anthropic" as LLMProviderType,
         model: "claude-3-haiku-20240307",
-        credentialSource: "env-var" as const,
       };
 
       // Act
@@ -285,7 +272,6 @@ function createLLMClient(
   config: {
     type: LLMProviderType;
     model?: string;
-    credentialSource: "cli-tool" | "env-var" | "prompt";
     endpointOverride?: string;
   },
   credentials: string | null,

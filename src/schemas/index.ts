@@ -25,8 +25,6 @@ export const LLMProviderTypeSchema = z.enum([
   "acp",
 ]);
 
-export const CredentialSourceSchema = z.enum(["cli-tool", "env-var", "prompt"]);
-
 // ============================================================================
 // MCP Transport Types
 // ============================================================================
@@ -41,7 +39,6 @@ export const MCPTransportSchema = z.enum(["stdio", "http", "websocket"]);
 const StandardLLMProviderConfigSchema = z.object({
   type: z.enum(["anthropic", "openai", "gemini", "vercel", "bedrock", "openrouter"]),
   model: z.string().optional(),
-  credentialSource: CredentialSourceSchema,
   endpointOverride: z.string().url().optional(),
 }).strict();
 
@@ -403,15 +400,12 @@ export type LLMProviderType =
   | "openrouter"
   | "acp";
 
-export type CredentialSource = "cli-tool" | "env-var" | "prompt";
-
 export type MCPTransport = "stdio" | "http" | "websocket";
 
 export type LLMProviderConfig =
   | {
     type: "anthropic" | "openai" | "gemini" | "vercel" | "bedrock" | "openrouter";
     model?: string;
-    credentialSource: CredentialSource;
     endpointOverride?: string;
   }
   | {

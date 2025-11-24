@@ -93,8 +93,7 @@ cat > tamamo-x.config.json <<EOF
   "version": "1.0.0",
   "mcpServers": [],
   "llmProvider": {
-    "type": "anthropic",
-    "credentialSource": "env-var"
+    "type": "anthropic"
   }
 }
 EOF
@@ -117,28 +116,6 @@ Update `version` field in `tamamo-x.config.json`:
 {
   "version": "1.0.0",
   ...
-}
-```
-
-### "Invalid credential source"
-
-**Symptom**:
-
-```bash
-./dist/tamamo-x build
-# Error: Invalid credentialSource. Expected "cli-tool", "env-var", or "prompt"
-```
-
-**Solution**:
-
-Fix `credentialSource` in `tamamo-x.config.json`:
-
-```json
-{
-  "llmProvider": {
-    "type": "anthropic",
-    "credentialSource": "cli-tool" // Must be: cli-tool, env-var, or prompt
-  }
 }
 ```
 
@@ -171,17 +148,6 @@ cat ~/.config/claude/credentials.json
 ```bash
 export ANTHROPIC_API_KEY="sk-ant-..."
 ./dist/tamamo-x build
-```
-
-**Option 3: Update Config**
-
-```json
-{
-  "llmProvider": {
-    "type": "anthropic",
-    "credentialSource": "prompt" // Will prompt for key
-  }
-}
 ```
 
 #### For OpenAI
@@ -245,8 +211,7 @@ sleep 60
 ```json
 {
   "llmProvider": {
-    "type": "openai", // Try different provider
-    "credentialSource": "env-var"
+    "type": "openai" // Try different provider
   }
 }
 ```

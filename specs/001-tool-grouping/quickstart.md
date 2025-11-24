@@ -118,8 +118,7 @@ tamamo-x init --agent codex --no-add-to-agent
     }
   ],
   "llmProvider": {
-    "type": "anthropic",
-    "credentialSource": "cli-tool"
+    "type": "anthropic"
   }
 }
 ```
@@ -418,8 +417,7 @@ const transport = new StdioClientTransport({
 ```json
 {
   "type": "anthropic",
-  "model": "claude-3-5-sonnet-20241022",
-  "credentialSource": "cli-tool"
+  "model": "claude-3-5-sonnet-20241022"
 }
 ```
 
@@ -428,8 +426,7 @@ const transport = new StdioClientTransport({
 ```json
 {
   "type": "openai",
-  "model": "gpt-4o",
-  "credentialSource": "env-var"
+  "model": "gpt-4o"
 }
 ```
 
@@ -438,8 +435,7 @@ const transport = new StdioClientTransport({
 ```json
 {
   "type": "gemini",
-  "model": "gemini-2.0-flash-exp",
-  "credentialSource": "cli-tool"
+  "model": "gemini-2.0-flash-exp"
 }
 ```
 
@@ -448,7 +444,6 @@ const transport = new StdioClientTransport({
 ```json
 {
   "type": "openrouter",
-  "credentialSource": "env-var",
   "endpointOverride": "https://openrouter.ai/api/v1"
 }
 ```

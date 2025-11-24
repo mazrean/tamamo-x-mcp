@@ -320,9 +320,9 @@ Closes #42
 ```
 
 ```
-fix(config): validate credential source enum values
+fix(config): validate LLM provider configuration
 
-Ensure credentialSource only accepts valid values: cli-tool, env-var, explicit.
+Ensure llmProvider configuration is properly validated.
 
 Resolves #58
 ```

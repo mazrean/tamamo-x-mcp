@@ -241,8 +241,7 @@ Key workflows:
 ```json
 {
   "llmProvider": {
-    "type": "anthropic",
-    "credentialSource": "cli-tool"
+    "type": "anthropic"
   },
   "groupingConstraints": {
     "minToolsPerGroup": 5,
@@ -413,7 +412,6 @@ Key workflows:
   ],
   "llmProvider": {
     "type": "anthropic",
-    "credentialSource": "cli-tool",
     "model": "claude-4-5-haiku"
   },
   "projectContext": {

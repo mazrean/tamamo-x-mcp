@@ -39,8 +39,7 @@ tamamo-x-mcp is configured via `tamamo-x.config.json` in your project root.
     }
   ],
   "llmProvider": {
-    "type": "anthropic",
-    "credentialSource": "cli-tool"
+    "type": "anthropic"
   },
   "groupingConstraints": {
     "minToolsPerGroup": 5,
@@ -94,10 +93,6 @@ tamamo-x-mcp is configured via `tamamo-x.config.json` in your project root.
 **Provider Object Schema**:
 
 - `type` (required): Provider type (see [LLM Provider Configuration](#llm-provider-configuration))
-- `credentialSource` (required): Credential discovery method
-  - `"cli-tool"`: Auto-discover from Claude Code/Codex/Gemini CLI
-  - `"env-var"`: Read from environment variables
-  - `"prompt"`: Prompt user for credentials interactively
 - `model` (optional): Model identifier (provider-specific)
 - `endpointOverride` (optional): Custom API endpoint URL
 
@@ -322,15 +317,14 @@ tamamo-x-mcp supports 6 LLM providers.
 
 **Credential Sources**:
 
-- `cli-tool`: Auto-discover from `~/.config/claude/credentials.json`
-- `env-var`: Read from `ANTHROPIC_API_KEY` environment variable
+- Auto-discover from `~/.config/claude/credentials.json`
+- Read from `ANTHROPIC_API_KEY` environment variable
 
 **Configuration Example**:
 
 ```json
 {
   "type": "anthropic",
-  "credentialSource": "cli-tool",
   "model": "claude-4-5-haiku"
 }
 ```
@@ -343,15 +337,14 @@ tamamo-x-mcp supports 6 LLM providers.
 
 **Credential Sources**:
 
-- `cli-tool`: Auto-discover from `~/.codex/auth.json`
-- `env-var`: Read from `OPENAI_API_KEY` environment variable
+- Auto-discover from `~/.codex/auth.json`
+- Read from `OPENAI_API_KEY` environment variable
 
 **Configuration Example**:
 
 ```json
 {
   "type": "openai",
-  "credentialSource": "env-var",
   "model": "gpt-5.1"
 }
 ```
@@ -364,15 +357,14 @@ tamamo-x-mcp supports 6 LLM providers.
 
 **Credential Sources**:
 
-- `cli-tool`: Auto-discover from `~/.config/gcloud/application_default_credentials.json`
-- `env-var`: Read from `GOOGLE_API_KEY` environment variable
+- Auto-discover from `~/.config/gcloud/application_default_credentials.json`
+- Read from `GOOGLE_API_KEY` environment variable
 
 **Configuration Example**:
 
 ```json
 {
   "type": "gemini",
-  "credentialSource": "cli-tool",
   "model": "gemini-2.5-pro-latest"
 }
 ```
@@ -385,14 +377,13 @@ tamamo-x-mcp supports 6 LLM providers.
 
 **Credential Sources**:
 
-- `env-var`: Read from provider-specific environment variables
+- Read from provider-specific environment variables
 
 **Configuration Example**:
 
 ```json
 {
   "type": "vercel",
-  "credentialSource": "env-var",
   "model": "gpt-4"
 }
 ```
@@ -403,14 +394,13 @@ tamamo-x-mcp supports 6 LLM providers.
 
 **Credential Sources**:
 
-- `env-var`: Read from AWS SDK environment variables (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_REGION`)
+- Read from AWS SDK environment variables (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_REGION`)
 
 **Configuration Example**:
 
 ```json
 {
   "type": "bedrock",
-  "credentialSource": "env-var",
   "model": "anthropic.claude-3-sonnet-20240229-v1:0"
 }
 ```
@@ -421,14 +411,13 @@ tamamo-x-mcp supports 6 LLM providers.
 
 **Credential Sources**:
 
-- `env-var`: Read from `OPENROUTER_API_KEY` environment variable
+- Read from `OPENROUTER_API_KEY` environment variable
 
 **Configuration Example**:
 
 ```json
 {
   "type": "openrouter",
-  "credentialSource": "env-var",
   "model": "anthropic/claude-3-opus",
   "endpointOverride": "https://openrouter.ai/api/v1"
 }
@@ -478,13 +467,14 @@ The `LLMClient` interface provides a unified abstraction over 6 providers:
 
 **Credential Discovery Flow**:
 
-1. Check credential source configuration
-2. For `cli-tool`:
+1. Auto-discover from CLI tool credentials:
    - Anthropic: Read `~/.config/claude/credentials.json`
    - OpenAI: Read `~/.codex/auth.json`
-   - Gemini: Read `~/.config/gcloud/application_default_credentials.json` or `GOOGLE_API_KEY`
-3. For `env-var`: Read provider-specific environment variables
-4. For `prompt`: Interactively prompt user for credentials (not stored in config)
+   - Gemini: Read `~/.config/gcloud/application_default_credentials.json`
+2. Fall back to environment variables:
+   - Anthropic: `ANTHROPIC_API_KEY`
+   - OpenAI: `OPENAI_API_KEY`
+   - Gemini: `GOOGLE_API_KEY`
 
 ### Sub-Agent System
 

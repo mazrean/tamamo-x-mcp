@@ -126,7 +126,6 @@ describe("Init Workflow Integration", {
         ],
         llmProvider: {
           type: "anthropic",
-          credentialSource: "env-var",
         },
       };
       await Deno.writeTextFile(configPath, JSON.stringify(testConfig, null, 2));
@@ -154,7 +153,6 @@ describe("Init Workflow Integration", {
         ],
         llmProvider: {
           type: "anthropic",
-          credentialSource: "env-var",
         },
       };
       await Deno.writeTextFile(configPath, JSON.stringify(testConfig, null, 2));
