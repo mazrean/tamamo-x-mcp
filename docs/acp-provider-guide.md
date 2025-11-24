@@ -154,8 +154,7 @@ _Problem: Still needs ANTHROPIC_API_KEY environment variable_
 {
   "llmProvider": {
     "type": "anthropic",
-    "model": "claude-3-5-sonnet-20241022",
-    "credentialSource": "cli-tool"
+    "model": "claude-3-5-sonnet-20241022"
   }
 }
 ```

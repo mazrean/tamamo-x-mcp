@@ -19,7 +19,6 @@ const TEST_CONFIG: Configuration = {
   llmProvider: {
     type: "anthropic",
     model: "claude-3-5-sonnet-20241022",
-    credentialSource: "cli-tool",
   },
   groupingConstraints: {
     minToolsPerGroup: 5,

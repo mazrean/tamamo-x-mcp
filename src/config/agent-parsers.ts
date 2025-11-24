@@ -64,7 +64,6 @@ function parseClaudeCodeConfig(content: string): AgentMCPConfig {
   // Claude Code typically uses Anthropic
   const llmProvider: Partial<LLMProviderConfig> = {
     type: "anthropic" as LLMProviderType,
-    credentialSource: "cli-tool",
   };
 
   return { mcpServers, llmProvider };
@@ -140,7 +139,6 @@ function parseGeminiConfig(content: string): AgentMCPConfig {
   // Gemini CLI uses Gemini
   const llmProvider: Partial<LLMProviderConfig> = {
     type: "gemini" as LLMProviderType,
-    credentialSource: "cli-tool",
   };
 
   return { mcpServers, llmProvider };
@@ -186,7 +184,6 @@ function parseCursorConfig(content: string): AgentMCPConfig {
   // Cursor can use various providers, but we'll default to OpenAI
   const llmProvider: Partial<LLMProviderConfig> = {
     type: "openai" as LLMProviderType,
-    credentialSource: "env-var",
   };
 
   return { mcpServers, llmProvider };

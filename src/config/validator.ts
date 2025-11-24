@@ -70,8 +70,6 @@ function zodErrorToValidationErrors(zodError: ZodError): ValidationError[] {
       code = "MISSING_SERVER_NAME";
     } else if (field.includes("llmProvider.type")) {
       code = "INVALID_PROVIDER_TYPE";
-    } else if (field.includes("llmProvider.credentialSource")) {
-      code = "INVALID_CREDENTIAL_SOURCE";
     } else if (field.includes("llmProvider") && message.includes("Credentials")) {
       code = "FORBIDDEN_CREDENTIAL_FIELD";
     } else if (message.includes("Password, apiKey, and secret")) {

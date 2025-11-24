@@ -288,7 +288,6 @@ describe("Credential Discovery", () => {
         mcpServers: [],
         llmProvider: {
           type: "anthropic",
-          credentialSource: "cli-tool",
           apiKey: "sk-ant-SHOULD-NOT-BE-HERE", // Invalid!
         },
       };

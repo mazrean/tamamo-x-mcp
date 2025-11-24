@@ -185,8 +185,7 @@ This creates a configuration file:
     }
   ],
   "llmProvider": {
-    "type": "anthropic",
-    "credentialSource": "cli-tool"
+    "type": "anthropic"
   }
 }
 ```

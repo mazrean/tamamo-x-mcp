@@ -49,14 +49,12 @@ Important: Always provide a final text response after using tools. Summarize the
       mockLLMConfig = {
         type: "openai",
         model: "gpt-5.1",
-        credentialSource: "env-var",
       };
 
       // Anthropic config for Claude Agent SDK tests
       anthropicLLMConfig = {
         type: "anthropic",
         model: "claude-4-5-haiku",
-        credentialSource: "env-var",
       };
     });
 

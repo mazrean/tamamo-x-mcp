@@ -77,7 +77,6 @@ This document defines all data entities, their relationships, and validation rul
 
 - `type` (LLMProviderType, required): Provider identifier
 - `model` (string, optional): Model name (defaults per provider if not specified)
-- `credentialSource` (string, required): How credentials are obtained ("cli-tool", "env-var", "prompt")
 - `endpointOverride` (string, optional): Custom API endpoint URL
 
 **Validation Rules**:
@@ -88,7 +87,6 @@ This document defines all data entities, their relationships, and validation rul
   - openai: "gpt-4o"
   - gemini: "gemini-2.0-flash-exp"
   - vercel/bedrock/openrouter: User-specified, no default
-- `credentialSource` must be one of: "cli-tool", "env-var", "prompt"
 
 **Relationships**:
 

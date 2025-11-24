@@ -322,7 +322,6 @@ export async function init(options: {
     mcpServers: mcpServers.length > 0 ? mcpServers : [],
     llmProvider: {
       type: llmType,
-      credentialSource: "cli-tool",
     },
     projectContext,
   };
