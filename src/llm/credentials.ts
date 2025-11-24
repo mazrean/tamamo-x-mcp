@@ -117,12 +117,18 @@ export function discoverBedrockCredentials(): Promise<BedrockCredentials | null>
 
 /**
  * Discover Anthropic (Claude Code) credentials
- * Priority: CLI tool > TAMAMO_X_ANTHROPIC_API_KEY > ANTHROPIC_API_KEY
+ * Priority: TAMAMO_X_ANTHROPIC_API_KEY > ANTHROPIC_API_KEY > CLI tool
  */
 async function discoverAnthropicCredentials(
   home: string,
 ): Promise<string | null> {
-  // Try Claude Code credentials first
+  // Try environment variable first (with prefix support)
+  const envKey = getEnvWithPrefix("ANTHROPIC_API_KEY");
+  if (envKey) {
+    return envKey;
+  }
+
+  // Fallback to Claude Code credentials
   const claudeCredsPath = join(home, ".config", "claude", "credentials.json");
   try {
     const content = await Deno.readTextFile(claudeCredsPath);
@@ -131,13 +137,7 @@ async function discoverAnthropicCredentials(
       return creds.apiKey;
     }
   } catch {
-    // Ignore errors, try env var
-  }
-
-  // Fallback to environment variable (with prefix support)
-  const envKey = getEnvWithPrefix("ANTHROPIC_API_KEY");
-  if (envKey) {
-    return envKey;
+    // Ignore errors, return null
   }
 
   return null;
@@ -145,10 +145,16 @@ async function discoverAnthropicCredentials(
 
 /**
  * Discover OpenAI/Codex credentials
- * Priority: CLI tool > TAMAMO_X_OPENAI_API_KEY > OPENAI_API_KEY
+ * Priority: TAMAMO_X_OPENAI_API_KEY > OPENAI_API_KEY > CLI tool
  */
 async function discoverOpenAICredentials(home: string): Promise<string | null> {
-  // Try OpenAI config first
+  // Try environment variable first (with prefix support)
+  const envKey = getEnvWithPrefix("OPENAI_API_KEY");
+  if (envKey) {
+    return envKey;
+  }
+
+  // Fallback to OpenAI config
   const openaiConfigPath = join(home, ".codex", "auth.json");
   try {
     const content = await Deno.readTextFile(openaiConfigPath);
@@ -157,13 +163,7 @@ async function discoverOpenAICredentials(home: string): Promise<string | null> {
       return config.OPENAI_API_KEY;
     }
   } catch {
-    // Ignore errors, try env var
-  }
-
-  // Fallback to environment variable (with prefix support)
-  const envKey = getEnvWithPrefix("OPENAI_API_KEY");
-  if (envKey) {
-    return envKey;
+    // Ignore errors, return null
   }
 
   return null;

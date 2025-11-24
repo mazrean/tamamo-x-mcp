@@ -426,7 +426,7 @@ describe("Credential Discovery", () => {
       );
     });
 
-    it("should still prefer CLI tool credentials over prefixed env vars", async () => {
+    it("should prefer prefixed env vars over CLI tool credentials", async () => {
       // Arrange
       const claudeConfigDir = join(tempHomeDir, ".config", "claude");
       await Deno.mkdir(claudeConfigDir, { recursive: true });
@@ -444,14 +444,14 @@ describe("Credential Discovery", () => {
       // Assert
       assertEquals(
         apiKey,
-        "sk-ant-cli-key",
-        "CLI tool credentials should still take highest precedence",
+        "sk-ant-prefixed-key",
+        "Prefixed env var should take highest precedence",
       );
     });
   });
 
   describe("Credential precedence", () => {
-    it("should prefer CLI tool credentials over env vars", async () => {
+    it("should prefer env vars over CLI tool credentials", async () => {
       // Arrange
       const claudeConfigDir = join(tempHomeDir, ".config", "claude");
       await Deno.mkdir(claudeConfigDir, { recursive: true });
@@ -468,20 +468,30 @@ describe("Credential Discovery", () => {
       // Assert
       assertEquals(
         apiKey,
-        "sk-ant-cli-key",
-        "CLI tool credentials should take precedence",
+        "sk-ant-env-key",
+        "Environment variable should take precedence over CLI tool credentials",
       );
     });
 
-    it("should use env var when CLI tool credentials not found", async () => {
+    it("should use CLI tool credentials when env vars not found", async () => {
       // Arrange
-      Deno.env.set("OPENAI_API_KEY", "sk-openai-env-key");
+      const codexConfigDir = join(tempHomeDir, ".codex");
+      await Deno.mkdir(codexConfigDir, { recursive: true });
+      const authPath = join(codexConfigDir, "auth.json");
+      await Deno.writeTextFile(
+        authPath,
+        JSON.stringify({ OPENAI_API_KEY: "sk-openai-cli-key" }, null, 2),
+      );
 
       // Act
       const apiKey = await discoverCredentials("openai", tempHomeDir);
 
       // Assert
-      assertEquals(apiKey, "sk-openai-env-key", "Should fallback to env var");
+      assertEquals(
+        apiKey,
+        "sk-openai-cli-key",
+        "Should fallback to CLI tool credentials when env var not found",
+      );
     });
   });
 
