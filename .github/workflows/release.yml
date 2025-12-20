@@ -69,7 +69,7 @@ jobs:
             src/cli/main.ts
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: ${{ matrix.artifact-name }}
           path: dist/${{ matrix.binary-name }}
@@ -94,7 +94,7 @@ jobs:
         run: deno task npm:build
 
       - name: Upload npm package artifact
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: npm-package
           path: npm/
